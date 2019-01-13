@@ -50,9 +50,12 @@ public open class BookVersionException : BookException {
  */
 public open class BookReadingException : BookException {
     
-    constructor(message: String, cause: Throwable) : super(message, cause)
+    constructor(message: String, cause: Throwable) : super(
+        "Something went wrong when trying to read the book: [$message]",
+        cause
+    )
     
-    constructor(message: String) : super(message)
+    constructor(message: String) : super("Something went wrong when trying to read the book: [$message]")
     
     constructor(cause: Throwable) : super(cause)
     
@@ -65,9 +68,12 @@ public open class BookReadingException : BookException {
  */
 public open class BookWritingException : BookException {
     
-    constructor(message: String, cause: Throwable) : super(message, cause)
+    constructor(message: String, cause: Throwable) : super(
+        "Something went wrong when writing to the book; $message",
+        cause
+    )
     
-    constructor(message: String) : super(message)
+    constructor(message: String) : super("Something went wrong when writing to the book: [$message]")
     
     constructor(cause: Throwable) : super(cause)
     

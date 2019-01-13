@@ -26,7 +26,6 @@ class BookTest : FeatureSpec({
         val book = Book("".toPath())
         
         scenario("\"file\" should lead nowhere.") {
-            book.logger.info { "steven" }
             book.file.toString().shouldBeEmpty()
         }
     }
