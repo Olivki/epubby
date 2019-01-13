@@ -28,23 +28,26 @@ repositories {
 
 dependencies {
     // JSoup
-    compile "org.jsoup:jsoup:1.11.3"
+    implementation "org.jsoup:jsoup:1.11.3"
 
     // Kanon
-    compile "moe.kanon.kextensions:kanon.kextensions:0.2.0"
+    implementation "moe.kanon.kextensions:kanon.kextensions:0.2.0"
 
     // Swiftzer
-    compile "net.swiftzer.semver:semver:1.1.0"
+    implementation "net.swiftzer.semver:semver:1.1.0"
 
     // JetBrains
-    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
-    compile "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
-    compile "org.jetbrains.kotlinx:kotlinx-html-jvm:0.6.10"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+    implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
+    implementation "org.jetbrains.kotlinx:kotlinx-html-jvm:0.6.10"
 
     // Apache
-    compile "org.apache.logging.log4j:log4j-api-kotlin:1.0.0"
-    compile "org.apache.logging.log4j:log4j-api:2.11.1"
-    compile "org.apache.logging.log4j:log4j-core:2.11.1"
+    implementation "org.apache.logging.log4j:log4j-api-kotlin:1.0.0"
+    implementation "org.apache.logging.log4j:log4j-api:2.11.1"
+    implementation "org.apache.logging.log4j:log4j-core:2.11.1"
+    
+    // jansi
+    implementation 'org.fusesource.jansi:jansi:1.17.1'
 
     // Tests
     testImplementation "io.kotlintest:kotlintest-runner-junit5:3.1.11"
