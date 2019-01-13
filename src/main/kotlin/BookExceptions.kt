@@ -21,7 +21,7 @@ package moe.kanon.epubby
  *
  * Any `exception` thrown *explicitly* by epubby will most likely be a child of this `exception` in some way.
  */
-public open class BookException : RuntimeException {
+public open class BookException : Exception {
     
     constructor(message: String, cause: Throwable) : super(message, cause)
     
