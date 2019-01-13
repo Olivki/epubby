@@ -1,0 +1,150 @@
+plugins {
+    id "org.jetbrains.kotlin.jvm" version "1.3.11"
+    id "com.jfrog.bintray" version "1.8.4"
+    id "maven-publish"
+    id "org.jetbrains.dokka" version "0.9.17"
+}
+
+apply plugin: "java"
+apply plugin: "kotlin"
+apply plugin: "org.jetbrains.dokka"
+apply plugin: "maven-publish"
+
+group 'moe.kanon.epubby'
+description "Library for working with the EPUB file specification for Java and Kotlin."
+version '0.0.0'
+
+ext {
+    kotlinVersion = "1.3.11"
+    javaTarget = "1.8"
+    gitUrl = "https://gitlab.com/Olivki/epubby"
+    artifactName = "epubby"
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // https://mvnrepository.com/artifact/org.jsoup/jsoup
+    compile "org.jsoup:jsoup:1.11.3"
+    compile "moe.kanon.kextensions:kanon.kextensions:0.2.0"
+    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+    compile "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
+    testImplementation "io.kotlintest:kotlintest-runner-junit5:3.1.11"
+}
+
+test {
+    useJUnitPlatform()
+}
+
+compileKotlin {
+    kotlinOptions.jvmTarget = "$javaTarget"
+}
+
+compileTestKotlin {
+    kotlinOptions.jvmTarget = "$javaTarget"
+}
+
+// Publishing Stuff
+bintray {
+    user = System.getenv("BINTRAY_USER")
+    key = System.getenv("BINTRAY_KEY")
+    publications = ["mavenPublication"]
+
+    pkg {
+        repo = "kanon"
+        name = "$artifactName"
+        licenses = ["Apache-2.0"]
+        websiteUrl = "$gitUrl"
+        vcsUrl = "${gitUrl}.git"
+        publicDownloadNumbers = true
+
+        version {
+            name = "$project.version"
+            desc = "$project.version"
+            released = new Date()
+        }
+    }
+}
+
+task sourcesJar(type: Jar, dependsOn: classes) {
+    classifier = "sources"
+    from sourceSets.main.allSource
+}
+
+task dokkaJavadoc(type: org.jetbrains.dokka.gradle.DokkaTask) {
+    outputFormat = "javadoc"
+    outputDirectory = javadoc.destinationDir
+    inputs.dir "src/main/kotlin"
+    jdkVersion = 8
+
+    includeNonPublic = false
+    skipEmptyPackages = true
+
+    linkMapping {
+        dir = "src/main/kotlin"
+        url = "${gitUrl}/tree/master/src/main/kotlin"
+    }
+}
+
+javadoc.failOnError = false
+task javadocJar(type: Jar, dependsOn: dokkaJavadoc) {
+    classifier = "javadoc"
+    from javadoc.destinationDir
+}
+
+artifacts {
+    archives sourcesJar
+    archives javadocJar
+}
+
+def pomConfig = {
+    licenses {
+        license {
+            name "The Apache Software License, Version 2.0"
+            url "http://www.apache.org/licenses/LICENSE-2.0.txt"
+            distribution "repo"
+        }
+    }
+
+    developers {
+        developer {
+            id "olivki"
+            name "Oliver Berg"
+            email "oliver@berg.moe"
+        }
+    }
+
+    scm {
+        url "${gitUrl}"
+    }
+}
+
+publishing {
+    publications {
+        mavenPublication(MavenPublication) {
+            from components.java
+
+            artifact sourcesJar {
+                classifier "sources"
+            }
+
+            artifact javadocJar {
+                classifier "javadoc"
+            }
+
+            groupId "$project.group"
+            artifactId "$artifactName"
+            version "$project.version"
+
+            pom.withXml {
+                def root = asNode()
+                root.appendNode("description", "$project.description")
+                root.appendNode("name", "$artifactName")
+                root.appendNode("url", "$gitUrl")
+                root.children().last() + pomConfig
+            }
+        }
+    }
+}

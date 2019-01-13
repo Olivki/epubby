@@ -1,0 +1,76 @@
+# This is the Gradle build system for JVM applications
+# https://gradle.org/
+# https://github.com/gradle/gradle
+image: gradle:4.10
+
+
+# Disable the Gradle daemon for Continuous Integration servers as correctness
+# is usually a priority over speed in CI environments. Using a fresh
+# runtime for each build is more reliable since the runtime is completely
+# isolated from any previous builds.
+variables:
+  GRADLE_OPTS: "-Dorg.gradle.daemon=false"
+
+before_script:
+  - export GRADLE_USER_HOME=`pwd`/.gradle
+
+stages:
+  - test
+  - build
+  - tag
+
+test:
+  stage: test
+  before_script:
+    - echo "Starting test.."
+  script: gradle --build-cache check
+  cache:
+    key: "$CI_COMMIT_REF_NAME"
+    policy: push
+    paths:
+      - build
+      - .gradle
+  after_script:
+    - echo "Test is finished.."
+  only:
+    - master
+    - tags
+  except:
+    - branches
+
+build:
+  stage: build
+  before_script:
+    - echo "Starting build.."
+  script: gradle bintrayUpload
+  cache:
+    key: "$CI_COMMIT_REF_NAME"
+    policy: pull
+    paths:
+      - build
+      - .gradle
+  artifacts:
+    paths:
+      - ./build/libs/*.jar
+  after_script:
+    - echo "Build is finished.."
+  only:
+    - tags
+  except:
+    - branches
+
+attach_files_to_tag:
+  stage: tag
+  image: python:3
+  script:
+    - pip3 install gitlab_release
+    - python3 -m gitlab_release --description "## Downloads" "$PRIVATE_TOKEN" ./build/libs/*.jar
+  only:
+    - tags
+  except:
+    - branches
+
+
+after_script:
+  - echo "All stages are done."
+  - echo "Current tag; ${CI_COMMIT_TAG}"
