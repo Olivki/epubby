@@ -1,3 +1,3 @@
-# proxus.kstructures
+# proxus.epubby
 
 Nothing here yet.
