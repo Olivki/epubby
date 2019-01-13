@@ -16,6 +16,8 @@
 
 package moe.kanon.epubby
 
+import net.swiftzer.semver.SemVer
+
 /**
  * Thrown whenever a problem is encountered within epubby.
  *
@@ -29,6 +31,16 @@ public open class BookException : Exception {
     
     constructor(cause: Throwable) : super(cause)
     
+}
+
+public open class BookVersionException : BookException {
+    
+    constructor(version: SemVer, message: String = "\"EPUB $version\" is not supported!") : super(message)
+    
+    constructor(version: SemVer, message: String = "\"EPUB $version\" is not supported!", cause: Throwable) : super(
+        message,
+        cause
+    )
 }
 
 /**
