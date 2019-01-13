@@ -19,6 +19,8 @@
 package moe.kanon.epubby
 
 import net.swiftzer.semver.SemVer
+import org.apache.logging.log4j.kotlin.KotlinLogger
+import org.apache.logging.log4j.kotlin.logger
 import java.io.IOException
 import java.nio.file.Path
 
@@ -26,6 +28,11 @@ import java.nio.file.Path
 // TODO: Add DSL builder for creating new epubs from nothing, builder will be for initial settings like name and author.
 
 public data class Book(public val file: Path) {
+    
+    /**
+     * The [logger][KotlinLogger] instance used for any and all logging done by epubby.
+     */
+    internal val logger: KotlinLogger = logger("epubby")
     
     /**
      * The format version used by this EPUB.
@@ -57,17 +64,17 @@ public data class Book(public val file: Path) {
     public class Version(_semVer: String) {
         
         internal constructor(format: Format) : this(format.version.toString())
-    
+        
         /**
          * The [semantic version][SemVer] instance.
          */
         public val semantic: SemVer = SemVer.parse(_semVer)
-    
+        
         /**
          * The closest matching [version format][Format].
          */
         public val format: Format = Format.from(semantic)
-    
+        
         /**
          * Compares this [version][Version] to the [other] version and returns which one is the bigger.
          */
