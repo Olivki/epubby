@@ -1,3 +1,3 @@
-# proxus.epubby
+# epubby
 
 Nothing here yet.
