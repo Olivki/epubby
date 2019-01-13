@@ -33,6 +33,9 @@ dependencies {
     // Kanon
     compile "moe.kanon.kextensions:kanon.kextensions:0.2.0"
 
+    // MicroUtils
+    compile "io.github.microutils:kotlin-logging:1.6.22"
+
     // Swiftzer
     compile "net.swiftzer.semver:semver:1.1.0"
 
