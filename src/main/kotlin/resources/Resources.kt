@@ -88,7 +88,7 @@ public abstract class Resource(internal val book: Book, public val name: String,
     }
 }
 
-public class ResourceRepository {
+public class ResourceRepository(internal val book: Book) {
 
 }
 
