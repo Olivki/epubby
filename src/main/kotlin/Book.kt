@@ -46,13 +46,13 @@ public data class Book(public val file: Path) {
     companion object {
         
         @JvmStatic
-        @Throws(IOException::class, BookReadingException::class)
+        @Throws(IOException::class, BookReadException::class)
         public fun from(epub: Path): Book {
             TODO("Implement factory method.")
         }
         
         @JvmStatic
-        @Throws(IOException::class, BookWritingException::class)
+        @Throws(IOException::class, BookWriteException::class)
         public fun to(directory: Path): Book {
             TODO("Implement factory method.")
         }

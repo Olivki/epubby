@@ -105,7 +105,7 @@ public class ImageResource(book: Book, name: String, file: Path) : Resource(book
         try {
             image = ImageIO.read(!file)
         } catch (e: IOException) {
-            throw ResourceCreationException("Failed to read the image: (\"$file\")", e)
+            throw ResourceCreateException("Failed to read the image: (\"$file\")", e)
         }
     }
     
