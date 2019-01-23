@@ -12,7 +12,7 @@ apply plugin: "org.jetbrains.dokka"
 apply plugin: "maven-publish"
 
 group "moe.kanon.epubby"
-description "Library for working with the EPUB file format for Java and Kotlin."
+description "Library for working with the EPUB file format for Kotlin and Java."
 version "0.1.0"
 
 ext {
@@ -24,6 +24,7 @@ ext {
 repositories {
     mavenCentral()
     jcenter()
+    maven { url "https://dl.bintray.com/olivki/kanon" }
 }
 
 dependencies {
@@ -31,15 +32,16 @@ dependencies {
     implementation "org.jsoup:jsoup:1.11.3"
 
     // Kanon
-    implementation "moe.kanon.kextensions:kanon.kextensions:0.5.1"
+    implementation "moe.kanon.kextensions:kanon.kextensions:0.5.2"
+    implementation "moe.kanon.xml:kanon.xml:1.0.0"
 
     // Swiftzer
-    implementation "net.swiftzer.semver:semver:1.1.0"
+    implementation "net.swiftzer.semver:semver:1.1.1"
 
     // JetBrains
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     implementation "org.jetbrains.kotlin:kotlin-reflect"
-    implementation "org.jetbrains.kotlinx:kotlinx-html-jvm:0.6.10"
+    implementation "org.jetbrains.kotlinx:kotlinx-html-jvm:0.6.12"
 
     // Apache
     implementation "org.apache.logging.log4j:log4j-api-kotlin:1.0.0"
@@ -50,7 +52,7 @@ dependencies {
     implementation 'org.fusesource.jansi:jansi:1.17.1'
 
     // Tests
-    testImplementation "io.kotlintest:kotlintest-runner-junit5:3.1.11"
+    testImplementation "io.kotlintest:kotlintest-runner-junit5:3.2.1"
 }
 
 test {
