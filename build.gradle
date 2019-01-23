@@ -1,5 +1,5 @@
 plugins {
-    id "org.jetbrains.kotlin.jvm" version "1.3.11"
+    id "org.jetbrains.kotlin.jvm" version "1.3.20"
     id "com.jfrog.bintray" version "1.8.4"
     id "maven-publish"
     id "org.jetbrains.dokka" version "0.9.17"
@@ -15,7 +15,6 @@ description "Library for working with the EPUB file format for Java and Kotlin."
 version "0.1.0"
 
 ext {
-    kotlinVersion = "1.3.11"
     javaTarget = "1.8"
     gitUrl = "https://gitlab.com/Olivki/epubby"
     artifactName = "epubby"
@@ -31,14 +30,14 @@ dependencies {
     implementation "org.jsoup:jsoup:1.11.3"
 
     // Kanon
-    implementation "moe.kanon.kextensions:kanon.kextensions:0.2.0"
+    implementation "moe.kanon.kextensions:kanon.kextensions:0.5.1"
 
     // Swiftzer
     implementation "net.swiftzer.semver:semver:1.1.0"
 
     // JetBrains
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
-    implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
+    implementation "org.jetbrains.kotlin:kotlin-reflect"
     implementation "org.jetbrains.kotlinx:kotlinx-html-jvm:0.6.10"
 
     // Apache
