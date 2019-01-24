@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+@file:Suppress("MemberVisibilityCanBePrivate")
+
 package moe.kanon.epubby.resources
 
 import moe.kanon.kextensions.io.not
@@ -34,7 +36,7 @@ import javax.imageio.ImageIO
  * @property name The name of the resource, this is based on the file name.
  * @property type The type of the resource.
  */
-public abstract class Resource(internal val book: Book, public val name: String, file: Path, public val type: Type) {
+public sealed class Resource(internal val book: Book, public val name: String, file: Path, public val type: Type) {
     
     /**
      * The actual [file][Path] instance linked to this resource.
@@ -98,44 +100,55 @@ public class ImageResource(book: Book, name: String, file: Path) : Resource(book
     public lateinit var image: BufferedImage
         private set
     
-    public lateinit var extension: Extension
+    public lateinit var extension: Extensions
         private set
     
+    @Throws(CreateResourceException::class)
     override fun onCreation() {
         try {
             image = ImageIO.read(!file)
         } catch (e: IOException) {
-            throw ResourceCreateException("Failed to read the image: (\"$file\")", e)
+            throw CreateResourceException("Failed to read the image: (\"$file\")", e)
         }
     }
     
-    public enum class Extension {
+    public enum class Extensions {
         PNG, JPG, GIF, SVG, UNKNOWN;
         
         companion object {
-            public fun from(extension: String): Extension =
-                values().asSequence().find { it.name == extension.toUpperCase() } ?: UNKNOWN
+            
+            @JvmStatic
+            public fun from(extension: String): Extensions =
+                values().find { it.name == extension.toUpperCase() } ?: UNKNOWN
         }
     }
 }
 
-public class ResourceRepository(internal val book: Book) : Iterable<Resource> {
+public class ResourceRepository(
+    internal val book: Book
+) : Iterable<Resource>,
+    MutableMap<String, Resource> by LinkedHashMap() {
     
-    private val resources: LinkedHashMap<String, Resource> = LinkedHashMap()
+    public fun filter(type: Resource.Type): List<Resource> = values.filter { it.type == type }
     
-    public fun filter(type: Resource.Type): List<Resource> = resources.values.filter { it.type == type }
+    public override fun iterator(): Iterator<Resource> = values.toList().iterator()
     
-    public override fun iterator(): Iterator<Resource> = resources.values.toList().iterator()
-    
-    // Operators
-    public operator fun get(key: String): Resource? = resources[key]
-    
-    public operator fun set(key: String, resource: Resource) {
-        resources[key] = resource
+    public override fun remove(key: String): Resource? {
+        TODO("not implemented")
     }
     
-    public operator fun contains(href: String): Boolean = resources.containsKey(href)
+    public override fun remove(key: String, value: Resource): Boolean {
+        return super.remove(key, value)
+    }
     
-    public operator fun contains(resource: Resource): Boolean = resources.containsValue(resource)
+    public override fun clear() {
+        TODO("Implement a function here that will mark all resources for deletion.")
+        // entries.iterator().forEachRemaining { stuff }
+    }
+    
+    // Operators
+    public operator fun contains(href: String): Boolean = containsKey(href)
+    
+    public operator fun contains(resource: Resource): Boolean = containsValue(resource)
 }
 

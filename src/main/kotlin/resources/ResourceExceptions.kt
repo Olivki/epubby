@@ -18,7 +18,7 @@ package moe.kanon.epubby.resources
 
 import moe.kanon.epubby.BookReadException
 
-public open class ResourceCreateException : BookReadException {
+public open class CreateResourceException : BookReadException {
     
     constructor(message: String, cause: Throwable) : super(message, cause)
     
@@ -28,7 +28,7 @@ public open class ResourceCreateException : BookReadException {
     
 }
 
-public open class ResourceDeleteException : BookReadException {
+public open class DeleteResourceException : BookReadException {
     
     constructor(message: String, cause: Throwable) : super(message, cause)
     

@@ -20,4 +20,5 @@ Nothing here yet.
 - [ ] Cleaner Framework
     - [ ] Support for scripting languages.
     - [ ] Support for loading external scripts.
-- [ ] JSoup Utils
+    - [ ] Use the ServiceLoader for this.
+- [x] JSoup Utils

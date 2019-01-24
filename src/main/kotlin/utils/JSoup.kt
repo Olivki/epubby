@@ -111,7 +111,6 @@ public fun Element.replaceClass(newClass: String, force: Boolean = false) {
     this.removeClass(force)
     this.addClass(newClass)
 }
-
 /**
  * Returns whether or not any of the `children` of this [Element] `matches` the specified [query].
  *
