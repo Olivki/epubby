@@ -15,6 +15,10 @@ group "moe.kanon.epubby"
 description "Library for working with the EPUB file format for Kotlin and Java."
 version "0.1.0"
 
+configurations {
+    implementation.extendsFrom(includeInJar)
+}
+
 ext {
     javaTarget = "1.8"
     gitUrl = "https://gitlab.com/Olivki/epubby"
@@ -24,7 +28,10 @@ ext {
 repositories {
     mavenCentral()
     jcenter()
-    maven { url "https://dl.bintray.com/olivki/kanon" }
+    //maven { url "https://dl.bintray.com/olivki/kanon" }
+    flatDir {
+        dirs 'libs'
+    }
 }
 
 dependencies {
@@ -51,8 +58,23 @@ dependencies {
     // Jansi
     implementation 'org.fusesource.jansi:jansi:1.17.1'
 
+    // Humanizer
+    includeInJar ':humanizer'
+
     // Tests
     testImplementation "io.kotlintest:kotlintest-runner-junit5:3.2.1"
+}
+
+jar {
+    from {
+        configurations.includeInJar.collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
+    } {
+        exclude "META-INF/*.SF"
+        exclude "META-INF/*.DSA"
+        exclude "META-INF/*.RSA"
+    }
 }
 
 test {

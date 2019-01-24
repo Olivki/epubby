@@ -98,5 +98,5 @@ fabric.properties
 # Editor-based Rest Client
 .idea/httpRequests
 
-!/libs/Humanizer-1.0.0-sources.jar
-!/libs/Humanizer-1.0.0.jar
+!/libs/humanizer-sources.jar
+!/libs/humanizer.jar
