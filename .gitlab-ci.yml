@@ -17,21 +17,17 @@ before_script:
 stages:
   - test
   - build
-  - tag
+  - assets
 
 test:
   stage: test
-  before_script:
-    - echo "Starting test.."
-  script: gradle --build-cache check
+  script: gradle --build-cache clean test
   cache:
     key: "$CI_COMMIT_REF_NAME"
     policy: push
     paths:
       - build
       - .gradle
-  after_script:
-    - echo "Test is finished.."
   only:
     - master
     - tags
@@ -40,9 +36,7 @@ test:
 
 build:
   stage: build
-  before_script:
-    - echo "Starting build.."
-  script: gradle bintrayUpload
+  script: gradle --build-cache assemble
   cache:
     key: "$CI_COMMIT_REF_NAME"
     policy: pull
@@ -50,27 +44,22 @@ build:
       - build
       - .gradle
   artifacts:
+    expire_in: 1 day
     paths:
       - ./build/libs/*.jar
-  after_script:
-    - echo "Build is finished.."
   only:
     - tags
   except:
     - branches
 
-attach_files_to_tag:
-  stage: tag
-  image: python:3
+append_assets:
+  stage: assets
+  # We use the openjdk image here because it's smaller than the docker image.
+  image: openjdk:8-jdk-slim
   script:
-    - pip3 install gitlab_release
-    - python3 -m gitlab_release --description "## Downloads" "$PRIVATE_TOKEN" ./build/libs/*.jar
+    - chmod +x appender.jar
+    - java -jar appender.jar -d "./build/libs/"
   only:
     - tags
   except:
     - branches
-
-
-after_script:
-  - echo "All stages are done."
-  - echo "Current tag; ${CI_COMMIT_TAG}"

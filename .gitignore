@@ -100,3 +100,4 @@ fabric.properties
 
 !/libs/humanizer-sources.jar
 !/libs/humanizer.jar
+!/appender.jar
