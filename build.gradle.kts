@@ -5,11 +5,11 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 // Gradle versions needs to be >= 5.0
 plugins {
-    kotlin("jvm") version "1.3.20"
-    id("com.adarshr.test-logger") version "1.6.0" // For pretty-printing for tests.
-    id("com.jfrog.bintray") version "1.8.4" // For publishing to BinTray.
-    id("org.jetbrains.dokka") version "0.9.17" // The KDoc engine.
-    id("com.github.ben-manes.versions") version "0.20.0" // For checking for new dependency versions.
+    kotlin("jvm").version("1.3.20")
+    id("com.adarshr.test-logger").version("1.6.0") // For pretty-printing for tests.
+    id("com.jfrog.bintray").version("1.8.4") // For publishing to BinTray.
+    id("org.jetbrains.dokka").version("0.9.17") // The KDoc engine.
+    id("com.github.ben-manes.versions").version("0.20.0") // For checking for new dependency versions.
     `maven-publish`
 }
 
