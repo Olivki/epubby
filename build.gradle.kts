@@ -28,8 +28,6 @@ repositories {
 
 dependencies {
     // Normal Dependencies
-    implementation(kotlin("stdlib-jdk8"))
-    
     // JSoup
     implementation("org.jsoup:jsoup:1.11.3")
     
@@ -41,8 +39,8 @@ dependencies {
     implementation("net.swiftzer.semver:semver:1.1.1")
     
     // JetBrains
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-    implementation("org.jetbrains.kotlin:kotlin-reflect")
+    implementation(kotlin("stdlib-jdk8"))
+    implementation(kotlin("kotlin-reflect"))
     implementation("org.jetbrains.kotlinx:kotlinx-html-jvm:0.6.12")
     
     // Apache
