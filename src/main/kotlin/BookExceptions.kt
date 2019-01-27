@@ -48,7 +48,7 @@ public open class BookVersionException : BookException {
  *
  * More specific `exceptions` that handle parsing/reading in epubby will be children of this.
  */
-public open class BookReadException : BookException {
+public open class ReadBookException : BookException {
     
     constructor(message: String, cause: Throwable) : super(
         "Something went wrong when trying to read the book: [$message]",
@@ -66,10 +66,10 @@ public open class BookReadException : BookException {
  *
  * More specific `exceptions` that handle writing in epubby will be children of this.
  */
-public open class BookWriteException : BookException {
+public open class WriteBookException : BookException {
     
     constructor(message: String, cause: Throwable) : super(
-        "Something went wrong when writing to the book; $message",
+        "Something went wrong when writing to the book: [$message]",
         cause
     )
     

@@ -18,12 +18,16 @@
 
 package moe.kanon.epubby.resources
 
+import moe.kanon.epubby.multiCatch
+import moe.kanon.kextensions.io.extension
 import moe.kanon.kextensions.io.not
+import org.xml.sax.SAXException
 import java.awt.image.BufferedImage
 import java.awt.print.Book
 import java.io.IOException
 import java.nio.file.Path
 import javax.imageio.ImageIO
+import javax.xml.parsers.ParserConfigurationException
 
 
 /**
@@ -36,12 +40,12 @@ import javax.imageio.ImageIO
  * @property name The name of the resource, this is based on the file name.
  * @property type The type of the resource.
  */
-public sealed class Resource(internal val book: Book, public val name: String, file: Path, public val type: Type) {
+sealed class Resource(internal val book: Book, val name: String, file: Path, val type: Type) {
     
     /**
      * The actual [file][Path] instance linked to this resource.
      */
-    public var file: Path = file
+    var file: Path = file
         internal set(value) {
             field = value
         }
@@ -49,19 +53,22 @@ public sealed class Resource(internal val book: Book, public val name: String, f
     /**
      * This function is ran whenever this resource is actually created.
      */
-    public abstract fun onCreation()
+    @Throws(CreateResourceException::class)
+    abstract fun onCreation()
     
     /**
      * The function is ran whenever this resource has been marked for deletion.
      */
-    public fun onDeletion() {}
+    @Throws(DeleteResourceException::class)
+    open fun onDeletion() {
+    }
     
     /**
      * Renames this resource to [name].
      *
      * This function also takes care of updating any and all references to this resource.
      */
-    public fun renameTo(name: String) {
+    fun renameTo(name: String) {
         TODO("Implement resource renaming.")
     }
     
@@ -71,10 +78,10 @@ public sealed class Resource(internal val book: Book, public val name: String, f
      * @property location The directory where any resources that are of this [Type] should be stored.
      * @property extensions What kind of extensions (file types) this type supports.
      */
-    public enum class Type(public val location: String = "", public vararg val extensions: String) {
+    enum class Type(public val location: String = "", public vararg val extensions: String) {
         
         PAGE("Text/", "XHTML", "HTML"),
-        STYLE("Styles/", "CSS"),
+        STYLE_SHEET("Styles/", "CSS"),
         IMAGE("Images/", "JPG", "JPEG", "PNG", "GIF", "SVG"),
         FONT("Fonts/", "TTF", "OTF"),
         AUDIO("Audio/", "MP3", "MPEG", "WAV"),
@@ -95,12 +102,12 @@ public sealed class Resource(internal val book: Book, public val name: String, f
     }
 }
 
-public class ImageResource(book: Book, name: String, file: Path) : Resource(book, name, file, Type.IMAGE) {
+class ImageResource(book: Book, name: String, file: Path) : Resource(book, name, file, Type.IMAGE) {
     
-    public lateinit var image: BufferedImage
+    lateinit var image: BufferedImage
         private set
     
-    public lateinit var extension: Extensions
+    lateinit var imageType: ImageType
         private set
     
     @Throws(CreateResourceException::class)
@@ -112,43 +119,111 @@ public class ImageResource(book: Book, name: String, file: Path) : Resource(book
         }
     }
     
-    public enum class Extensions {
+    enum class ImageType {
         PNG, JPG, GIF, SVG, UNKNOWN;
         
         companion object {
             
             @JvmStatic
-            public fun from(extension: String): Extensions =
+            public fun from(extension: String): ImageType =
                 values().find { it.name == extension.toUpperCase() } ?: UNKNOWN
         }
     }
 }
 
-public class ResourceRepository(
+class NcxResource(book: Book, name: String, file: Path) : Resource(book, name, file, Type.NCX) {
+    
+    override fun onCreation() {
+        try {
+            //TableOfContentsReader.readFile(getBook(), file)
+        } catch (e: Exception) {
+            e.multiCatch(ParserConfigurationException::class, IOException::class, SAXException::class) {
+                throw CreateResourceException("Failed to read the NCX file.", e)
+            }
+        }
+        
+    }
+}
+
+class OpfResource(book: Book, name: String, file: Path) : Resource(book, name, file, Type.OPF) {
+    
+    override fun onCreation() { // This loads before pages and maybe something more, might cause issues.
+        try {
+            //ContentReader.readFile(getBook(), file)
+        } catch (e: IOException) {
+            throw CreateResourceException("Failed to read the OPF file.", e)
+        }
+        
+    }
+}
+
+class PageResource(book: Book, name: String, file: Path) : Resource(book, name, file, Type.PAGE) {
+    
+    //lateinit var page: Page
+    //    private set
+    
+    override fun onCreation() {
+        try {
+            //this.page = getBook().getPages().addPage(file)
+        } catch (e: IOException) {
+            throw CreateResourceException("Failed to read the (X)HTML file.", e)
+        }
+        
+    }
+    
+    override fun onDeletion() {
+        //getBook().getPages().removePage(getPage())
+    }
+    
+}
+
+class StyleSheetResource(book: Book, name: String, file: Path) : Resource(book, name, file, Type.STYLE_SHEET) {
+    
+    //lateinit var reader: StyleSheetReader
+    //    private set
+    
+    override fun onCreation() {
+        //styleSheetReader = getBook().getStyleSheets().registerReader(this)
+    }
+    
+    override fun onDeletion() {
+        //getBook().getPages().removeStyleSheet(getStyleSheetReader())
+        //getBook().getStyleSheets().unregisterReader(this)
+    }
+}
+
+/**
+ * A repository used for working with all the different kinds of `resources` in the epub.
+ */
+class ResourceRepository(
     internal val book: Book
-) : Iterable<Resource>,
-    MutableMap<String, Resource> by LinkedHashMap() {
+) : Iterable<Resource> {
     
-    public fun filter(type: Resource.Type): List<Resource> = values.filter { it.type == type }
+    @PublishedApi @JvmSynthetic internal val resources = LinkedHashMap<String, Resource>()
     
-    public override fun iterator(): Iterator<Resource> = values.toList().iterator()
+    /**
+     * Returns a list containing only `resources` that match the given [type].
+     */
+    fun filter(type: Resource.Type): List<Resource> = filter { it.type == type }
     
-    public override fun remove(key: String): Resource? {
+    /**
+     * Returns a list containing only `resources` that have the specified [extension].
+     */
+    fun filter(href: String): List<Resource> = filter { it.file.extension.equals(href, true) }
+    
+    /**
+     * Returns a list containing only `resources` that match the given [predicate].
+     */
+    inline fun filter(predicate: (Resource) -> Boolean): List<Resource> = resources.values.filter(predicate)
+    
+    override fun iterator(): Iterator<Resource> = resources.values.toList().iterator()
+    
+    fun remove(href: String): Resource? {
         TODO("not implemented")
     }
     
-    public override fun remove(key: String, value: Resource): Boolean {
-        return super.remove(key, value)
-    }
-    
-    public override fun clear() {
-        TODO("Implement a function here that will mark all resources for deletion.")
-        // entries.iterator().forEachRemaining { stuff }
-    }
-    
     // Operators
-    public operator fun contains(href: String): Boolean = containsKey(href)
+    operator fun contains(href: String): Boolean = resources.containsKey(href)
     
-    public operator fun contains(resource: Resource): Boolean = containsValue(resource)
+    operator fun contains(resource: Resource): Boolean = resources.containsValue(resource)
 }
-

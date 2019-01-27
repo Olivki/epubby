@@ -18,12 +18,15 @@
 
 package moe.kanon.epubby
 
+import moe.kanon.kextensions.io.KPath
 import net.swiftzer.semver.SemVer
 import org.apache.logging.log4j.kotlin.KotlinLogger
 import org.apache.logging.log4j.kotlin.logger
 import java.io.IOException
 import java.io.InputStream
 import java.nio.file.Path
+import kotlin.reflect.KClass
+import kotlin.reflect.full.isSubclassOf
 
 // TODO: Add DSL builder for book settings
 // TODO: Add DSL builder for creating new epubs from nothing, builder will be for initial settings like name and author.
@@ -50,14 +53,40 @@ public data class Book(public val file: Path) {
     
     companion object {
         
+        /*
+        @Throws(Throwable::class)
+@JvmStatic
+fun main(args: Array<String>) {
+    val env = HashMap<String, String>()
+    env["create"] = "true"
+    // locate file system by using the syntax
+    // defined in java.net.JarURLConnection
+    val uri = URI.create("jar:file:/codeSamples/zipfs/zipfstest.zip")
+    
+    FileSystems.newFileSystem(uri, env).use { zipfs ->
+        val externalTxtFile = Paths.get("/codeSamples/zipfs/SomeTextFile.txt")
+        val pathInZipfile = zipfs.getPath("/SomeTextFile.txt")
+        // copy a file into the zip file
+        Files.copy(
+            externalTxtFile, pathInZipfile,
+            StandardCopyOption.REPLACE_EXISTING
+        )
+    }
+}
+         */
+        
         @JvmStatic
-        @Throws(IOException::class, BookReadException::class)
-        public fun from(epub: Path): Book {
+        @Throws(IOException::class, ReadBookException::class)
+        public fun from(file: Path): Book {
             TODO("Implement factory method.")
         }
         
         @JvmStatic
-        @Throws(IOException::class, BookReadException::class)
+        @Throws(IOException::class, ReadBookException::class)
+        public fun from(path: String): Book = from(KPath(path))
+        
+        @JvmStatic
+        @Throws(IOException::class, ReadBookException::class)
         public fun from(stream: InputStream): Book {
             TODO("Implement factory method.")
         }
@@ -94,3 +123,30 @@ public data class Book(public val file: Path) {
         }
     }
 }
+
+// TODO: Remove this once kextensions reaches a favourable state with v0.6.0.
+/**
+ * Simulates the `multi-catch` feature from Java in Kotlin.
+ *
+ * **Usage:**
+ *
+ * ```kotlin
+ *  try {
+ *      ...
+ *  } catch (e: Exception) {
+ *      e.multiCatch(ExceptionOne::class, ExceptionTwo::class) {
+ *          ...
+ *      }
+ *  }
+ * ```
+ *
+ * @param classes Which classes this `multi-catch` block should actually catch.
+ *
+ * If an `exception` gets thrown where this function is used, and it's not listed in the `classes` vararg, then the
+ * exception will just get re-thrown.
+ *
+ * @author carleslc
+ */
+@PublishedApi
+internal inline fun Throwable.multiCatch(vararg classes: KClass<*>, catchBlock: () -> Unit) =
+    if (classes.any { this::class.isSubclassOf(it) }) catchBlock() else throw this
