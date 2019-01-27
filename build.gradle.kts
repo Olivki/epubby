@@ -1,15 +1,16 @@
+
 import com.jfrog.bintray.gradle.BintrayExtension
 import org.jetbrains.dokka.gradle.DokkaTask
-import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-// Gradle versions needs to be >= 5.0
 plugins {
     kotlin("jvm").version("1.3.20")
+    
     id("com.adarshr.test-logger").version("1.6.0") // For pretty-printing for tests.
     id("com.jfrog.bintray").version("1.8.4") // For publishing to BinTray.
     id("org.jetbrains.dokka").version("0.9.17") // The KDoc engine.
     id("com.github.ben-manes.versions").version("0.20.0") // For checking for new dependency versions.
+    
     `maven-publish`
 }
 
@@ -84,7 +85,7 @@ val sourcesJar by tasks.creating(Jar::class) {
     description = "Assembles the sources of this project into a *-sources.jar file."
     classifier = "sources"
     
-    from(project.the<KotlinJvmProjectExtension>().sourceSets["main"].resources)
+    from(project.sourceSets["main"].allSource)
 }
 
 val javaDocJar by tasks.creating(Jar::class) {
@@ -131,35 +132,23 @@ bintray {
     })
 }
 
-// Maven
-// Creates the *.pom file which lists all the dependencies of this project.
-fun org.gradle.api.publish.maven.MavenPom.addDependencies() = withXml {
-    asNode().appendNode("dependencies").let { depNode ->
-        configurations.compile.allDependencies.forEach {
-            depNode.appendNode("dependency").apply {
-                appendNode("groupId", it.group)
-                appendNode("artifactId", it.name)
-                appendNode("version", it.version)
-            }
-        }
-    }
-}
-
-//
+// Maven Tasks
 publishing {
     publications.invoke {
         register("mavenPublication", MavenPublication::class.java) {
-            // General project information.
-            groupId = project.group.toString()
-            version = project.version.toString()
-            artifactId = artifactName
-            
-            // Any extra artifacts that need to be added, ie: sources & javadoc jars.
-            artifact(sourcesJar)
-            artifact(javaDocJar)
-            
-            // Populates the dependencies.
-            pom.addDependencies()
+            // Adds all the dependencies this project uses to the pom.
+            from(components["java"])
+
+            afterEvaluate {
+                // General project information.
+                groupId = project.group.toString()
+                version = project.version.toString()
+                artifactId = artifactName
+
+                // Any extra artifacts that need to be added, ie: sources & javadoc jars.
+                artifact(sourcesJar)
+                artifact(javaDocJar)
+            }
         }
     }
 }
