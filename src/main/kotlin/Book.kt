@@ -44,7 +44,8 @@ data class Book(public val file: Path) {
      */
     var version: Version = Version.UNKNOWN
         internal set(value) = when (value.format) {
-            EpubFormat.NOT_SUPPORTED -> throw BookVersionException(value.semantic)
+            EpubFormat.NOT_SUPPORTED ->
+                throw BookException("The EPUB v${value.semantic} format is not supported by epubby!")
             else -> field = value
         }
     
@@ -128,6 +129,15 @@ fun main(args: Array<String>) {
             @JvmStatic val UNKNOWN: Version = Version(EpubFormat.UNKNOWN)
         }
     }
+}
+
+interface BookLoad {
+    
+    /**
+     * This is ran during the initialization of the [Book] instance.
+     */
+    fun onBookInitialization()
+    
 }
 
 // TODO: Remove this once kextensions reaches a favourable state with v0.6.0.
