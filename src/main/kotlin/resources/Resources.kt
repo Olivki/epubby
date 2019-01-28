@@ -18,12 +18,15 @@
 
 package moe.kanon.epubby.resources
 
+import moe.kanon.epubby.Book
 import moe.kanon.epubby.multiCatch
+import moe.kanon.epubby.resources.pages.Page
 import moe.kanon.kextensions.io.extension
+import moe.kanon.kextensions.io.name
 import moe.kanon.kextensions.io.not
+import moe.kanon.kextensions.io.sameFile
 import org.xml.sax.SAXException
 import java.awt.image.BufferedImage
-import java.awt.print.Book
 import java.io.IOException
 import java.nio.file.Path
 import javax.imageio.ImageIO
@@ -31,10 +34,7 @@ import javax.xml.parsers.ParserConfigurationException
 
 
 /**
- * A class representation of a resource in the EPUB.
- *
- * Currently implemented resources are;
- * - Images (
+ * A class representation of a resource in the epub.
  *
  * @property book An internal reference to be used when needed to access the parent book.
  * @property name The name of the resource, this is based on the file name.
@@ -49,6 +49,26 @@ sealed class Resource(internal val book: Book, val name: String, file: Path, val
         internal set(value) {
             field = value
         }
+    
+    /**
+     * Returns a basic representation of the location of this resource in relation to it's [type].
+     */
+    val href: String get() = "${type.location}${file.name}"
+    
+    /**
+     * Returns a basic representation of the location of this resource in relation to it's [type].
+     *
+     * What makes this different from [href] is that this has "`../`" appended at the start, this is generally used
+     * when working with files inside of the epub to mark relative paths.
+     *
+     * TODO: This might not even be needed what with how
+     */
+    val relativeHref: String get() = "../$href"
+    
+    /**
+     * A map containing all the occurrences of this `resource` inside the pages of the epub.
+     */
+    val pageOccurences: MutableMap<Path, Int> = LinkedHashMap()
     
     /**
      * This function is ran whenever this resource is actually created.
@@ -102,6 +122,12 @@ sealed class Resource(internal val book: Book, val name: String, file: Path, val
     }
 }
 
+/**
+ * The `class` representation for `PNG`, `JPG`, `GIF`, & `SVG` files.
+ *
+ * **Note:** This class also supports `JPEG` extensions, *however*, it does so by forcefully changing any instances of
+ * a `JPEG` extension to a `JPG` one.
+ */
 class ImageResource(book: Book, name: String, file: Path) : Resource(book, name, file, Type.IMAGE) {
     
     lateinit var image: BufferedImage
@@ -131,6 +157,14 @@ class ImageResource(book: Book, name: String, file: Path) : Resource(book, name,
     }
 }
 
+/**
+ * The `class` representation for the `NCX` file.
+ *
+ * The `NCX` file represents the table of contents in epub files of format versions under v3.
+ *
+ * The v3 format introduced the `nav` page which replaced the `NCX` file, it's still required to have one in the
+ * archive for it to be a valid epub however.
+ */
 class NcxResource(book: Book, name: String, file: Path) : Resource(book, name, file, Type.NCX) {
     
     override fun onCreation() {
@@ -145,6 +179,9 @@ class NcxResource(book: Book, name: String, file: Path) : Resource(book, name, f
     }
 }
 
+/**
+ * The `class` representation for the `OPF` file.
+ */
 class OpfResource(book: Book, name: String, file: Path) : Resource(book, name, file, Type.OPF) {
     
     override fun onCreation() { // This loads before pages and maybe something more, might cause issues.
@@ -157,10 +194,13 @@ class OpfResource(book: Book, name: String, file: Path) : Resource(book, name, f
     }
 }
 
+/**
+ * The `class` representation for `XHTML` & `HTML` files.
+ */
 class PageResource(book: Book, name: String, file: Path) : Resource(book, name, file, Type.PAGE) {
     
-    //lateinit var page: Page
-    //    private set
+    lateinit var page: Page
+        private set
     
     override fun onCreation() {
         try {
@@ -177,6 +217,9 @@ class PageResource(book: Book, name: String, file: Path) : Resource(book, name, 
     
 }
 
+/**
+ * The `class` representation for `CSS` files.
+ */
 class StyleSheetResource(book: Book, name: String, file: Path) : Resource(book, name, file, Type.STYLE_SHEET) {
     
     //lateinit var reader: StyleSheetReader
@@ -196,9 +239,10 @@ class StyleSheetResource(book: Book, name: String, file: Path) : Resource(book, 
  * A repository used for working with all the different kinds of `resources` in the epub.
  */
 class ResourceRepository(
-    internal val book: Book
+    @PublishedApi internal val book: Book
 ) : Iterable<Resource> {
     
+    // IntelliJ *really* does not like the @JvmSynthetic annotation.
     @PublishedApi @JvmSynthetic internal val resources = LinkedHashMap<String, Resource>()
     
     /**
@@ -216,14 +260,89 @@ class ResourceRepository(
      */
     inline fun filter(predicate: (Resource) -> Boolean): List<Resource> = resources.values.filter(predicate)
     
+    /**
+     * Returns `true` if at least one element matches the given [predicate].
+     */
+    inline fun any(predicate: (Resource) -> Boolean): Boolean = resources.values.any(predicate)
+    
     override fun iterator(): Iterator<Resource> = resources.values.toList().iterator()
+    
+    /**
+     * Returns a [Resource] that matches with the specified [href], otherwise it will throw a
+     * [ResourceNotFoundException].
+     *
+     * TODO: Implement so this searches for both the normal href and the ../href. (location href)
+     */
+    @Throws(ResourceNotFoundException::class)
+    inline operator fun <reified R : Resource> get(href: String): R =
+        resources[href] as R? ?: throw ResourceNotFoundException("with the href of \"$href\".")
+    
+    /**
+     * Returns a [Resource] that matches with the specified [href], or `null` if none is found.
+     */
+    inline fun <reified R : Resource> getOrNull(href: String): R? = resources[href] as R?
+    
+    /**
+     * Returns a [Resource] that has a origin [file][Resource.file] that matches with the given [file], otherwise it
+     * will throw a [ResourceNotFoundException].
+     */
+    @Throws(ResourceNotFoundException::class)
+    inline operator fun <reified R : Resource> get(file: Path): R =
+        resources.values.firstOrNull { it.file sameFile file } as R?
+            ?: throw ResourceNotFoundException("with a origin file that matches \"$file\".")
+    
+    /**
+     * Returns a [Resource] that has a origin [file][Resource.file] that matches with the given [file], or `null` if
+     * none is found.
+     */
+    inline fun <reified R : Resource> getOrNull(file: Path): R? =
+        resources.values.firstOrNull { it.file sameFile file } as R?
+    
+    /**
+     * Attempts to add and serialize the specified [resource] to the repository.
+     */
+    @Throws(ResourceException::class)
+    inline fun <reified R : Resource> add(resource: Path): R {
+        val type = Resource.Type.from(resource.extension)
+        val href = "${type.location}${resource.name}"
+        lateinit var tempResource: Resource
+        
+        when (type) {
+            Resource.Type.PAGE -> resources[href] = PageResource(book, resource.name, resource)
+            Resource.Type.STYLE_SHEET -> resources[href] = StyleSheetResource(book, resource.name, resource)
+            Resource.Type.IMAGE -> resources[href] = ImageResource(book, resource.name, resource)
+            Resource.Type.OPF -> resources[href] = OpfResource(book, resource.name, resource)
+            Resource.Type.NCX -> resources[href] = NcxResource(book, resource.name, resource)
+            else -> book.logger.warn("No supported resource class found for \"$resource\".")
+        }
+        
+        tempResource = this[href] // Does this work with the reified stuff and what have you?
+        
+        if (tempResource !is OpfResource) {
+            // TODO: Add to manifest.
+        }
+        
+        book.logger.debug { "Resource has been added to the repository: $tempResource." }
+        
+        return tempResource as R
+    }
     
     fun remove(href: String): Resource? {
         TODO("not implemented")
     }
     
-    // Operators
+    /**
+     * Returns whether or not this epub has a `resource` at the specified [href] location.
+     */
     operator fun contains(href: String): Boolean = resources.containsKey(href)
     
+    /**
+     * Returns whether or not the specified [resource] is from this epub.
+     */
     operator fun contains(resource: Resource): Boolean = resources.containsValue(resource)
+    
+    /**
+     * Returns whether or not the given [file] is the origin file for any `resources` in this epub.
+     */
+    operator fun contains(file: Path): Boolean = any { it.file sameFile file }
 }

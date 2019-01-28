@@ -18,6 +18,7 @@
 
 package moe.kanon.epubby
 
+import moe.kanon.epubby.resources.ResourceRepository
 import moe.kanon.kextensions.io.KPath
 import net.swiftzer.semver.SemVer
 import org.apache.logging.log4j.kotlin.KotlinLogger
@@ -31,7 +32,7 @@ import kotlin.reflect.full.isSubclassOf
 // TODO: Add DSL builder for book settings
 // TODO: Add DSL builder for creating new epubs from nothing, builder will be for initial settings like name and author.
 
-public data class Book(public val file: Path) {
+data class Book(public val file: Path) {
     
     /**
      * The [logger][KotlinLogger] instance used for any and all logging done by epubby.
@@ -41,13 +42,18 @@ public data class Book(public val file: Path) {
     /**
      * The format version used by this EPUB.
      */
-    public var version: Version = Version.UNKNOWN
+    var version: Version = Version.UNKNOWN
         internal set(value) = when (value.format) {
             EpubFormat.NOT_SUPPORTED -> throw BookVersionException(value.semantic)
             else -> field = value
         }
     
-    public fun saveTo(directory: Path) {
+    /**
+     * The resource repository of this book.
+     */
+    val resources: ResourceRepository = ResourceRepository(this)
+    
+    fun saveTo(directory: Path) {
         TODO("Implement saving feature.")
     }
     
@@ -77,17 +83,17 @@ fun main(args: Array<String>) {
         
         @JvmStatic
         @Throws(IOException::class, ReadBookException::class)
-        public fun from(file: Path): Book {
+        fun from(file: Path): Book {
             TODO("Implement factory method.")
         }
         
         @JvmStatic
         @Throws(IOException::class, ReadBookException::class)
-        public fun from(path: String): Book = from(KPath(path))
+        fun from(path: String): Book = from(KPath(path))
         
         @JvmStatic
         @Throws(IOException::class, ReadBookException::class)
-        public fun from(stream: InputStream): Book {
+        fun from(stream: InputStream): Book {
             TODO("Implement factory method.")
         }
     }
@@ -95,31 +101,31 @@ fun main(args: Array<String>) {
     /**
      * A data class holding information about the version of this EPUB.
      */
-    public class Version(_semVer: String) {
+    class Version(_semVer: String) {
         
         internal constructor(format: EpubFormat) : this(format.version.toString())
         
         /**
          * The [semantic version][SemVer] instance.
          */
-        public val semantic: SemVer = SemVer.parse(_semVer)
+        val semantic: SemVer = SemVer.parse(_semVer)
         
         /**
          * The closest matching [version format][EpubFormat].
          */
-        public val format: EpubFormat = EpubFormat.from(semantic)
+        val format: EpubFormat = EpubFormat.from(semantic)
         
         /**
          * Compares this [version][Version] to the [other] version and returns which one is the bigger.
          */
-        public operator fun compareTo(other: Version): Int = semantic.compareTo(other.semantic)
+        operator fun compareTo(other: Version): Int = semantic.compareTo(other.semantic)
         
         companion object {
             
             /**
              * Represents an unknown version.
              */
-            @JvmStatic public val UNKNOWN: Version = Version(EpubFormat.UNKNOWN)
+            @JvmStatic val UNKNOWN: Version = Version(EpubFormat.UNKNOWN)
         }
     }
 }

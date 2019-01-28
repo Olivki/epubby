@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.resources
+package moe.kanon.epubby.resources.pages
 
-import moe.kanon.epubby.BookException
 import moe.kanon.epubby.ReadBookException
 import moe.kanon.epubby.WriteBookException
 
-open class ResourceException : BookException {
+open class ReadPageException : ReadBookException {
     
     constructor(message: String, cause: Throwable) : super(message, cause)
     
@@ -28,22 +27,7 @@ open class ResourceException : BookException {
     
 }
 
-open class ResourceNotFoundException : ResourceException {
-    
-    constructor(appendix: String, cause: Throwable) : super("Could not find any resources $appendix", cause)
-    
-    constructor(appendix: String) : super("Could not find any resources $appendix")
-}
-
-open class CreateResourceException : ReadBookException {
-    
-    constructor(message: String, cause: Throwable) : super(message, cause)
-    
-    constructor(message: String) : super(message)
-    
-}
-
-open class DeleteResourceException : WriteBookException {
+open class WritePageException : WriteBookException {
     
     constructor(message: String, cause: Throwable) : super(message, cause)
     
