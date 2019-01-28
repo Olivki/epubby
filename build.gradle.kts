@@ -41,7 +41,7 @@ dependencies {
     
     // JetBrains
     implementation(kotlin("stdlib-jdk8"))
-    implementation(kotlin("kotlin-reflect"))
+    implementation(kotlin("reflect"))
     implementation("org.jetbrains.kotlinx:kotlinx-html-jvm:0.6.12")
     
     // Apache

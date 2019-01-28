@@ -34,6 +34,7 @@ import java.nio.file.Path
 import java.util.*
 import javax.imageio.ImageIO
 import javax.xml.parsers.ParserConfigurationException
+import kotlin.collections.ArrayList
 
 
 /**
@@ -83,9 +84,9 @@ sealed class Resource(internal val book: Book, val name: String, file: Path, val
     val relativeHref: String get() = "../$href"
     
     /**
-     * A map containing all the occurrences of this `resource` inside the pages of the epub.
+     * A list containing all other resources that reference this resource.
      */
-    val pageOccurences: MutableMap<Path, Int> = LinkedHashMap()
+    val references: MutableList<Resource> = ArrayList()
     
     /**
      * A function that is ran whenever this `resource` is first created.
@@ -97,7 +98,7 @@ sealed class Resource(internal val book: Book, val name: String, file: Path, val
     abstract fun onInitialization()
     
     /**
-     * A function that is ran whenever this `resource` has been marked for deletion.
+     * A function that is ran whenever this `resource` has been marked for removal.
      *
      * Most resources don't have any "special" behaviour for deletion, so this isn't marked as `abstract`.
      */
@@ -108,10 +109,24 @@ sealed class Resource(internal val book: Book, val name: String, file: Path, val
     /**
      * Renames this resource to [name].
      *
-     * This function also takes care of updating any and all references to this resource.
+     * Renaming a resource this way also updates any and all references made to this resource in the epub.
+     *
+     * **Note:** This ***only*** changes the *actual* name part, the `extension` stays the same.
+     *
+     * Example:
+     *
+     * ```kotlin
+     *      val resource = ...// Current file name is "page.xhtml".
+     *      resource.renameTo("big_page") // New file name is "big_page.xhtml".
+     * ```
+     *
+     * Changing the `extension` of the [origin] file is *not* supported in this form, and is very much not recommended
+     * to actually ever do.
      */
     fun renameTo(name: String) {
-        TODO("Implement resource renaming.")
+        val oldFile = origin
+        
+        //origin = origin.renameTo()
     }
     
     override fun equals(other: Any?): Boolean = when {
@@ -122,11 +137,11 @@ sealed class Resource(internal val book: Book, val name: String, file: Path, val
         type != other.type -> false
         origin != other.origin -> false
         manifestId != other.manifestId -> false
-        pageOccurences != other.pageOccurences -> false
+        references != other.references -> false
         else -> true
     }
     
-    override fun hashCode(): Int = Objects.hash(book, name, type, origin, manifestId, pageOccurences)
+    override fun hashCode(): Int = Objects.hash(book, name, type, origin, manifestId, references)
     
     override fun toString(): String =
         "Resource(book=$book, name='$name', type=$type, origin=$origin, manifestId='$manifestId')"
