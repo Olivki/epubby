@@ -16,17 +16,12 @@
 
 package moe.kanon.epubby.tests
 
-import io.kotlintest.matchers.string.shouldBeEmpty
-import io.kotlintest.specs.FeatureSpec
-import moe.kanon.epubby.Book
-import moe.kanon.kextensions.io.toPath
+import io.kotlintest.specs.ExpectSpec
 
-class BookTest : FeatureSpec({
-    feature("Book variables") {
-        val book = Book("".toPath())
+class BookFileTest : ExpectSpec({
+    context("creating a 'Book' instance with an empty path") {
+        expect("that it should fail with a 'NoSuchFileException'") {
         
-        scenario("\"file\" should lead nowhere.") {
-            book.file.toString().shouldBeEmpty()
         }
     }
 })

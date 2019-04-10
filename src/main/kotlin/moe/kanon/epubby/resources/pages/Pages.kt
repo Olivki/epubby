@@ -14,12 +14,16 @@
  * limitations under the License.
  */
 
+@file:Suppress("DataClassPrivateConstructor")
+
 package moe.kanon.epubby.resources.pages
 
+import arrow.core.Option
 import moe.kanon.epubby.Book
 import moe.kanon.epubby.resources.PageResource
-import moe.kanon.kextensions.io.extension
-import moe.kanon.kextensions.io.not
+import moe.kanon.epubby.utils.defaultOutputSettings
+import moe.kanon.kommons.io.extension
+import moe.kanon.kommons.io.not
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import java.io.IOException
@@ -35,11 +39,11 @@ import java.nio.file.Path
  * @property title The title of the document.
  * @property resource The resource representation.
  */
-data class Page @PublishedApi internal constructor(
-    internal val book: Book,
+data class Page private constructor(
+    val book: Book,
     val document: Document,
     val title: String = document.title(),
-    val resource: PageResource?
+    val resource: Option<PageResource>
 ) {
     
     /**
@@ -53,10 +57,7 @@ data class Page @PublishedApi internal constructor(
     val href: String get() = resource?.href ?: "NIL"
     
     init {
-        document.outputSettings().apply {
-            prettyPrint(true)
-            indentAmount(4)
-        }
+        document.defaultOutputSettings()
     }
     
     @Throws(WritePageException::class)
@@ -65,7 +66,17 @@ data class Page @PublishedApi internal constructor(
     }
     
     companion object {
-        
+        /**
+         * Creates a [Page] from the given [htmlFile].
+         *
+         * This function will also add the `htmlFile` to the resource repository if it doesn't already contain a copy
+         * of it.
+         *
+         * @throws ReadPageException
+         *
+         * - If the `extension` of the `htmlFile` doesn't end with "HTML". *(Case-insensitive)*
+         * - If [jSoup][Jsoup] encountered an error when trying to parse the file into a [Document].
+         */
         @JvmStatic
         @Throws(ReadPageException::class)
         fun from(book: Book, htmlFile: Path): Page {
@@ -75,7 +86,7 @@ data class Page @PublishedApi internal constructor(
             
             // Try and fetch a resource with a matching file from the repository, if none is found, then it's safe
             // to assume that this is a new file, so we just add this file as a resource to the repository.
-            val resource: PageResource = book.resources.getOrNull(htmlFile) ?: book.resources.add(htmlFile)
+            val resource: PageResource = book.resources.getOr(htmlFile) ?: book.resources.load(htmlFile)
             
             val document: Document = try {
                 Jsoup.parse(!htmlFile, "UTF-8")

@@ -14,23 +14,15 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.resources.pages
+package moe.kanon.epubby.resources.stylesheets
 
-import moe.kanon.epubby.ReadBookException
-import moe.kanon.epubby.WriteBookException
+import com.helger.css.decl.CascadingStyleSheet
+import moe.kanon.epubby.Book
 
-open class ReadPageException : ReadBookException {
+class StyleSheetRepository(val book: Book) {
     
-    constructor(message: String, cause: Throwable) : super(message, cause)
+    private val delegate: MutableMap<String, CascadingStyleSheet> = HashMap()
     
-    constructor(message: String) : super(message)
-    
-}
 
-open class WritePageException : WriteBookException {
-    
-    constructor(message: String, cause: Throwable) : super(message, cause)
-    
-    constructor(message: String) : super(message)
     
 }
