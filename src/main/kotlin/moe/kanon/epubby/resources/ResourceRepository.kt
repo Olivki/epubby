@@ -23,7 +23,7 @@ import arrow.core.Try
 import moe.kanon.epubby.Book
 import moe.kanon.epubby.BookListener
 import moe.kanon.epubby.MalformedBookException
-import moe.kanon.kommons.io.copyTo
+import moe.kanon.epubby.utils.orElseThrow
 import moe.kanon.kommons.io.deleteIfExists
 import moe.kanon.kommons.io.extension
 import moe.kanon.kommons.io.isSameFile
@@ -32,7 +32,6 @@ import moe.kanon.kommons.misc.multiCatch
 import java.io.IOException
 import java.nio.file.DirectoryNotEmptyException
 import java.nio.file.Path
-import java.nio.file.StandardCopyOption
 import java.util.LinkedHashMap
 
 /**
@@ -61,10 +60,9 @@ class ResourceRepository(val book: Book) : Iterable<Resource>, BookListener {
      *
      * @throws [NoSuchElementException] if no `resource` could be found under the specified [href]
      */
-    operator fun <R : Resource> get(href: String): R = getOr<R>(href).fold(
-        { throw NoSuchElementException("No resource found that matches the href <$href>") },
-        { it }
-    )
+    operator fun <R : Resource> get(href: String): R = getOrNone<R>(href) orElseThrow {
+        NoSuchElementException("No resource found that matches the href <$href>")
+    }
     
     /**
      * Returns the first [Resource] that has a [href][Resource.href] that matches the specified [href], or it will
@@ -87,21 +85,20 @@ class ResourceRepository(val book: Book) : Iterable<Resource>, BookListener {
     /**
      * Returns the first [Resource] that has a `href` that matches the specified [href] wrapped as a [Option].
      */
-    fun <R : Resource> getOr(href: String): Option<R> = Option.fromNullable(delegate[href] as R?)
+    fun <R : Resource> getOrNone(href: String): Option<R> = Option.fromNullable(delegate[href] as R?)
     
     /**
      * Returns the first [Resource] that has an [origin][Resource.origin] file that matches the specified [file], or
      * throws a [NoSuchElementException] if none is found.
      */
-    operator fun <R : Resource> get(file: Path): R = getOr<R>(file).fold(
-        { throw NoSuchElementException("No resource found with an origin file that matches the file <$file>") },
-        { it }
-    )
+    operator fun <R : Resource> get(file: Path): R = getOrNone<R>(file) orElseThrow {
+        NoSuchElementException("No resource found with an origin file that matches the file <$file>")
+    }
     
     /**
      * Returns the first [Resource] that has a `origin` that matches the specified [file] wrapped as a [Option].
      */
-    fun <R : Resource> getOr(file: Path): Option<R> =
+    fun <R : Resource> getOrNone(file: Path): Option<R> =
         Option.fromNullable(delegate.values.firstOrNull { it.origin.isSameFile(file) } as R?)
     
     /**
@@ -125,22 +122,24 @@ class ResourceRepository(val book: Book) : Iterable<Resource>, BookListener {
     fun add(file: Path): Resource {
         // TODO: This
         // determine what type of resource the specified 'file' is from the extension
-        val dir = ResourceType.from(file).getDirectory(book)
+        //val dir = ResourceType.from(file).getDirectory(book)
         // check whether the specified 'file' does not match any of the files inside of the resource 'dir'
-        if (dir.none { it.isSameFile(file) }) {
-            if (file.fileSystem == book.fileSystem) {
+        //if (dir.none { it.isSameFile(file) }) {
+        //    if (file.fileSystem == book.fileSystem) {
                 // if the file system of the 'file' is the same as the books 'fileSystem' then the 'file' is already
                 // stored somewhere in the book, but most likely under the wrong directory. and as such we want to move
                 // it to the correct dire
                 
-            } else {
+        //    } else {
             
-            }
-        }
-        val newFile =
-            file.copyTo(book.file, true, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES)
+        //    }
+        //}
+        //val newFile =
+        //    InputType.file.copyTo(book.file, true, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES)
         
-        return add(book.createResource(newFile))
+        
+        //return add(book.createResource(newFile))
+        TODO()
     }
     
     /**

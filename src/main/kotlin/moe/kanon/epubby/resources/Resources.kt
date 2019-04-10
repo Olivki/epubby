@@ -21,6 +21,7 @@ package moe.kanon.epubby.resources
 import moe.kanon.epubby.Book
 import moe.kanon.epubby.BookListener
 import moe.kanon.epubby.MalformedBookException
+import moe.kanon.epubby.resources.opf.PackageDocument
 import moe.kanon.epubby.resources.pages.Page
 import moe.kanon.epubby.utils.toUnmodifiableSet
 import moe.kanon.kommons.io.name
@@ -32,7 +33,6 @@ import java.io.IOException
 import java.nio.file.Path
 import javax.imageio.ImageIO
 import javax.xml.parsers.ParserConfigurationException
-import moe.kanon.epubby.resources.opf.PackageDocument
 
 // TODO: This
 class ResourceDirectory(val book: Book, val type: ResourceType) : Iterable<Resource> {
@@ -75,10 +75,15 @@ sealed class Resource(val book: Book, val name: String, file: Path, val type: Re
         @JvmSynthetic internal set
     
     /**
-     * Returns a basic representation of the location of this resource in relation to it's [type].
+     * Returns a [HREF] pointing to the location of `this` resources' [origin] file.
+     *
+     * Note that this property will create a new `HREF` instance on every call. This is done to make sure that the
+     * returned `HREF` always points to the correct location, as the `origin` file might have been moved or renamed
+     * since the the creation of `this` resource.
      */
     // TODO: Might be able to just get this from the relative path of the origin file
-    val href: String get() = "${type.location}${origin.name}"
+    //val href: String get() = "${type.location}${origin.name}"
+    val href: HREF get() = HREF("${type.location}${origin.name}")
     
     /**
      * The manifest id of this resource.

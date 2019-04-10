@@ -86,7 +86,7 @@ data class Page private constructor(
             
             // Try and fetch a resource with a matching file from the repository, if none is found, then it's safe
             // to assume that this is a new file, so we just add this file as a resource to the repository.
-            val resource: PageResource = book.resources.getOr(htmlFile) ?: book.resources.load(htmlFile)
+            val resource: PageResource = book.resources.getOrNone(htmlFile) ?: book.resources.load(htmlFile)
             
             val document: Document = try {
                 Jsoup.parse(!htmlFile, "UTF-8")

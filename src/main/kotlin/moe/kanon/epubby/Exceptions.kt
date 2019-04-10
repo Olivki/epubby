@@ -20,75 +20,73 @@ package moe.kanon.epubby
 
 import java.io.IOException
 
-// TODO: Provide properties for storing data in the exceptions
-
 /**
- * Thrown to indicate that something went wrong during the serialization process of the epub.
+ * Thrown to indicate that something went wrong when working with the specified [book] instance.
+ *
+ * @property [book] The [Book] instance that `this` exception originates from.
  */
-open class BookSerializationException : IOException {
-    
-    constructor(message: String, cause: Throwable) : super(message, cause)
-    
-    constructor(message: String) : super(message)
-    
+// TODO: Make the other exceptions inherit from this exception
+open class BookException @JvmOverloads constructor(val book: Book, message: String, cause: Throwable? = null) :
+    IOException(message, cause) {
     companion object {
         /**
-         * Creates a [BookSerializationException] from the specified [book] and [info] parameters.
+         * Creates and returns a [BookException] from the specified [book] and [info] parameters.
          *
-         * @param [book] The book that's being serialized.
-         * @param [info] Information regarding *why* the operation failed.
+         * @param [book] the book that's being serialized
+         * @param [info] information regarding *why* the operation failed
+         * @param [cause] the cause of the exception
          */
         @JvmStatic
-        fun create(book: Book, info: String): BookSerializationException =
-            BookSerializationException("An error occurred when attempting to deserialize the book <$book>. ($info)")
-        
+        @JvmOverloads
+        fun create(book: Book, info: String, cause: Throwable? = null): BookException = BookException(
+            book,
+            "An error occurred when working with the book <$book>: $info",
+            cause
+        )
+    }
+}
+
+/**
+ * Thrown to indicate that something went wrong during the serialization *(saving)* process of the epub.
+ */
+open class BookSerializationException @JvmOverloads constructor(message: String, cause: Throwable? = null) :
+    IOException(message, cause) {
+    companion object {
         /**
-         * Creates a [BookSerializationException] from the specified [book] and [info] parameters.
+         * Creates and returns a [BookSerializationException] from the specified [book] and [info] parameters.
          *
-         * @param [book] The book that's being serialized.
-         * @param [info] Information regarding *why* the operation failed.
-         * @param [cause] The cause of the exception.
+         * @param [book] the book that's being serialized
+         * @param [info] information regarding *why* the operation failed
+         * @param [cause] the cause of the exception
          */
         @JvmStatic
-        fun create(book: Book, info: String, cause: Throwable): BookSerializationException =
+        @JvmOverloads
+        fun create(book: Book, info: String, cause: Throwable? = null): BookSerializationException =
             BookSerializationException(
-                "An error occurred when attempting to deserialize the book <$book>. ($info)",
+                "An error occurred when attempting to deserialize the book <$book>: $info",
                 cause
             )
     }
 }
 
 /**
- * Thrown to indicate that something went wrong during the deserialization process of the epub.
+ * Thrown to indicate that something went wrong during the deserialization *(loading)* process of the epub.
  */
-open class BookDeserializationException : IOException {
-    
-    constructor(message: String, cause: Throwable) : super(message, cause)
-    
-    constructor(message: String) : super(message)
-    
+open class BookDeserializationException @JvmOverloads constructor(message: String, cause: Throwable? = null) :
+    IOException(message, cause) {
     companion object {
         /**
-         * Creates a [BookSerializationException] from the specified [book] and [info] parameters.
+         * Creates and returns a [BookSerializationException] from the specified [book] and [info] parameters.
          *
-         * @param [book] The book that's being serialized.
-         * @param [info] Information regarding *why* the operation failed.
+         * @param [book] the book that's being serialized
+         * @param [info] information regarding *why* the operation failed
+         * @param [cause] the cause of the exception
          */
         @JvmStatic
-        fun create(book: Book, info: String): BookDeserializationException =
-            BookDeserializationException("An error occurred when attempting to deserialize the book <$book>. ($info)")
-        
-        /**
-         * Creates a [BookSerializationException] from the specified [book] and [info] parameters.
-         *
-         * @param [book] The book that's being serialized.
-         * @param [info] Information regarding *why* the operation failed.
-         * @param [cause] The cause of the exception.
-         */
-        @JvmStatic
-        fun create(book: Book, info: String, cause: Throwable): BookDeserializationException =
+        @JvmOverloads
+        fun create(book: Book, info: String, cause: Throwable? = null): BookDeserializationException =
             BookDeserializationException(
-                "An error occurred when attempting to deserialize the book <$book>. ($info)",
+                "An error occurred when attempting to deserialize the book <$book>: $info",
                 cause
             )
     }
@@ -99,34 +97,21 @@ open class BookDeserializationException : IOException {
  *
  * This exception may be thrown in scenarios where it's uncertain that the file that's being parsed is an actual epub.
  */
-open class MalformedBookException : BookDeserializationException {
-    
-    constructor(message: String, cause: Throwable) : super(message, cause)
-    
-    constructor(message: String) : super(message)
-    
+open class MalformedBookException @JvmOverloads constructor(message: String, cause: Throwable? = null) :
+    BookDeserializationException(message, cause) {
     companion object {
         /**
-         * Creates a [BookSerializationException] from the specified [book] and [info] parameters.
+         * Creates and returns a [BookSerializationException] from the specified [book] and [info] parameters.
          *
-         * @param [book] The book that's being serialized.
-         * @param [info] Information regarding *why* the operation failed.
+         * @param [book] the book that's being serialized
+         * @param [info] information regarding *why* the operation failed
+         * @param [cause] the cause of the exception
          */
         @JvmStatic
-        fun create(book: Book, info: String): MalformedBookException =
-            MalformedBookException("The file <${book.file}> is either malformed, or not an epub. ($info)")
-        
-        /**
-         * Creates a [BookSerializationException] from the specified [book] and [info] parameters.
-         *
-         * @param [book] The book that's being serialized.
-         * @param [info] Information regarding *why* the operation failed.
-         * @param [cause] The cause of the exception.
-         */
-        @JvmStatic
-        fun create(book: Book, info: String, cause: Throwable): MalformedBookException =
+        @JvmOverloads
+        fun create(book: Book, info: String, cause: Throwable? = null): MalformedBookException =
             MalformedBookException(
-                "The file <${book.file}> is either malformed, or not an epub. ($info)",
+                "The file <${book.file}> is either malformed, or not an epub: $info",
                 cause
             )
     }
@@ -134,35 +119,28 @@ open class MalformedBookException : BookDeserializationException {
 
 /**
  * Thrown to indicate that something went wrong when attempting to modify some part of the book.
+ *
+ * @property [book] The [Book] instance that `this` exception originates from.
  */
-open class BookModificationException : IOException {
-    
-    constructor(message: String, cause: Throwable) : super(message, cause)
-    
-    constructor(message: String) : super(message)
-    
+open class BookModificationException @JvmOverloads constructor(
+    val book: Book,
+    message: String,
+    cause: Throwable? = null
+) : IOException(message, cause) {
     companion object {
         /**
-         * Creates a [BookModificationException] from the specified [book] and [info] parameters.
+         * Creates and returns a [BookModificationException] from the specified [book] and [info] parameters.
          *
-         * @param [book] The book that's being serialized.
-         * @param [info] Information regarding *why* the operation failed.
+         * @param [book] the book that's being serialized
+         * @param [info] information regarding *why* the operation failed
+         * @param [cause] the cause of the exception
          */
         @JvmStatic
-        fun create(book: Book, info: String): BookModificationException =
-            BookModificationException("An error occurred when attempting to modify the book <$book>. ($info)")
-        
-        /**
-         * Creates a [BookModificationException] from the specified [book] and [info] parameters.
-         *
-         * @param [book] The book that's being serialized.
-         * @param [info] Information regarding *why* the operation failed.
-         * @param [cause] The cause of the exception.
-         */
-        @JvmStatic
-        fun create(book: Book, info: String, cause: Throwable): BookModificationException =
+        @JvmOverloads
+        fun create(book: Book, info: String, cause: Throwable? = null): BookModificationException =
             BookModificationException(
-                "An error occurred when attempting to modify the book <$book>. ($info)",
+                book,
+                "An error occurred when attempting to modify the book <$book>: $info",
                 cause
             )
     }

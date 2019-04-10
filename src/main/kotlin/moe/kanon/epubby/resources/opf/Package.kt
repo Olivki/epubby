@@ -21,13 +21,17 @@ package moe.kanon.epubby.resources.opf
 
 import arrow.core.Option
 import moe.kanon.epubby.Book
+import moe.kanon.epubby.BookException
+import moe.kanon.epubby.resources.HREF
 import moe.kanon.epubby.resources.PageResource
+import moe.kanon.epubby.resources.Resource
+import moe.kanon.epubby.resources.opf.PackageGuide.Reference
 import moe.kanon.epubby.resources.toc.TableOfContents
+import moe.kanon.epubby.utils.orElseThrow
 import moe.kanon.kommons.collections.putAndReturn
 import moe.kanon.kommons.lang.normalizedName
 import moe.kanon.xml.parseAsDocument
 import java.nio.file.Path
-import java.util.Objects
 
 /**
  * Implementation of the [OPF](http://www.idpf.org/epub/20/spec/OPF_2.0.1_draft.htm#Section2.0) format.
@@ -36,29 +40,56 @@ class PackageDocument private constructor(val book: Book) {
     /**
      * The meta-data of the underlying [book].
      */
-    val metadata: BookMetadata = BookMetadata.newInstance(book)
+    val metadata: BookMetadata = BookMetadata(this)
     
     /**
      * The [manifest](http://www.idpf.org/epub/301/spec/epub-publications.html#sec-manifest-elem) of the underlying
      * [book].
      */
-    val manifest: BookManifest = BookManifest.newInstance(book)
+    val manifest: BookManifest = BookManifest(this)
     
     /**
      * The spine of the underlying [book].
      */
-    val spine: BookSpine = BookSpine.newInstance(book)
+    val spine: BookSpine = BookSpine(this)
     
     /**
      * The guide of the underlying [book], if it has one.
+     *
+     * A `book` is *not* guaranteed to have a guide, as per the OPF format specification; "Within the package there
+     * **may** be one `guide` element"[¹](http://www.idpf.org/epub/20/spec/OPF_2.0.1_draft.htm#Section2.6)
+     *
+     * The specification also states that if a guide exists, it needs to contain *at least* one `reference` element,
+     * due to this epubby will remove and *not* serialize any existing `guide`s that are empty, even if they were
+     * explicitly created by the user.
+     *
+     * Due to the above reasons, this `guide` property will start out as an `empty` [Option], to create a `guide` for
+     * a book, use the [createGuide] function. Note that the `createGuide` function will throw an exception if a
+     * `guide` already exists.
      */
-    val guide: Option<PackageGuide> = Option.just(PackageGuide.newInstance(book))
+    var guide: Option<PackageGuide> = Option.empty()
+        @JvmSynthetic internal set
     
     /**
-     * Serializes all of the sub-classes of this content container into XML and then saves it as the `OPF` file of this
-     * epub.
+     * Returns whether or not `this` OPF document has a [guide] defined.
      */
-    fun save() {
+    fun hasGuide(): Boolean = guide.nonEmpty()
+    
+    /**
+     * Attempts to create a new [guide] for `this` OPF document, throwing a [UnsupportedOperationException] if a
+     * `guide` already exists.
+     */
+    fun createGuide() {
+        if (hasGuide()) throw UnsupportedOperationException("OPF document already has a 'guide' defined")
+        guide = Option.just(PackageGuide(this))
+    }
+    
+    /**
+     * Serializes all the contents of `this` OPF document into the [epub file][Book.file] of the underlying [book].
+     *
+     * Note that this function will replace any OPF files that already exist.
+     */
+    fun createFile() {
         TODO()
     }
     
@@ -72,9 +103,17 @@ class PackageDocument private constructor(val book: Book) {
         else -> true
     }
     
-    override fun hashCode(): Int = Objects.hash(manifest, guide, metadata, spine)
+    override fun hashCode(): Int {
+        var result = book.hashCode()
+        result = 31 * result + metadata.hashCode()
+        result = 31 * result + manifest.hashCode()
+        result = 31 * result + spine.hashCode()
+        result = 31 * result + guide.hashCode()
+        return result
+    }
     
-    override fun toString(): String = "BookContent(manifest=$manifest, guide=$guide, metadata=$metadata, spine=$spine)"
+    override fun toString(): String =
+        "PackageDocument(metadata=$metadata, manifest=$manifest, spine=$spine${if (hasGuide()) ", guide=$guide)" else ")"}"
     
     companion object {
         /**
@@ -98,46 +137,28 @@ class PackageDocument private constructor(val book: Book) {
 /**
  * Implementation of the [metadata](http://www.idpf.org/epub/20/spec/OPF_2.0.1_draft.htm#Section2.2) specification.
  *
+ * @property [container] The [OPF document][PackageDocument] that `this` metadata belongs to.
  * @property [book] The [Book] instance that `this` metadata is bound to.
  */
-class BookMetadata private constructor(val book: Book) {
-    
-    
-    companion object {
-        @JvmSynthetic
-        internal fun newInstance(book: Book): BookMetadata = BookMetadata(book)
-    }
-}
+class BookMetadata internal constructor(val container: PackageDocument, val book: Book = container.book)
 
 /**
  * Implementation of the [manifest](http://www.idpf.org/epub/20/spec/OPF_2.0.1_draft.htm#Section2.3) specification.
  *
  * Note that the layout of the manifest will change depending on the [format][Book.format] used by the specified `book`.
  *
+ * @property [container] The [OPF document][PackageDocument] that `this` manifest belongs to.
  * @property [book] The [Book] instance that `this` manifest is bound to.
  */
-class BookManifest private constructor(val book: Book) {
-    
-    
-    companion object {
-        @JvmSynthetic
-        internal fun newInstance(book: Book): BookManifest = BookManifest(book)
-    }
-}
+class BookManifest internal constructor(val container: PackageDocument, val book: Book = container.book)
 
 /**
  * Implementation of the [spine](http://www.idpf.org/epub/20/spec/OPF_2.0.1_draft.htm#Section2.4) specification.
  *
+ * @property [container] The [OPF document][PackageDocument] that `this` spine belongs to.
  * @property [book] The [Book] instance that `this` spine is bound to.
  */
-class BookSpine private constructor(val book: Book) {
-    
-    
-    companion object {
-        @JvmSynthetic
-        internal fun newInstance(book: Book): BookSpine = BookSpine(book)
-    }
-}
+class BookSpine internal constructor(val container: PackageDocument, val book: Book = container.book)
 
 /**
  * Implementation of the [guide](http://www.idpf.org/epub/20/spec/OPF_2.0.1_draft.htm#Section2.6) specification.
@@ -147,152 +168,238 @@ class BookSpine private constructor(val book: Book) {
  * [Reading Systems](http://www.idpf.org/epub/31/spec/epub-spec.html#gloss-epub-reading-system) to provide convenient
  * access to them.
  *
+ * Each [reference][Reference] must have a [href][Reference.href] referring to an [OPS Content Document][PageResource]
+ * included in the [manifest][BookManifest], and which may include a fragment identifier as defined in section 4.1 of
+ * [RFC 2396](http://www.ietf.org/rfc/rfc2396.txt). `Reading Systems` may use the bounds of the referenced element to
+ * determine the scope of the reference. If a fragment identifier is not used, the scope is considered to be the entire
+ * document. This specification does not require `Reading Systems` to mark or otherwise identify the entire scope of a
+ * referenced element.
+ *
+ * @property [container] The [OPF document][PackageDocument] that `this` guide belongs to.
  * @property [book] The [Book] instance that `this` guide is bound to.
  */
-class PackageGuide private constructor(val book: Book) : Iterable<PackageGuide.Reference> {
-    private val delegate: MutableMap<String, Reference> = LinkedHashMap()
+class PackageGuide internal constructor(val container: PackageDocument, val book: Book = container.book) :
+    Iterable<GuideReference> {
+    private val elements: MutableMap<String, GuideReference> = LinkedHashMap()
+    
+    /**
+     * Returns whether or not there are any `reference` elements stored in `this` guide.
+     *
+     * If this function returns `true` when [Book.saveTo] has been invoked there will be no `guide` element serialized
+     * into the [OPF document][PackageDocument]. This is because while the `guide` element is *not* required to exist
+     * in a epub file, if it *does* exist, it needs to contain *at least* one `reference` element.
+     */
+    fun isEmpty(): Boolean = elements.isEmpty()
     
     // TODO: Documentation
     
     // get
-    @JvmName("getReference")
-    operator fun get(type: String): Option<Reference> = Option.fromNullable(delegate[type])
+    // - custom values
+    /**
+     * Returns the [reference][Reference] with the specified [customType], or none if no `reference` is found.
+     *
+     * The [OPF][PackageDocument] specification states that;
+     *
+     * >".. Other types **may** be used when none of the [predefined types][GuideType] are applicable; their names
+     * **must** begin with the string `'other.'`"
+     *
+     * To make sure that this rule is followed, epubby prepends the `"other."` string to the specified `customType`.
+     *
+     * This means that if this function is invoked with `("tn")` the system does *not* look for a `reference` stored
+     * under the key `"tn"`, instead it looks for a `reference` stored under the key `"other.tn"`. This behaviour is
+     * the same for all functions that accept a `customType`.
+     *
+     * @param [customType] the custom type string
+     */
+    @JvmName("getCustomReferenceOrNone")
+    operator fun get(customType: String): Option<GuideReference> = Option.fromNullable(elements["other.$customType"])
     
-    @JvmName("getReference")
-    operator fun get(type: GuideType): Option<Reference> = Option.fromNullable(delegate[type.serializedName])
+    // - known values
+    @JvmName("getReferenceOrNone")
+    operator fun get(type: GuideType): Option<GuideReference> = Option.fromNullable(elements[type.serializedName])
     
     // add
     // - custom values
+    /**
+     * Creates and adds a [reference][Reference] element to `this` guide.
+     *
+     * The `reference` element is constructed from the specified [customType], [resource] and [title].
+     *
+     * The [OPF][PackageDocument] specification states that;
+     *
+     * >".. Other types **may** be used when none of the [predefined types][GuideType] are applicable; their names
+     * **must** begin with the string `'other.'`"
+     *
+     * To make sure that this rule is followed, epubby prepends the `"other."` string to the specified `customType`.
+     *
+     * This means that if this function is invoked with `("tn")` the system does *not* look for a `reference` stored
+     * under the key `"tn"`, instead it looks for a `reference` stored under the key `"other.tn"`. This behaviour is
+     * the same for all functions that accept a `customType`.
+     *
+     * @param [customType] the custom type string
+     * @param [resource] the [Resource] to inherit the [href][Resource.href] of
+     *
+     * @return the newly created `reference` element
+     */
     @JvmOverloads
-    @JvmName("addReference")
-    fun add(type: String, href: String, title: String? = null): Reference =
-        delegate.putAndReturn("other.$type", Reference.newInstance(this, type, href, Option.fromNullable(title)))
-    
-    @JvmOverloads
-    @JvmName("addReference")
-    fun add(type: String, resource: PageResource, title: String? = null): Reference =
-        delegate.putAndReturn(
-            "other.$type",
-            Reference.newInstance(this, type, resource.href, Option.fromNullable(title))
+    @JvmName("addCustomReference")
+    fun addCustom(customType: String, resource: PageResource, title: String? = null): GuideReference =
+        elements.putAndReturn(
+            "other.$customType",
+            GuideReference(this, customType, resource.href, Option.fromNullable(title))
         )
     
     // - known values
     @JvmOverloads
     @JvmName("addReference")
-    fun add(type: GuideType, href: String, title: String? = type.normalizedName) =
-        delegate.putAndReturn(
+    fun add(type: GuideType, resource: PageResource, title: String? = type.normalizedName): GuideReference =
+        elements.putAndReturn(
             type.serializedName,
-            Reference.newInstance(this, type.serializedName, href, Option.fromNullable(title))
-        )
-    
-    @JvmOverloads
-    @JvmName("addReference")
-    fun add(type: GuideType, resource: PageResource, title: String? = type.normalizedName) =
-        delegate.putAndReturn(
-            type.serializedName,
-            Reference.newInstance(this, type.serializedName, resource.href, Option.fromNullable(title))
+            GuideReference(this, type.serializedName, resource.href, Option.fromNullable(title))
         )
     
     // remove
     // - custom values
-    @JvmName("removeReference")
-    fun remove(type: String) {
-        delegate -= "other.$type"
+    /**
+     * TODO
+     *
+     * The [OPF][PackageDocument] specification states that;
+     *
+     * >".. Other types **may** be used when none of the [predefined types][GuideType] are applicable; their names
+     * **must** begin with the string `'other.'`"
+     *
+     * To make sure that this rule is followed, epubby prepends the `"other."` string to the specified `customType`.
+     *
+     * This means that if this function is invoked with `("tn")` the system does *not* look for a `reference` stored
+     * under the key `"tn"`, instead it looks for a `reference` stored under the key `"other.tn"`. This behaviour is
+     * the same for all functions that accept a `customType`.
+     *
+     * @param [customType] the custom type string
+     */
+    @JvmName("removeCustomReference")
+    fun removeCustom(customType: String) {
+        elements -= "other.$customType"
     }
     
     @JvmSynthetic
-    operator fun minusAssign(type: String) {
-        delegate -= "other.$type"
+    operator fun minusAssign(customType: String) {
+        elements -= "other.$customType"
     }
     
     // - known values
     @JvmName("removeReference")
     fun remove(type: GuideType) {
-        delegate -= type.serializedName
+        elements -= type.serializedName
     }
     
     @JvmSynthetic
     operator fun minusAssign(type: GuideType) {
-        delegate -= type.serializedName
+        elements -= type.serializedName
     }
     
-    // TODO: set / change
+    // set
+    // - custom values
+    /**
+     * TODO
+     *
+     * The [OPF][PackageDocument] specification states that;
+     *
+     * >".. Other types **may** be used when none of the [predefined types][GuideType] are applicable; their names
+     * **must** begin with the string `'other.'`"
+     *
+     * To make sure that this rule is followed, epubby prepends the `"other."` string to the specified `customType`.
+     *
+     * This means that if this function is invoked with `("tn")` the system does *not* look for a `reference` stored
+     * under the key `"tn"`, instead it looks for a `reference` stored under the key `"other.tn"`. This behaviour is
+     * the same for all functions that accept a `customType`.
+     *
+     * @param [customType] the custom type string
+     */
+    @JvmName("setReferenceResource")
+    operator fun set(customType: String, resource: PageResource) {
+        this[customType].fold(
+            { throw NoSuchElementException("No guide reference element found under the custom type <other.$customType>") },
+            { ref ->
+                elements.put("other.$customType", ref.copy(href = resource.href))
+            }
+        )
+    }
+    
+    // - known values
+    
     
     // iterator
-    override fun iterator(): Iterator<Reference> = delegate.values.toList().iterator()
+    override fun iterator(): Iterator<GuideReference> = elements.values.toList().iterator()
     
     // object defaults
     override fun equals(other: Any?): Boolean = when {
         this === other -> true
         other !is PackageGuide -> false
         book != other.book -> false
-        delegate != other.delegate -> false
+        elements != other.elements -> false
         else -> true
     }
     
     override fun hashCode(): Int {
         var result = book.hashCode()
-        result = 31 * result + delegate.hashCode()
+        result = 31 * result + elements.hashCode()
         return result
     }
     
-    override fun toString(): String = "PackageGuide(book=$book, references=$delegate)"
+    override fun toString(): String = "PackageGuide(book=$book, references=$elements)"
     
     // reference
     /**
      * Implementation of the `reference` element contained inside of the [guide element][PackageGuide].
      *
+     * The **required** [type] parameter describes the publication component `this` reference is pointing towards. The
+     * value for the `type` property **must** be a [GuideType] constant when applicable. Other types **may** be used
+     * when none of the predefined types are applicable; their names **must** begin with the string `"other."`. The
+     * value for the `type` property is case-sensitive.
+     *
      * @property [parent] The parent [PackageGuide] of `this` reference.
      * @property [type] The `type` of `this` reference.
-     * @property [href] The `href` to the location of the `resource` that `this` reference is referencing.
+     * @property [href] The [href][PageResource.href] of the [resource][PageResource] that `this` reference is pointing
+     * towards.
+     *
+     * **NOTE:** This `href` **needs** to point towards a valid [Resource] or a [BookException] will be thrown when
+     * the [resource] property is accessed.
      * @property [title] The title that a `Reading System` would use to display `this` reference.
      *
      * The `title` property is *not* required for a `Reference` to be valid.
      */
-    data class Reference private constructor(
+    data class Reference internal constructor(
         val parent: PackageGuide,
         val type: String,
-        val href: String,
+        val href: HREF,
         val title: Option<String>
     ) {
         /**
          * Returns the [GuideType] tied to the specified [type] of `this` reference.
          *
-         * This returns a [Option] as [GuideType.of] is not guaranteed to always return a value, as `this` reference
-         * might be using a custom `type`.
+         * This returns a [Option] as [GuideType.getOrNone] is not guaranteed to always return a value, as `this`
+         * reference might be using a custom `type`.
          */
-        val guideType: Option<GuideType> = GuideType.of(type)
+        val guideType: Option<GuideType> = GuideType.getOrNone(type)
         
         /**
          * Returns whether or not `this` reference is using a custom [type].
          */
         val isCustomType: Boolean get() = guideType.isEmpty()
-        
-        // TODO: Throw a hissy fit if a resource can't be found with the specified 'href'?
-        
+    
         /**
-         * Lazily returns the [PageResource] tied to the specified [href] of `this` reference.
-         *
-         * This returns a [Option] as the `href` of `this` reference might be pointing to a non-existent resource.
+         * Lazily returns the [Resource] instance at the location specified by the [href] property, or throws a
+         * [BookException] if no resource is found.
          */
-        val resource: Option<PageResource> by lazy { parent.book.resources.getOr<PageResource>(href) }
-        
-        companion object {
-            @JvmSynthetic
-            internal fun newInstance(
-                parent: PackageGuide,
-                type: String,
-                href: String,
-                title: Option<String>
-            ): Reference = Reference(parent, type, href, title)
+        val resource: Resource by lazy {
+            href.toResource(parent.book) orElseThrow {
+                BookException.create(parent.book, "Resource located at <${href.href}> does not exist")
+            }
         }
     }
-    
-    companion object {
-        @JvmSynthetic
-        internal fun newInstance(book: Book): PackageGuide = PackageGuide(book)
-    }
 }
+
+typealias GuideReference = PackageGuide.Reference
 
 /**
  * Implementation of the "list of `type` values" declared in the
@@ -379,7 +486,7 @@ enum class GuideType(val serializedName: String) {
          * @param [type] the type to match all `guide-types` against
          */
         @JvmStatic
-        fun of(type: String): Option<GuideType> =
+        fun getOrNone(type: String): Option<GuideType> =
             Option.fromNullable(values().firstOrNull { it.serializedName == type })
     }
 }

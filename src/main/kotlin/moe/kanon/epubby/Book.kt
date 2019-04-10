@@ -179,7 +179,7 @@ class Book private constructor(val fileSystem: FileSystem, val file: Path) : Clo
      * Returns the first [Resource] that has a `href` that matches the specified [href] wrapped as a [Option].
      */
     @JvmName("getResourceOr")
-    fun <R : Resource> getOr(href: String): Option<R> = resources.getOr(href)
+    fun <R : Resource> getOr(href: String): Option<R> = resources.getOrNone(href)
     
     // - for creating local paths on the book 'fileSystem'
     /**
