@@ -15,6 +15,27 @@
  */
 
 @file:JvmName("BookUtils")
+@file:Suppress("NOTHING_TO_INLINE")
 
 package moe.kanon.epubby.utils
 
+import moe.kanon.epubby.Book
+import moe.kanon.epubby.EpubFormat
+
+// TODO: Documentation
+
+inline fun Book.requireMinimumFormat(format: EpubFormat, lazyMessage: () -> String) {
+    if (this.format < format) throw UnsupportedOperationException(lazyMessage())
+}
+
+inline infix fun Book.requireMinimumFormat(format: EpubFormat) = requireMinimumFormat(format) {
+    "This feature requires EPUB format $format and up, current format is ${this.format}"
+}
+
+inline fun Book.requireMaxmimumFormat(format: EpubFormat, lazyMessage: () -> String) {
+    if (this.format < format) throw UnsupportedOperationException(lazyMessage())
+}
+
+inline infix fun Book.requireMaxmimumFormat(format: EpubFormat) = requireMinimumFormat(format) {
+    "This feature is no longer supported in EPUB format versions beyond $format, current format is ${this.format}"
+}

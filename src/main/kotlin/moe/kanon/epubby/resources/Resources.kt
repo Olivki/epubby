@@ -83,7 +83,7 @@ sealed class Resource(val book: Book, val name: String, file: Path, val type: Re
      */
     // TODO: Might be able to just get this from the relative path of the origin file
     //val href: String get() = "${type.location}${origin.name}"
-    val href: HREF get() = HREF("${type.location}${origin.name}")
+    val href: HREF = HREF(this)
     
     /**
      * The manifest id of this resource.
@@ -134,6 +134,15 @@ sealed class Resource(val book: Book, val name: String, file: Path, val type: Re
     @Throws(ResourceDeletionException::class)
     open fun onRemoval() {
     }
+    
+    /**
+     * Returns whether or not the [origin] file of `this` resource is located inside of the directory of the specified
+     * [type].
+     *
+     * This currently does a very naïve equality check.
+     */
+    @JvmName("isInDirectoryOf")
+    operator fun contains(type: ResourceType): Boolean = origin.parent.name == type.location.substringBefore('/')
     
     /**
      * Attempts to rename this resource to the specified [name].

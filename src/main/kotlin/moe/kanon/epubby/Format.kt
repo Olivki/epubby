@@ -36,7 +36,7 @@ import moe.kanon.epubby.utils.inside
  *
  * @property [version] The lowest supported version number for this version format.
  *
- * ie. If a book is found to be using `v3.1` of the format, it will be assigned the [EPUB_3][EpubFormat.EPUB_3_0]
+ * ie. If a book is found to be using `v3.0.1` of the format, it will be assigned the [EPUB_3][EpubFormat.EPUB_3_0]
  * version, but if it is using `v4.x` it will be assigned the [NOT_SUPPORTED][EpubFormat.NOT_SUPPORTED] version.
  */
 enum class EpubFormat(val version: SemVer) {
@@ -47,7 +47,7 @@ enum class EpubFormat(val version: SemVer) {
      */
     UNKNOWN(SemVer.forIntegers(0, 0, 0)),
     /**
-     * Represents the [EPUB 2.x](http://idpf.org/epub/201) format.
+     * Represents the [EPUB 2.x](http://www.idpf.org/epub/dir/#epub201) format.
      *
      * Any version where `n >= 2 && n < 3` will be sorted into this category.
      *
@@ -55,7 +55,7 @@ enum class EpubFormat(val version: SemVer) {
      */
     EPUB_2_0(SemVer.forIntegers(2, 0, 0)),
     /**
-     * Represents the [EPUB 3.0](http://idpf.org/epub/301) format.
+     * Represents the [EPUB 3.0](http://www.idpf.org/epub/dir/#epub301) format.
      *
      * Any version where `n >= 3 && n < 3.0.x` will be sorted into this category.
      *
