@@ -14,15 +14,14 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.resources.stylesheets
+package moe.kanon.epubby.resources.root
 
-import com.helger.css.decl.CascadingStyleSheet
 import moe.kanon.epubby.Book
+import moe.kanon.epubby.ElementSerializer
+import org.jdom2.Element
 
-class StyleSheetRepository(val book: Book) {
-    
-    private val delegate: MutableMap<String, CascadingStyleSheet> = HashMap()
-    
-
-    
+class PackageCollection(val book: Book) : ElementSerializer {
+    override fun toElement(): Element {
+        TODO("not implemented")
+    }
 }

@@ -14,26 +14,15 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.resources.toc
+package moe.kanon.epubby.resources
 
-import moe.kanon.epubby.resources.PageResource
+/**
+ * Represents the two possible values a [dir](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#attrdef-dir)
+ * attribute can have.
+ */
+enum class Direction(val serializedName: String) {
+    LEFT_TO_RIGHT("ltr"),
+    RIGHT_TO_LEFT("rtl");
 
-class TableOfContents : Iterable<TableOfContents.Entry> {
-    
-    private val entries: MutableMap<String, Entry> = LinkedHashMap()
-    
-    @JvmName("add")
-    operator fun plusAssign() {
-    
-    }
-    
-    override fun iterator(): Iterator<Entry> = entries.values.toList().iterator()
-    
-    inner class Entry {
-        
-        lateinit var title: String
-        lateinit var resource: PageResource
-        lateinit var fragmentIdentifier: String
-        
-    }
+    override fun toString(): String = serializedName
 }

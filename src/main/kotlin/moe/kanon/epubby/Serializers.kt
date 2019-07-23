@@ -14,21 +14,27 @@
  * limitations under the License.
  */
 
-@file:JvmName("CssUtils")
+package moe.kanon.epubby
 
-package moe.kanon.epubby.utils
+import org.jdom2.Document
+import org.jdom2.Element
 
-import arrow.core.Option
-import com.helger.css.ECSSVersion
-import com.helger.css.decl.CascadingStyleSheet
-import com.helger.css.reader.CSSReader
-import java.nio.charset.Charset
-import java.nio.charset.StandardCharsets
-import java.nio.file.Path
+/**
+ * Represents a class that can serialize itself into a [Document] instance.
+ */
+interface DocumentSerializer {
+    /**
+     * Returns a representation of `this` class in the form of an [Document].
+     */
+    fun toDocument(): Document
+}
 
-@JvmOverloads
-fun Path.toStyleSheet(
-    // EPUB 2 uses CSS 2, while EPUB 3 uses CSS 2.1
-    version: ECSSVersion = ECSSVersion.CSS21,
-    charset: Charset = StandardCharsets.UTF_8
-): Option<CascadingStyleSheet> = Option.fromNullable(CSSReader.readFromFile(this.toFile(), charset, version))
+/**
+ * Represents a class that can serialize itself into a [Element] instance.
+ */
+interface ElementSerializer {
+    /**
+     * Returns a representation of `this` class in the form of an [Element].
+     */
+    fun toElement(): Element
+}

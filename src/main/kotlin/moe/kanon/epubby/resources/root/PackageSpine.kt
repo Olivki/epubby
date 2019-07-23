@@ -14,21 +14,14 @@
  * limitations under the License.
  */
 
-/**
- * Utility class containing helper functions for enforcing that the folder structure of the epub is correct.
- */
-@file:JvmName("BookStructureEnforcer")
+package moe.kanon.epubby.resources.root
 
-package moe.kanon.epubby
+import moe.kanon.epubby.Book
+import moe.kanon.epubby.ElementSerializer
+import org.jdom2.Element
 
-import java.io.IOException
-
-/**
- * Attempts to correct any wrong parts of the structure of the specified [book].
- *
- * @param [book] the [Book] instance to traverse
- */
-@Throws(IOException::class)
-fun validateBookStructure(book: Book) {
-
+class PackageSpine(val book: Book) : ElementSerializer {
+    override fun toElement(): Element {
+        TODO("not implemented")
+    }
 }

@@ -16,19 +16,11 @@
 
 package moe.kanon.epubby.utils
 
-import com.vdurmont.semver4j.Semver
-import moe.kanon.epubby.Book
+import moe.kanon.kommons.FILE_SEPARATOR
+import java.nio.file.Path
 
-typealias SemVer = Semver
-typealias SemVerType = Semver.SemverType
-
-/**
- * Compares `this` version to the [version][EpubFormat.version] of the specified [format].
- */
-operator fun SemVer.compareTo(format: Book.Format): Int = this.compareTo(format.version)
-
-/**
- * Returns whether or not `this` [SemVer] instance is inside of the specified [range], with the
- * [endInclusive][ClosedRange.endInclusive] not being inclusive.
- */
-infix fun SemVer.inside(range: ClosedRange<SemVer>): Boolean = this >= range.start && this < range.endInclusive
+fun Path.combineWith(other: Path): String =
+    "${this.toString().replace("/", FILE_SEPARATOR).replace("\\", FILE_SEPARATOR)}${other.toString().replace(
+        "/",
+        FILE_SEPARATOR
+    ).replace("\\", FILE_SEPARATOR)}"

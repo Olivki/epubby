@@ -14,23 +14,16 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.resources.pages
+package moe.kanon.epubby.resources.root
 
-import moe.kanon.epubby.BookDeserializationException
-import moe.kanon.epubby.BookSerializationException
+import moe.kanon.epubby.Book
+import moe.kanon.epubby.ElementSerializer
+import moe.kanon.epubby.EpubDeprecated
+import org.jdom2.Element
 
-open class ReadPageException : BookDeserializationException {
-    
-    constructor(message: String, cause: Throwable) : super(message, cause)
-    
-    constructor(message: String) : super(message)
-    
-}
-
-open class WritePageException : BookSerializationException {
-    
-    constructor(message: String, cause: Throwable) : super(message, cause)
-    
-    constructor(message: String) : super(message)
-    
+@EpubDeprecated("3.2")
+class PackageBindings(val book: Book) : ElementSerializer {
+    override fun toElement(): Element {
+        TODO("not implemented")
+    }
 }

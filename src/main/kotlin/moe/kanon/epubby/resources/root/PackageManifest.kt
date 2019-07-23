@@ -14,21 +14,14 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.utils
+package moe.kanon.epubby.resources.root
 
-import com.vdurmont.semver4j.Semver
 import moe.kanon.epubby.Book
+import moe.kanon.epubby.ElementSerializer
+import org.jdom2.Element
 
-typealias SemVer = Semver
-typealias SemVerType = Semver.SemverType
-
-/**
- * Compares `this` version to the [version][EpubFormat.version] of the specified [format].
- */
-operator fun SemVer.compareTo(format: Book.Format): Int = this.compareTo(format.version)
-
-/**
- * Returns whether or not `this` [SemVer] instance is inside of the specified [range], with the
- * [endInclusive][ClosedRange.endInclusive] not being inclusive.
- */
-infix fun SemVer.inside(range: ClosedRange<SemVer>): Boolean = this >= range.start && this < range.endInclusive
+class PackageManifest(val book: Book) : ElementSerializer {
+    override fun toElement(): Element {
+        TODO("not implemented")
+    }
+}
