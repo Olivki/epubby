@@ -24,7 +24,7 @@ import moe.kanon.epubby.EpubbyException
 @DslMarker internal annotation class Assertion
 
 @Assertion inline fun requireMinFormat(book: Book, format: Book.Format, lazyMsg: () -> Any) {
-    if (book.format < format) throw EpubbyException(book.file, lazyMsg().toString())
+    if (book.version < format) throw EpubbyException(book.file, lazyMsg().toString())
 }
 
 @Assertion inline fun requireMinFormat(book: Book, format: Book.Format) = requireMinFormat(book, format) {
@@ -32,7 +32,7 @@ import moe.kanon.epubby.EpubbyException
 }
 
 @Assertion inline fun requireMaxFormat(book: Book, format: Book.Format, lazyMsg: () -> Any) {
-    if (book.format > format) throw EpubbyException(book.file, lazyMsg().toString())
+    if (book.version > format) throw EpubbyException(book.file, lazyMsg().toString())
 }
 
 @Assertion inline fun requireMaxFormat(book: Book, format: Book.Format) = requireMaxFormat(book, format) {

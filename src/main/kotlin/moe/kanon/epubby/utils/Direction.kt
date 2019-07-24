@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.resources
+package moe.kanon.epubby.utils
 
 /**
  * Represents the two possible values a [dir](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#attrdef-dir)
@@ -25,4 +25,16 @@ enum class Direction(val serializedName: String) {
     RIGHT_TO_LEFT("rtl");
 
     override fun toString(): String = serializedName
+
+    companion object {
+        /**
+         * Returns the [Direction] that matches the given [tag], or throws a [IllegalArgumentException] if `tag` does
+         * not match a direction.
+         */
+        @JvmStatic fun of(tag: String): Direction = when {
+            tag.equals("ltr", ignoreCase = true) -> LEFT_TO_RIGHT
+            tag.equals("rtl", ignoreCase = true) -> RIGHT_TO_LEFT
+            else -> throw IllegalArgumentException("Expected \"ltr\" or \"rtl\", got \"$tag\"")
+        }
+    }
 }

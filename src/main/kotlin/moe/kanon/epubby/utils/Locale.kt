@@ -14,15 +14,20 @@
  * limitations under the License.
  */
 
-@file:JvmName("PathUtils")
+@file:JvmName("LocaleUtils")
 
 package moe.kanon.epubby.utils
 
-import moe.kanon.kommons.FILE_SEPARATOR
-import java.nio.file.Path
+import java.util.*
 
-fun Path.combineWith(other: Path): String =
-    "${this.toString().replace("/", FILE_SEPARATOR).replace("\\", FILE_SEPARATOR)}${other.toString().replace(
-        "/",
-        FILE_SEPARATOR
-    ).replace("\\", FILE_SEPARATOR)}"
+/**
+ * Returns a new [Locale] for the specified IETF BCP 47 [language tag][languageTag] string.
+ *
+ * If the specified `language tag` contains any ill-formed subtags, the first such subtag and all following subtags are
+ * ignored. Compare to [Locale.Builder.setLanguageTag] which throws an exception in this case.
+ *
+ * @see [Locale.forLanguageTag]
+ * @see [Locale.Builder.setLanguageTag]
+ */
+@JvmName("getLocaleFromTag")
+fun localeOf(languageTag: String): Locale = Locale.forLanguageTag(languageTag)

@@ -182,6 +182,8 @@ class Container private constructor(
                     )
                 }
                 ?.toMutableList() ?: mutableListOf()
+            val packageDocument = rootFiles[0].fullPath
+            if (packageDocument.notExists) malformed("The given package document file <$packageDocument> does not exist")
             return Container(file, version, rootFiles, links)
         }
     }

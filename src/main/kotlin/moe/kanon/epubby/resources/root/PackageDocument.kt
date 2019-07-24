@@ -23,10 +23,10 @@ import moe.kanon.epubby.EpubLegacy
 import moe.kanon.epubby.EpubbyException
 import moe.kanon.epubby.SerializedName
 import moe.kanon.epubby.raiseMalformedError
-import moe.kanon.epubby.resources.Direction
+import moe.kanon.epubby.utils.Direction
 import moe.kanon.epubby.utils.SemVer
-import moe.kanon.epubby.utils.SemVerType
 import moe.kanon.epubby.utils.parseFile
+import moe.kanon.epubby.utils.stringify
 import moe.kanon.kommons.func.None
 import moe.kanon.kommons.func.Option
 import moe.kanon.kommons.writeOut
@@ -71,25 +71,23 @@ class PackageDocument private constructor(
 ) : DocumentSerializer {
     companion object {
         private const val METADATA_NAMESPACE_URI = "http://www.idpf.org/2007/opf"
-        // TODO: Give back 'book: Book' param?
-        internal fun parse(origin: Path, packageDocument: Path): PackageDocument = parseFile(packageDocument) {
-            fun malformed(reason: String): Nothing = raiseMalformedError(origin, packageDocument, reason)
-            val version = SemVer(
-                getAttributeValue("version") ?: malformed("'package' element is missing 'version' attribute"),
-                SemVerType.LOOSE
-            )
 
-            writeOut(version)
+        internal fun parse(book: Book, packageDocument: Path): PackageDocument = parseFile(packageDocument) {
+            fun malformed(reason: String): Nothing = raiseMalformedError(book.originFile, packageDocument, reason)
 
             val metadata = PackageMetadata.parse(
-                origin,
+                book,
                 packageDocument,
                 getChild("metadata", Namespace.getNamespace("", METADATA_NAMESPACE_URI))
                     ?: malformed("missing 'metadata' element")
             )
+
+            writeOut(metadata.toElement().stringify())
             TODO()
         }
     }
+
+    // TODO: Make a function for updating last modified
 
     /**
      * Returns the [guide][PackageGuide] tied to this package document, or [None] if this package document has no

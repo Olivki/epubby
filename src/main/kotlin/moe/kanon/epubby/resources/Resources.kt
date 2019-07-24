@@ -122,8 +122,6 @@ class FontResource(override val book: Book, override var file: Path) : Resource(
     val font: Font by lazy { Font.createFont(Font.TRUETYPE_FONT, file.newInputStream()) }
 }
 
-// TODO: Better names for these
-
 data class OpfResource(override val book: Book, override var file: Path) : Resource() {
 
 }

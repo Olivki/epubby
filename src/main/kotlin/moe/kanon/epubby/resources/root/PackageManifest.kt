@@ -18,10 +18,63 @@ package moe.kanon.epubby.resources.root
 
 import moe.kanon.epubby.Book
 import moe.kanon.epubby.ElementSerializer
+import moe.kanon.epubby.SerializedName
+import moe.kanon.epubby.resources.Resource
+import moe.kanon.kommons.func.Option
 import org.jdom2.Element
+import java.net.URL
+import java.nio.file.Path
 
-class PackageManifest(val book: Book) : ElementSerializer {
+/**
+ * Represents the [manifest](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#sec-pkg-manifest)
+ * element.
+ *
+ * The manifest provides an exhaustive list of the [resources][Resource] used by the [book].
+ */
+class PackageManifest private constructor(
+    val book: Book,
+    val identifier: Option<String>,
+    private val _items: MutableMap<String, ManifestItem>
+) : ElementSerializer {
+    companion object {
+        internal fun parse(book: Book, packageDocument: Path, element: Element): PackageManifest = with(element) {
+            TODO()
+        }
+    }
+
     override fun toElement(): Element {
         TODO("not implemented")
+    }
+}
+
+sealed class ManifestItem {
+    /**
+     * Represents the [item](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#elemdef-package-item)
+     * element.
+     */
+    data class Local(
+        @SerializedName("id") val identifier: String,
+        val href: Path,
+        val fallback: Option<String>,
+        val mediaOverlay: Option<String>,
+        val mediaType: Option<String>,
+        val properties: Option<String>
+    ) : ElementSerializer {
+        override fun toElement(): Element {
+            TODO("not implemented")
+        }
+    }
+
+    data class External(
+        @SerializedName("id") val identifier: String,
+        val href: URL,
+        val fallback: Option<String>,
+        val mediaOverlay: Option<String>,
+        val mediaType: Option<String>,
+        val properties: Option<String>
+    ) : ElementSerializer {
+        override fun toElement(): Element {
+            TODO("not implemented")
+        }
     }
 }

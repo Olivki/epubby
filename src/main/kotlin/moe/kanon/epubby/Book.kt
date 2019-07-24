@@ -24,9 +24,10 @@ import moe.kanon.epubby.resources.ResourceRepository
 import moe.kanon.epubby.resources.StyleSheetRepository
 import moe.kanon.epubby.resources.root.PackageDocument
 import moe.kanon.epubby.utils.SemVer
+import moe.kanon.epubby.utils.SemVerType
 import moe.kanon.epubby.utils.compareTo
 import moe.kanon.epubby.utils.inside
-import moe.kanon.epubby.utils.stringify
+import moe.kanon.epubby.utils.parseFile
 import moe.kanon.kommons.TMP_DIR
 import moe.kanon.kommons.func.Option
 import moe.kanon.kommons.io.paths.cleanDirectory
@@ -36,12 +37,16 @@ import moe.kanon.kommons.io.paths.exists
 import moe.kanon.kommons.io.paths.isDirectory
 import moe.kanon.kommons.io.paths.notExists
 import moe.kanon.kommons.io.paths.readString
+import moe.kanon.kommons.writeOut
+import mu.KLogger
+import mu.KotlinLogging
 import java.io.Closeable
 import java.io.IOException
 import java.nio.charset.StandardCharsets
 import java.nio.file.FileSystem
 import java.nio.file.FileSystems
 import java.nio.file.Path
+import java.util.*
 
 /**
  * Represents the container holding together an [EPUB](...).
@@ -62,7 +67,7 @@ import java.nio.file.Path
  * @property [originFile] The original file that `this` book is wrapped around.
  *
  * This will point to different files depending on how `this` instance was created;
- * - If `this` was created from parsing *([Book.parse])* an already existing epub file, then this will point to that
+ * - If `this` was created from parsing *([Book.read])* an already existing epub file, then this will point to that
  * file, while [file] will be pointing towards the *copy* that was made of that file.
  * - If `this` was created from scratch, *([Book.create])* then this will be pointing towards the same file as [file],
  * as no copy is made when creating a new epub from scratch.
@@ -76,27 +81,10 @@ class Book private constructor(
     val settings: BookSettings,
     val metaInf: MetaInf
 ) : Closeable {
-    /**
-     * The [ResourceRepository] bound to `this` book.
-     */
-    val resources: ResourceRepository = ResourceRepository(this, file) // TODO: this was 'rootDocument' before
-
-    val pages: PageRepository = PageRepository(this)
-
-    val styleSheets: StyleSheetRepository = StyleSheetRepository(this)
-
-    /**
-     * The [Format] that `this` book uses.
-     */
-    val format: Format = Format.from(version)
-
-    /**
-     * Returns the root directory of `this` book.
-     */
-    val root: Path by lazy { fileSystem.getPath("") }
-
     companion object {
         private val randomDirectory: Path get() = createTmpDirectory("epubby")
+
+        val logger: KLogger = KotlinLogging.logger("epubby")
 
         /**
          * Returns a new [Book] instance based on the given [origin].
@@ -111,7 +99,7 @@ class Book private constructor(
          * @throws [IOException] if an i/o error occurred
          */
         @Throws(EpubbyException::class, IOException::class)
-        @JvmOverloads @JvmStatic fun parse(origin: Path, settings: BookSettings = BookSettings.default): Book {
+        @JvmOverloads @JvmStatic fun read(origin: Path, settings: BookSettings = BookSettings.default): Book {
             // make sure that we're working with a valid EPUB file before we copy it
             // we're not storing this file system as the 'Book' instance will be using the file-system from the backed
             // up file that we are creating if this check passes.
@@ -123,35 +111,22 @@ class Book private constructor(
             val fs = FileSystems.newFileSystem(copy, null)
             val root = fs.getPath("/")
             val metaInf = MetaInf.parse(copy, root.resolve("META-INF"))
+            val packageDocument = metaInf.container.packageDocument.fullPath
 
-            println(metaInf.container.toDocument().stringify())
+            writeOut(copy)
 
-            val packageDocument = PackageDocument.parse(origin, metaInf.container.packageDocument.fullPath)
-
-            /*
-            // we're retrieving the path to the first 'rootfile' element in the 'container.xml' because for our system
-            // we have no real use for any of the different renditions available.
-            val rootDocument = root.resolve("META-INF", "container.xml").newInputStream().use { input ->
-                with(SAXBuilder(XMLReaders.NONVALIDATING).build(input).rootElement) {
-                    val file = origin.resolve("META-INF", "container.xml")
-                    val rootFiles = children.find { it.name == "rootfiles" } ?: throw MalformedBookException(
+            val version = parseFile(packageDocument) {
+                SemVer(
+                    getAttributeValue("version") ?: raiseMalformedError(
                         origin,
-                        "Missing 'rootfiles' element in file <$file>"
-                    )
-                    val rootFile = rootFiles.children.find { it.name == "rootfile" } ?: throw MalformedBookException(
-                        origin,
-                        "Missing 'rootfile' element in file <$file>"
-                    )
-                    val path = rootFile.getAttributeValue("full-path") ?: throw MalformedBookException(
-                        origin,
-                        "Missing 'full-path' attribute on element 'rootfile' in file <$file>"
-                    )
-                    return@with root.resolve(path)
-                }
+                        packageDocument,
+                        "'package' element is missing 'version' attribute"
+                    ),
+                    SemVerType.LOOSE
+                )
             }
 
-            println(rootDocument)*/
-            TODO()
+            return Book(version, copy, fs, origin, settings, metaInf)
         }
 
         /**
@@ -220,6 +195,44 @@ class Book private constructor(
     }
 
     /**
+     * Returns the [PackageDocument] of `this` book.
+     */
+    val packageDocument: PackageDocument = PackageDocument.parse(this, metaInf.container.packageDocument.fullPath)
+
+    /**
+     * Returns the title of `this` book.
+     */
+    val title: String get() = packageDocument.metadata.title.value
+
+    /**
+     * Returns the language of `this` book.
+     */
+    val language: Locale get() = packageDocument.metadata.language.value
+
+    /**
+     * The [ResourceRepository] bound to `this` book.
+     */
+    val resources: ResourceRepository = ResourceRepository(this, file) // TODO: this was 'rootDocument' before
+
+    val pages: PageRepository = PageRepository(this)
+
+    val styleSheets: StyleSheetRepository = StyleSheetRepository(this)
+
+    /**
+     * The [Format] that `this` book uses.
+     */
+    val format: Format = Format.of(version)
+
+    /**
+     * Returns the root directory of `this` book.
+     */
+    val root: Path by lazy { fileSystem.getPath("/") }
+
+    init {
+        writeOut(packageDocument) // TODO: Remove
+    }
+
+    /**
      * TODO
      *
      * @see [saveTo]
@@ -266,9 +279,9 @@ class Book private constructor(
     }
 
     // -- UTILITY FUNCTIONS -- \\
-    fun getResource(href: String): Resource = TODO()
+    fun getResource(id: String): Resource = TODO()
 
-    fun getResourceOrNone(href: String): Option<Resource> = TODO()
+    fun getResourceOrNone(id: String): Option<Resource> = TODO()
 
     /**
      * Returns a new [Path] instance tied to the underlying [fileSystem] of `this` book.
@@ -318,7 +331,7 @@ class Book private constructor(
          *
          * During the initial deserialization process [Book.version] is set to this value.
          */
-        UNKNOWN(SemVer("0.0.0")),
+        UNKNOWN(SemVer("0.0", SemVerType.LOOSE)),
         /**
          * Represents the [EPUB 2.x](http://www.idpf.org/epub/dir/#epub201) format.
          *
@@ -326,7 +339,7 @@ class Book private constructor(
          *
          * Specifications for EPUB 2.0 format can be found [here](http://www.idpf.org/epub/20/spec/OPS_2.0.1_draft.htm).
          */
-        EPUB_2_0(SemVer("2.0.0")),
+        EPUB_2_0(SemVer("2.0", SemVerType.LOOSE)),
         /**
          * Represents the [EPUB 3.0](http://www.idpf.org/epub/dir/#epub301) format.
          *
@@ -334,7 +347,7 @@ class Book private constructor(
          *
          * Specifications for EPUB 3.0 format can be found [here](http://www.idpf.org/epub/301/spec/epub-publications.html).
          */
-        EPUB_3_0(SemVer("3.0.0")),
+        EPUB_3_0(SemVer("3.0", SemVerType.LOOSE)),
         /**
          * Represents the [EPUB 3.1](http://www.idpf.org/epub/dir/#epub31) format.
          *
@@ -343,13 +356,13 @@ class Book private constructor(
          * The EPUB 3.1 format is [officially discouraged](http://www.idpf.org/epub/dir/#epub31) from use, and as such the
          * format is explicitly ***not*** supported by epubby, and it should never be used.
          */
-        EPUB_3_1(SemVer("3.1.0")),
+        EPUB_3_1(SemVer("3.1", SemVerType.LOOSE)),
         /**
          * Represents the [EPUB 3.2](http://www.idpf.org/epub/dir/#epub32) format.
          *
          * Any version where `n >= 3.2.x && n < 4` will be sorted into this category.
          */
-        EPUB_3_2(SemVer("3.2.0")),
+        EPUB_3_2(SemVer("3.2", SemVerType.LOOSE)),
         /**
          * Represents an unsupported EPUB format.
          *
@@ -359,7 +372,7 @@ class Book private constructor(
          *
          * Currently this is set to react on any `>= v4.x.x` versions.
          */
-        NOT_SUPPORTED(SemVer("4.0.0"));
+        NOT_SUPPORTED(SemVer("4.0", SemVerType.LOOSE));
 
         // we can't implement custom 'compareTo' for 'EpubFormat' because 'compareTo(other: EpubFormat)' is generated by
         // default in java, and it's set to be 'final', so we can't override it.
@@ -383,7 +396,7 @@ class Book private constructor(
              * Returns the [Format] with the closest matching version to the specified [version], or [UNKNOWN] if none
              * is found.
              */
-            @JvmStatic fun from(version: SemVer): Format = when {
+            @JvmStatic fun of(version: SemVer): Format = when {
                 version inside EPUB_2_0..EPUB_3_0 -> EPUB_2_0
                 version inside EPUB_3_0..EPUB_3_1 -> EPUB_3_0
                 version inside EPUB_3_1..EPUB_3_2 -> throw UnsupportedOperationException(
@@ -397,5 +410,7 @@ class Book private constructor(
 
     }
 }
+
+val logger: KLogger get() = Book.logger
 
 operator fun Book.get(href: String): Resource = this.getResource(href)

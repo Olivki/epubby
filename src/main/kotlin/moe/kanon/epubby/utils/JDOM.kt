@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+@file:JvmName("JDomUtils")
+
 package moe.kanon.epubby.utils
 
 import moe.kanon.kommons.func.None
@@ -72,4 +74,6 @@ fun Document.saveTo(directory: Path, fileName: String, format: Format = Format.g
     return file
 }
 
-fun Document.stringify(format: Format = Format.getPrettyFormat()): String = XMLOutputter(format).outputString(document)
+fun Document.stringify(format: Format = Format.getPrettyFormat()): String = XMLOutputter(format).outputString(this)
+
+fun Element.stringify(format: Format = Format.getPrettyFormat()): String = XMLOutputter(format).outputString(this)

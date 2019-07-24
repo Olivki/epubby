@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+@file:JvmName("VersionUtils")
+
 package moe.kanon.epubby.utils
 
 import com.vdurmont.semver4j.Semver
