@@ -19,6 +19,7 @@
 package moe.kanon.epubby.resources
 
 import moe.kanon.epubby.Book
+import moe.kanon.epubby.EpubVersion
 import moe.kanon.epubby.EpubbyException
 import moe.kanon.epubby.utils.combineWith
 import moe.kanon.kommons.io.paths.newInputStream
@@ -126,6 +127,7 @@ data class OpfResource(override val book: Book, override var file: Path) : Resou
 
 }
 
+@EpubVersion(Book.Format.EPUB_2_0)
 data class NcxResource(override val book: Book, override var file: Path) : Resource() {
 
 }

@@ -23,33 +23,27 @@ import moe.kanon.epubby.resources.Resource
 import moe.kanon.epubby.resources.ResourceRepository
 import moe.kanon.epubby.resources.StyleSheetRepository
 import moe.kanon.epubby.resources.root.PackageDocument
+import moe.kanon.epubby.settings.BookSettings
 import moe.kanon.epubby.utils.SemVer
 import moe.kanon.epubby.utils.SemVerType
 import moe.kanon.epubby.utils.compareTo
 import moe.kanon.epubby.utils.inside
-import moe.kanon.epubby.utils.parseFile
 import moe.kanon.kommons.TMP_DIR
 import moe.kanon.kommons.func.Option
 import moe.kanon.kommons.io.paths.cleanDirectory
-import moe.kanon.kommons.io.paths.copyTo
-import moe.kanon.kommons.io.paths.createTmpDirectory
-import moe.kanon.kommons.io.paths.exists
-import moe.kanon.kommons.io.paths.isDirectory
-import moe.kanon.kommons.io.paths.notExists
-import moe.kanon.kommons.io.paths.readString
 import moe.kanon.kommons.writeOut
 import mu.KLogger
 import mu.KotlinLogging
 import java.io.Closeable
 import java.io.IOException
-import java.nio.charset.StandardCharsets
 import java.nio.file.FileSystem
-import java.nio.file.FileSystems
 import java.nio.file.Path
 import java.util.*
 
 /**
  * Represents the container holding together an [EPUB](...).
+ *
+ * To create an instance of this class, use either the [readBook] or [createBook] function.
  *
  * @property [version] The version of `this` book.
  *
@@ -73,7 +67,7 @@ import java.util.*
  * as no copy is made when creating a new epub from scratch.
  * @property [settings] The [BookSettings] used for various operations throughout the system.
  */
-class Book private constructor(
+class Book internal constructor(
     val version: SemVer,
     val file: Path,
     val fileSystem: FileSystem,
@@ -82,116 +76,7 @@ class Book private constructor(
     val metaInf: MetaInf
 ) : Closeable {
     companion object {
-        private val randomDirectory: Path get() = createTmpDirectory("epubby")
-
-        val logger: KLogger = KotlinLogging.logger("epubby")
-
-        /**
-         * Returns a new [Book] instance based on the given [origin].
-         *
-         * This function attempts to parse the `origin` file, and *will* fail if the given file is *not* a valid EPUB.
-         *
-         * Note that the `Book` instance will *not* be working on the given `origin` file, but rather on a defensive
-         * copy that has been made of it. To access the `origin` file from the book instance, use the
-         * [originFile][Book.originFile] property.
-         *
-         * @throws [EpubbyException] if something went wrong when parsing the [origin] file
-         * @throws [IOException] if an i/o error occurred
-         */
-        @Throws(EpubbyException::class, IOException::class)
-        @JvmOverloads @JvmStatic fun read(origin: Path, settings: BookSettings = BookSettings.default): Book {
-            // make sure that we're working with a valid EPUB file before we copy it
-            // we're not storing this file system as the 'Book' instance will be using the file-system from the backed
-            // up file that we are creating if this check passes.
-            FileSystems.newFileSystem(origin, null).use { validate(origin, it.getPath("/")) }
-
-            // we make a defensive copy of the given 'origin' file so that we are not modifying the original file at
-            // any point
-            val copy = origin.copyTo(randomDirectory, keepName = true)
-            val fs = FileSystems.newFileSystem(copy, null)
-            val root = fs.getPath("/")
-            val metaInf = MetaInf.parse(copy, root.resolve("META-INF"))
-            val packageDocument = metaInf.container.packageDocument.fullPath
-
-            writeOut(copy)
-
-            val version = parseFile(packageDocument) {
-                SemVer(
-                    getAttributeValue("version") ?: raiseMalformedError(
-                        origin,
-                        packageDocument,
-                        "'package' element is missing 'version' attribute"
-                    ),
-                    SemVerType.LOOSE
-                )
-            }
-
-            return Book(version, copy, fs, origin, settings, metaInf)
-        }
-
-        /**
-         * Checks the basic validity of the given [container] as an EPUB file.
-         *
-         * This function is here to provide better information regarding what is wrong with an EPUB file right at the
-         * start, rather than the system failing later on in with a non-descriptive error.
-         */
-        private fun validate(container: Path, root: Path) {
-            val metaInf = root.resolve("META-INF")
-            val mimetype = root.resolve("mimetype")
-            when {
-                // none of the epub formats have changed the behaviour of requiring the '!META-INF' directory, so it's
-                // safe *(for now)* to assume that to be a valid epub file, no matter the format version, a '!META-INF'
-                // directory containing a 'container.xml' is REQUIRED
-                metaInf.notExists -> {
-                    throw MalformedBookException(root, "Missing 'META-INF' directory in file <$container>")
-                }
-                !(metaInf.isDirectory) -> {
-                    throw MalformedBookException(root, "'META-INF' is not a directory in file <$container>")
-                }
-                // much like how 'META-INF' is REQUIRED for a file to be a valid epub, 'container.xml' is also REQUIRED.
-                // 'container.xml' contains the information of *where* the manifest (.opf) file is located, so we want
-                // to parse that for it. (granted we could just manually search through all the files for the first
-                // .opf file, but because the epub spec allows one to have *more* than one manifest file, it's safer
-                // to use the one that's defined as the MAIN manifest file in the 'container.xml')
-                metaInf.resolve("container.xml").notExists -> {
-                    throw MalformedBookException(
-                        root,
-                        "'container.xml' file missing from 'META-INF' directory in file <$container>"
-                    )
-                }
-                // 'mimetype' also needs to exist in the root of the epub file, and it NEEDS to contain the ASCII
-                // string "application/epub+zip"
-                mimetype.notExists -> {
-                    throw MalformedBookException(root, "'mimetype' file missing from root of file <$container>")
-                }
-                mimetype.isDirectory -> {
-                    throw MalformedBookException(
-                        root,
-                        "'mimetype' in file <$container> is a directory, needs to be a file"
-                    )
-                }
-                mimetype.exists -> {
-                    val contents =
-                        mimetype.readString(StandardCharsets.US_ASCII) // because it's supposed to be in ascii
-                    if (contents != "application/epub+zip") {
-                        throw MalformedBookException(
-                            root,
-                            "'mimetype' does not contain \"application/epub+zip\", instead contains \"$contents\""
-                        )
-                    }
-                }
-            }
-        }
-
-        /**
-         * TODO
-         *
-         * @param [destionation] where the newly created epub should be saved to
-         */
-        @Throws(EpubbyException::class, IOException::class)
-        @JvmOverloads @JvmStatic fun create(destionation: Path, settings: BookSettings = BookSettings.default): Book {
-            TODO()
-        }
+        @JvmStatic val logger: KLogger = KotlinLogging.logger("epubby")
     }
 
     /**
@@ -232,15 +117,10 @@ class Book private constructor(
         writeOut(packageDocument) // TODO: Remove
     }
 
-    /**
-     * TODO
-     *
-     * @see [saveTo]
-     */
-    fun save(): Path = saveTo(file)
-
-    fun saveTo(dest: Path): Path {
-        TODO()
+    fun saveAll() {
+        logger.info { "Attempting to save book to destination <$file>..." }
+        packageDocument.save()
+        logger.info { "Book has been successfully saved to <$file>!" }
     }
 
     /**
@@ -251,7 +131,7 @@ class Book private constructor(
      * been invoked will most likely result in several exceptions being thrown.
      *
      * Note that if [file] is stored in the temp directory of the OS, then this function will also delete [file] and
-     * its [parent][Path.getParent] directory, so make sure to call [saveTo] before this is called, otherwise all
+     * its [parent][Path.getParent] directory, so make sure to call [saveAll] before this is called, otherwise all
      * progress will be lost.
      *
      * To ensure that `this` book gets closed at a logical time, `try-with-resources` can be used;
@@ -271,10 +151,12 @@ class Book private constructor(
      *  }
      * ```
      */
+    @Throws(IOException::class)
     override fun close() {
         fileSystem.close()
         // checking if 'file' is stored inside the temp dir of the OS
         // TODO: Make sure this works
+        writeOut(file.parent.parent)
         if (file.parent.parent.toString() == TMP_DIR) file.parent.cleanDirectory()
     }
 
@@ -307,6 +189,8 @@ class Book private constructor(
      */
     @JvmName("getPath")
     fun pathOf(first: String, vararg more: String): Path = fileSystem.getPath(first, *more)
+
+    override fun toString(): String = "Book(title='$title', language='$language', version='$version')"
 
     /**
      * Represents the **major** version formats available for epubs as of creation. (2019-07-22).
@@ -411,6 +295,4 @@ class Book private constructor(
     }
 }
 
-val logger: KLogger get() = Book.logger
-
-operator fun Book.get(href: String): Resource = this.getResource(href)
+@PublishedApi internal inline val logger: KLogger get() = Book.logger

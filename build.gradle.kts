@@ -42,30 +42,34 @@ dependencies {
     implementation(kotlin("reflect"))
     implementation(group = "org.jetbrains.kotlinx", name = "kotlinx-html-jvm", version = "0.6.12")
     implementation(group = "org.jetbrains.kotlinx", name = "kotlinx-collections-immutable", version = "0.1")
-    
+
     // Kanon
-    implementation(group = "moe.kanon.xml", name = "kanon.xml", version = "3.1.3")
+    implementation(group = "moe.kanon.xml", name = "kanon.xml", version = "3.1.4")
     implementation(group = "moe.kanon.kommons", name = "kommons.func", version = "1.0.0")
     implementation(group = "moe.kanon.kommons", name = "kommons.io", version = "1.0.0")
     implementation(group = "moe.kanon.kommons", name = "kommons.lang", version = "0.1.0")
     implementation(group = "moe.kanon.kommons", name = "kommons.collections", version = "0.1.0")
-    
+
+    // Apache
+    implementation(group = "commons-validator", name = "commons-validator", version = "1.6")
+
     // css handler
     implementation(group = "com.helger", name = "ph-css", version = "6.2.0")
-    
+
     // kotlin logging wrapper
     implementation(group = "io.github.microutils", name = "kotlin-logging", version = "1.6.26")
-    
+
     // JSoup
     implementation(group = "org.jsoup", name = "jsoup", version = "1.12.1")
 
     // semver
     implementation(group = "com.vdurmont", name = "semver4j", version = "2.2.0")
-    
+
     // Test Dependencies
     testImplementation(group = "io.kotlintest", name = "kotlintest-runner-junit5", version = "3.1.11")
     testImplementation(group = "org.apache.logging.log4j", name = "log4j-core", version = "2.12.0")
     testImplementation(group = "org.fusesource.jansi", name = "jansi", version = "1.18")
+    testImplementation(group = "org.slf4j", name = "slf4j-simple", version = "1.8.0-beta2")
 }
 
 tasks.withType<KotlinCompile> {

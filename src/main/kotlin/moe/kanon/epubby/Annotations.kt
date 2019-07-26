@@ -42,9 +42,18 @@ annotation class SerializedName(val name: String)
  *
  * @property [since] The version that the feature started getting considered as legacy.
  */
+@Target(
+    AnnotationTarget.CLASS,
+    AnnotationTarget.FIELD,
+    AnnotationTarget.FILE,
+    AnnotationTarget.FUNCTION,
+    AnnotationTarget.PROPERTY,
+    AnnotationTarget.PROPERTY_GETTER,
+    AnnotationTarget.PROPERTY_SETTER
+)
 @MustBeDocumented
 @Retention(AnnotationRetention.SOURCE)
-annotation class EpubLegacy(val since: String)
+annotation class EpubLegacy(val since: Book.Format)
 
 /**
  * Used for marking that the feature the annotation target represents is considered to be a [deprecated feature](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-spec.html#deprecated).
@@ -56,9 +65,18 @@ annotation class EpubLegacy(val since: String)
  *
  * @property [since] The version that the feature started getting considered as deprecated.
  */
+@Target(
+    AnnotationTarget.CLASS,
+    AnnotationTarget.FIELD,
+    AnnotationTarget.FILE,
+    AnnotationTarget.FUNCTION,
+    AnnotationTarget.PROPERTY,
+    AnnotationTarget.PROPERTY_GETTER,
+    AnnotationTarget.PROPERTY_SETTER
+)
 @MustBeDocumented
 @Retention(AnnotationRetention.SOURCE)
-annotation class EpubDeprecated(val since: String)
+annotation class EpubDeprecated(val since: Book.Format)
 
 /**
  * Used for marking that the feature the annotation target represents has been fully removed starting from the given
@@ -68,9 +86,18 @@ annotation class EpubDeprecated(val since: String)
  * features are usually just marked as [EpubLegacy] or [EpubDeprecated] at worst, but there are still certain features
  * that have been completely revamped in the way they are done, which means that they no longer are used *at all*.
  */
+@Target(
+    AnnotationTarget.CLASS,
+    AnnotationTarget.FIELD,
+    AnnotationTarget.FILE,
+    AnnotationTarget.FUNCTION,
+    AnnotationTarget.PROPERTY,
+    AnnotationTarget.PROPERTY_GETTER,
+    AnnotationTarget.PROPERTY_SETTER
+)
 @MustBeDocumented
 @Retention(AnnotationRetention.SOURCE)
-annotation class EpubRemoved(val `in`: String)
+annotation class EpubRemoved(val `in`: Book.Format)
 
 /**
  * Used for marking which version of the EPUB format the feature the annotation target represents is made for.
@@ -79,6 +106,15 @@ annotation class EpubRemoved(val `in`: String)
  * part of the specification has changed completely/largely but still kept the same name of the feature, in such
  * situations this annotation is helpful in reducing ambiguity.
  */
+@Target(
+    AnnotationTarget.CLASS,
+    AnnotationTarget.FIELD,
+    AnnotationTarget.FILE,
+    AnnotationTarget.FUNCTION,
+    AnnotationTarget.PROPERTY,
+    AnnotationTarget.PROPERTY_GETTER,
+    AnnotationTarget.PROPERTY_SETTER
+)
 @MustBeDocumented
 @Retention(AnnotationRetention.SOURCE)
-annotation class EpubVersion(val version: String)
+annotation class EpubVersion(val `for`: Book.Format)

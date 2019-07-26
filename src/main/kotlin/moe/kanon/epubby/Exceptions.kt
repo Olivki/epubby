@@ -43,5 +43,9 @@ open class MalformedBookException @JvmOverloads constructor(
     cause: Throwable? = null
 ) : EpubbyException(epub, message, cause)
 
-@PublishedApi internal fun raiseMalformedError(epub: Path, file: Path, reason: String): Nothing =
-    throw MalformedBookException(epub, "<${epub.combineWith(file)}> is malformed; $reason")
+@PublishedApi internal fun raiseMalformedError(
+    epub: Path,
+    file: Path,
+    reason: String,
+    cause: Throwable? = null
+): Nothing = throw MalformedBookException(epub, "<${epub.combineWith(file)}> is malformed; $reason", cause)

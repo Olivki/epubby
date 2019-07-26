@@ -16,9 +16,7 @@
 
 @file:Suppress("DataClassPrivateConstructor")
 
-package moe.kanon.epubby
-
-import moe.kanon.epubby.resources.Resource
+package moe.kanon.epubby.settings
 
 data class BookSettings private constructor(
     /**
@@ -29,16 +27,7 @@ data class BookSettings private constructor(
      *
      * (`false` by default)
      */
-    val generateTableOfContentsPage: Boolean = false,
-    /**
-     * Whether or not the resources of a parsed book should be completely re-organized to fit the recommended standard
-     * for how resources should be organized.
-     *
-     * Note that this setting is *very* aggressive, and *will* change large parts of an epub.
-     *
-     * (`true` by default)
-     */
-    val organizeResources: Boolean = true // TODO: Remove this?
+    val generateTableOfContentsPage: Boolean = false
 ) {
     companion object {
         /**
@@ -56,17 +45,4 @@ data class BookSettings private constructor(
      * (`false` by default)
      */
     fun generateTableOfContentsPage(shouldGenerate: Boolean) = copy(generateTableOfContentsPage = shouldGenerate)
-
-    /**
-     * Whether or not the resources of a parsed book should be completely re-organized to fit the recommended standard
-     * for how resources should be organized.
-     *
-     * The directory that a resource will be moved into is represented by its
-     * [preferredDirectory][Resource.preferredDirectory] property.
-     *
-     * Note that this setting is *very* aggressive, and *will* change large parts of an epub.
-     *
-     * (`true` by default)
-     */
-    fun organizeResources(shouldOrganize: Boolean) = copy(organizeResources = shouldOrganize)
 }

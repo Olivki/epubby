@@ -21,7 +21,7 @@ import moe.kanon.epubby.ElementSerializer
 import moe.kanon.epubby.EpubDeprecated
 import org.jdom2.Element
 
-@EpubDeprecated("3.2")
+@EpubDeprecated(Book.Format.EPUB_3_2)
 class PackageBindings(val book: Book) : ElementSerializer {
     override fun toElement(): Element {
         TODO("not implemented")

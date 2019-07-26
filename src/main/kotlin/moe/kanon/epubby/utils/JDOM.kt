@@ -21,6 +21,7 @@ package moe.kanon.epubby.utils
 import moe.kanon.kommons.func.None
 import moe.kanon.kommons.func.Option
 import moe.kanon.kommons.io.paths.newInputStream
+import moe.kanon.kommons.io.paths.newOutputStream
 import org.jdom2.Attribute
 import org.jdom2.Document
 import org.jdom2.Element
@@ -29,7 +30,6 @@ import org.jdom2.input.SAXBuilder
 import org.jdom2.input.sax.XMLReaders
 import org.jdom2.output.Format
 import org.jdom2.output.XMLOutputter
-import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
 
@@ -62,16 +62,23 @@ fun Element.getAttributeValueOrNone(name: String, namespace: Namespace = Namespa
  * @param [fileName] the name of the file. *(This is the full file name, including the extension.)*
  * @param [format] the [Format] that should be used when writing this document to the file
  */
-fun Document.saveTo(directory: Path, fileName: String, format: Format = Format.getPrettyFormat()): Path {
-    val file = directory.resolve(fileName)
-    val writer = XMLOutputter(format)
+fun Document.saveTo(directory: Path, fileName: String, format: Format = Format.getPrettyFormat()): Path =
+    directory.resolve(fileName).also { file ->
+        file.newOutputStream(StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING).use {
+            XMLOutputter(format).output(this, it)
+        }
+    }
 
-    writer.output(
-        this,
-        Files.newOutputStream(file, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
-    )
-
-    return file
+/**
+ * Serializes `this` document into the given [file], it is output using the given [format].
+ *
+ * @param [file] the file to which the document should be saved
+ * @param [format] the [Format] that should be used when writing this document to the file
+ */
+fun Document.saveTo(file: Path, format: Format = Format.getPrettyFormat()): Path = file.also {
+    it.newOutputStream(StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING).use { out ->
+        XMLOutputter(format).output(this, out)
+    }
 }
 
 fun Document.stringify(format: Format = Format.getPrettyFormat()): String = XMLOutputter(format).outputString(this)

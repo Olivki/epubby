@@ -28,19 +28,21 @@ import moe.kanon.epubby.EpubRemoved
 import moe.kanon.epubby.EpubVersion
 import moe.kanon.epubby.EpubbyException
 import moe.kanon.epubby.SerializedName
+import moe.kanon.epubby.logger
 import moe.kanon.epubby.raiseMalformedError
 import moe.kanon.epubby.resources.root.PackageMetadata.Companion.OPF_NAMESPACE
 import moe.kanon.epubby.utils.Direction
 import moe.kanon.epubby.utils.compareTo
 import moe.kanon.epubby.utils.getAttributeValueOrNone
 import moe.kanon.epubby.utils.localeOf
+import moe.kanon.epubby.utils.stringify
 import moe.kanon.kommons.checkThat
 import moe.kanon.kommons.func.None
 import moe.kanon.kommons.func.Option
-import moe.kanon.kommons.requireThat
 import moe.kanon.xml.Namespace
 import org.jdom2.Attribute
 import org.jdom2.Element
+import org.jdom2.output.Format
 import java.nio.charset.Charset
 import java.nio.file.Path
 import java.time.LocalDateTime
@@ -68,11 +70,16 @@ class PackageMetadata private constructor(
 
         internal fun parse(book: Book, packageDocument: Path, element: Element): PackageMetadata = with(element) {
             fun malformed(reason: String): Nothing = raiseMalformedError(book.originFile, packageDocument, reason)
+            fun logFaultyMetaElement(element: Element, reason: String) =
+                logger.warn { "Encountered a faulty 'meta' element: [${element.stringify(Format.getCompactFormat())}], $reason" }
+
             val identifiers = getChildren("identifier", DC_NAMESPACE)
+                .asSequence()
                 .map { DublinCore.Identifier(it.value.trim(), it.getAttributeValue("id")) }
                 .toMutableList()
                 .ifEmpty { malformed("missing required 'dc:identifier' element in 'metadata'") }
             val titles = getChildren("title", DC_NAMESPACE)
+                .asSequence()
                 .map {
                     DublinCore.Title(
                         it.value.trim(),
@@ -84,10 +91,12 @@ class PackageMetadata private constructor(
                 .toMutableList()
                 .ifEmpty { malformed("missing required 'dc:title' element in 'metadata'") }
             val languages = getChildren("language", DC_NAMESPACE)
+                .asSequence()
                 .map { DublinCore.Language(localeOf(it.value.trim()), it.getAttributeValue("id")) }
                 .toMutableList()
                 .ifEmpty { malformed("missing required 'dc:language' element in 'metadata'") }
-            val dublinCoreElements: MutableList<DublinCore<*>> = children.asSequence()
+            val dublinCoreElements: MutableList<DublinCore<*>> = children
+                .asSequence()
                 .filter { it.namespace == DC_NAMESPACE }
                 .filterNot { it.name == "identifier" || it.name == "title" || it.name == "language" }
                 .filterNot { it.text.isEmpty() && it.attributes.isEmpty() }
@@ -126,31 +135,28 @@ class PackageMetadata private constructor(
                     return@map dublinCore
                 }
                 .toMutableList()
-            val metaElements = children.asSequence()
+            val metaElements = children
+                .asSequence()
                 .filter { it.name == "meta" }
                 .map {
                     return@map if (book.version > Book.Format.EPUB_2_0) {
                         when {
-                            /*
-                            * so, the EPUB specification quite clearly states the following:
-                            * Every meta element MUST express a value that is at least one character in length after
-                            * white space normalization
-                            * and:
-                            * Attributes
-                            * property [required]
-                            * yet, there are EPUBs made by big publishers that completely ignore this and add
-                            * 'meta' elements that contain NO 'property' attribute AND NO text.
-                            * unless I'm misunderstandings something here, this is quite the grave violation of the
-                            * specification, so therefore I'm not going to even *attempt* to support that, as reader
-                            * systems should not be supporting that behaviour either.
-                            */
-                            it.attributes.none { attr -> attr.name == "property" } || it.text.trim().isEmpty() -> {
+                            // the 'property' attribute is REQUIRED according to the EPUB specification, which means
+                            // that any 'meta' elements that are missing it are NOT valid elements
+                            it.attributes.none { attr -> attr.name == "property" } -> {
+                                logFaultyMetaElement(it, "missing required 'property' attribute")
+                                return@map null
+                            }
+                            // "Every meta element MUST express a value that is at least one character in length after
+                            // white space normalization" which means that if the text is blank after being normalized
+                            // it's not a valid 'meta' element
+                            it.textNormalize.isBlank() -> {
+                                logFaultyMetaElement(it, "value/text is blank")
                                 return@map null
                             }
                             else -> MetaElement.Modern(
                                 it.text,
-                                it.getAttributeValue("property")
-                                    ?: malformed("'meta' element is missing 'property' attribute"),
+                                it.getAttributeValue("property"),
                                 it.getAttributeValue("id"),
                                 it.getAttributeValue("dir")?.let(Direction.Companion::of),
                                 it.getAttributeValue("refines"),
@@ -360,12 +366,38 @@ class PackageMetadata private constructor(
     }
 
     // -- OTHER -- \\
-    override fun toElement(): Element = Element("metadata", DC_NAMESPACE).apply {
+    /**
+     * Updates the `last-modified` date of the [book] this `metadata` element is tied to.
+     */
+    fun updateLastModified() {
+        val lastModified = LocalDateTime.now()
+        logger.debug { "Updating last-modified date to <$lastModified>" }
+        if (book.version < Book.Format.EPUB_3_0) {
+            fun predicate(dc: DublinCore<*>) = dc._attributes.any { it.name == "event" && it.value == "modification" }
+            val element = DublinCore.Date(lastModified)
+                .apply { addAttribute(Attribute("event", "modification", DC_NAMESPACE)) }
+            if (dublinCoreElements.any(::predicate)) {
+                dublinCoreElements[dublinCoreElements.indexOfFirst(::predicate)] = element
+            } else dublinCoreElements += element
+        } else {
+            fun predicate(it: MetaElement) = (it as MetaElement.Modern).property == "dcterms:modified"
+            val element = MetaElement.Modern(
+                lastModified.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
+                "dcterms:modified"
+            )
+            if (metaElements.any(::predicate)) {
+                metaElements[metaElements.indexOfFirst(::predicate)] = element
+            } else metaElements += element
+        }
+    }
+
+    override fun toElement(): Element = Element("metadata", PackageDocument.NAMESPACE).apply {
+        addNamespaceDeclaration(DC_NAMESPACE)
         if (book.version < Book.Format.EPUB_3_0) addNamespaceDeclaration(OPF_NAMESPACE)
-        _identifiers.map { it.toElement().setNamespace(namespace) }.forEach { addContent(it) }
-        _titles.map { it.toElement().setNamespace(namespace) }.forEach { addContent(it) }
-        _languages.map { it.toElement().setNamespace(namespace) }.forEach { addContent(it) }
-        dublinCoreElements.map { it.toElement().setNamespace(namespace) }.forEach { addContent(it) }
+        _identifiers.map { it.toElement() }.forEach { addContent(it) }
+        _titles.map { it.toElement() }.forEach { addContent(it) }
+        _languages.map { it.toElement() }.forEach { addContent(it) }
+        dublinCoreElements.map { it.toElement() }.forEach { addContent(it) }
         metaElements.map(MetaElement::toElement).forEach { addContent(it) }
         links.map(Link::toElement).forEach { addContent(it) }
     }
@@ -424,7 +456,7 @@ class PackageMetadata private constructor(
         val properties: Option<String> = None,
         val refines: Option<String> = None
     ) : ElementSerializer {
-        override fun toElement(): Element = Element("link").apply {
+        override fun toElement(): Element = Element("link", PackageDocument.NAMESPACE).apply {
             setAttribute("href", href)
             setAttribute("rel", relation)
             mediaType.ifPresent { setAttribute("media-type", it) }
@@ -460,7 +492,7 @@ sealed class MetaElement : ElementSerializer {
      * For more information regarding the `meta` element and what the different parameters do, see the specification
      * linked above.
      */
-    @EpubLegacy("3.0")
+    @EpubLegacy(Book.Format.EPUB_3_0)
     data class Legacy private constructor(
         val charset: Option<String> = None,
         val content: Option<String> = None,
@@ -514,7 +546,7 @@ sealed class MetaElement : ElementSerializer {
             )
         }
 
-        override fun toElement(): Element = Element("meta").apply {
+        override fun toElement(): Element = Element("meta", PackageDocument.NAMESPACE).apply {
             charset.ifPresent { setAttribute("charset", it) }
             this@Legacy.content.ifPresent { setAttribute("content", it) }
             httpEquivalent.ifPresent { setAttribute("http-equiv", it) }
@@ -525,7 +557,7 @@ sealed class MetaElement : ElementSerializer {
     }
 
     // TODO: Make a system for working with property data types and processing?
-    // TODO: (https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#sec-property-datatype)
+    // (https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#sec-property-datatype)
 
     /**
      * Represents the [meta](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#elemdef-meta)
@@ -562,7 +594,7 @@ sealed class MetaElement : ElementSerializer {
             language: Locale? = null
         ) : this(value, property, Option(id), Option(dir), Option(refines), Option(scheme), Option(language))
 
-        override fun toElement(): Element = Element("meta").apply {
+        override fun toElement(): Element = Element("meta", PackageDocument.NAMESPACE).apply {
             setAttribute("property", property)
             identifier.ifPresent { setAttribute("id", it) }
             direction.ifPresent { setAttribute("dir", it.toString()) }
@@ -583,7 +615,7 @@ sealed class DublinCore<T>(val label: String) : ElementSerializer {
 
     // for EPUB 2.0 compliance, as the 'meta' element wasn't defined back then, so 'opf:property' attributes were used,
     // which means we need to catch them and then just throw them back onto the element during 'toElement' invocation
-    @EpubRemoved("3.0")
+    @EpubRemoved(Book.Format.EPUB_3_0)
     @JvmSynthetic internal var _attributes: MutableList<Attribute> = ArrayList()
 
     /**
@@ -592,8 +624,8 @@ sealed class DublinCore<T>(val label: String) : ElementSerializer {
      * This is for backwards compatibility with [EPUB_2.0][Book.Format.EPUB_2_0] versions, as they stored role info
      * differently.
      */
-    @EpubRemoved("3.0")
-    @EpubVersion("2.0")
+    @EpubRemoved(Book.Format.EPUB_3_0)
+    @EpubVersion(Book.Format.EPUB_2_0)
     val attributes: ImmutableList<Attribute>
         get() = _attributes.toImmutableList()
 
@@ -602,7 +634,7 @@ sealed class DublinCore<T>(val label: String) : ElementSerializer {
      */
     protected abstract fun stringify(): String
 
-    override fun toElement(): Element = Element(label.toLowerCase()).apply {
+    override fun toElement(): Element = Element(label.toLowerCase(), PackageMetadata.DC_NAMESPACE).apply {
         identifier.ifPresent { setAttribute("id", it) }
         if (this is FullElement) {
             direction.ifPresent { setAttribute("dir", it.toString()) }
@@ -618,7 +650,7 @@ sealed class DublinCore<T>(val label: String) : ElementSerializer {
      * @throws [IllegalArgumentException] if [attribute] does not belong to the [OPF][OPF_NAMESPACE] namespace
      */
     fun addAttribute(attribute: Attribute) {
-        requireThat(attribute.namespace == OPF_NAMESPACE) { "'attribute' needs have OPF namespace" }
+        attribute.namespace = OPF_NAMESPACE
         _attributes.add(attribute)
     }
 
