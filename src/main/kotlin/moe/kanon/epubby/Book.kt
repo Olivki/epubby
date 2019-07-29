@@ -22,16 +22,16 @@ import moe.kanon.epubby.resources.PageRepository
 import moe.kanon.epubby.resources.Resource
 import moe.kanon.epubby.resources.ResourceRepository
 import moe.kanon.epubby.resources.StyleSheetRepository
-import moe.kanon.epubby.resources.root.PackageDocument
+import moe.kanon.epubby.root.PackageDocument
+import moe.kanon.epubby.root.PackageManifest
+import moe.kanon.epubby.root.PackageMetadata
+import moe.kanon.epubby.root.PackageSpine
 import moe.kanon.epubby.settings.BookSettings
 import moe.kanon.epubby.utils.SemVer
 import moe.kanon.epubby.utils.SemVerType
 import moe.kanon.epubby.utils.compareTo
 import moe.kanon.epubby.utils.inside
-import moe.kanon.kommons.TMP_DIR
 import moe.kanon.kommons.func.Option
-import moe.kanon.kommons.io.paths.cleanDirectory
-import moe.kanon.kommons.writeOut
 import mu.KLogger
 import mu.KotlinLogging
 import java.io.Closeable
@@ -66,6 +66,7 @@ import java.util.*
  * - If `this` was created from scratch, *([Book.create])* then this will be pointing towards the same file as [file],
  * as no copy is made when creating a new epub from scratch.
  * @property [settings] The [BookSettings] used for various operations throughout the system.
+ * @property [metaInf] TODO
  */
 class Book internal constructor(
     val version: SemVer,
@@ -79,25 +80,44 @@ class Book internal constructor(
         @JvmStatic val logger: KLogger = KotlinLogging.logger("epubby")
     }
 
+    // -- PACKAGE DOCUMENT -- \\
     /**
      * Returns the [PackageDocument] of `this` book.
      */
     val packageDocument: PackageDocument = PackageDocument.parse(this, metaInf.container.packageDocument.fullPath)
 
+    // TODO: Documentation
+
+    val packageManifest: PackageManifest get() = packageDocument.manifest
+
+    val packageMetadata: PackageMetadata get() = packageDocument.metadata
+
+    val packageSpine: PackageSpine get() = packageDocument.spine
+
+    // -- METADATA -- \\
     /**
      * Returns the title of `this` book.
      */
-    val title: String get() = packageDocument.metadata.title.value
+    var title: String
+        get() = packageMetadata.title.value
+        set(value) {
+            packageMetadata.title = packageMetadata.title.copy(value = value)
+        }
 
     /**
      * Returns the language of `this` book.
      */
-    val language: Locale get() = packageDocument.metadata.language.value
+    var language: Locale
+        get() = packageMetadata.language.value
+        set(value) {
+            packageMetadata.language = packageMetadata.language.copy(value = value)
+        }
 
+    // -- REPOSITORIES -- \\
     /**
      * The [ResourceRepository] bound to `this` book.
      */
-    val resources: ResourceRepository = ResourceRepository(this, file) // TODO: this was 'rootDocument' before
+    val resources: ResourceRepository = ResourceRepository(this)
 
     val pages: PageRepository = PageRepository(this)
 
@@ -111,10 +131,13 @@ class Book internal constructor(
     /**
      * Returns the root directory of `this` book.
      */
-    val root: Path by lazy { fileSystem.getPath("/") }
+    val root: Path = fileSystem.getPath("/")
 
     init {
-        writeOut(packageDocument) // TODO: Remove
+        logger.info { "Book format: $format" }
+        logger.info { "Book titles: [${packageMetadata.titles.joinToString { it.value }}]" }
+        logger.info { "Book languages: [${packageMetadata.languages.joinToString { it.value.toString() }}]" }
+        resources.populateFromManifest()
     }
 
     fun saveAll() {
@@ -153,11 +176,8 @@ class Book internal constructor(
      */
     @Throws(IOException::class)
     override fun close() {
+        logger.info { "Closing file-system of container <$file>" }
         fileSystem.close()
-        // checking if 'file' is stored inside the temp dir of the OS
-        // TODO: Make sure this works
-        writeOut(file.parent.parent)
-        if (file.parent.parent.toString() == TMP_DIR) file.parent.cleanDirectory()
     }
 
     // -- UTILITY FUNCTIONS -- \\

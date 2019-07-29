@@ -16,7 +16,7 @@
 
 @file:Suppress("DataClassPrivateConstructor")
 
-package moe.kanon.epubby.resources.root
+package moe.kanon.epubby.root
 
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.immutableListOf
@@ -30,7 +30,7 @@ import moe.kanon.epubby.EpubbyException
 import moe.kanon.epubby.SerializedName
 import moe.kanon.epubby.logger
 import moe.kanon.epubby.raiseMalformedError
-import moe.kanon.epubby.resources.root.PackageMetadata.Companion.OPF_NAMESPACE
+import moe.kanon.epubby.root.PackageMetadata.Companion.OPF_NAMESPACE
 import moe.kanon.epubby.utils.Direction
 import moe.kanon.epubby.utils.compareTo
 import moe.kanon.epubby.utils.getAttributeValueOrNone

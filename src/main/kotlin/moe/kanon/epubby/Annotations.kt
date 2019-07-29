@@ -118,3 +118,8 @@ annotation class EpubRemoved(val `in`: Book.Format)
 @MustBeDocumented
 @Retention(AnnotationRetention.SOURCE)
 annotation class EpubVersion(val `for`: Book.Format)
+
+/**
+ * The general [DslMarker] used for the DSL languages in the Epubby framework.
+ */
+@DslMarker internal annotation class BuilderMarker

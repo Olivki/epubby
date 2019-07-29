@@ -23,7 +23,7 @@ import moe.kanon.epubby.settings.BookSettings
 import moe.kanon.epubby.utils.SemVer
 import moe.kanon.epubby.utils.SemVerType
 import moe.kanon.epubby.utils.combineWith
-import moe.kanon.epubby.utils.parseFile
+import moe.kanon.epubby.utils.parseXmlFile
 import moe.kanon.kommons.io.paths.copyTo
 import moe.kanon.kommons.io.paths.exists
 import moe.kanon.kommons.io.paths.isDirectory
@@ -77,7 +77,7 @@ import java.nio.file.StandardCopyOption
 
     logger.debug { "Package document located at <${origin.combineWith(packageDocument)}>" }
 
-    val version = parseFile(packageDocument) {
+    val version = parseXmlFile(packageDocument) {
         SemVer(
             getAttributeValue("version") ?: raiseMalformedError(
                 origin,

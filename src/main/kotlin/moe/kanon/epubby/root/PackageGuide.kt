@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.resources.root
+package moe.kanon.epubby.root
 
 import moe.kanon.epubby.Book
 import moe.kanon.epubby.ElementSerializer
@@ -22,7 +22,7 @@ import moe.kanon.epubby.EpubLegacy
 import moe.kanon.epubby.logger
 import moe.kanon.epubby.raiseMalformedError
 import moe.kanon.epubby.resources.PageResource
-import moe.kanon.epubby.resources.root.PackageGuide.Reference
+import moe.kanon.epubby.root.PackageGuide.Reference
 import moe.kanon.epubby.utils.getAttributeValueOrNone
 import moe.kanon.epubby.utils.stringify
 import moe.kanon.kommons.collections.asUnmodifiable

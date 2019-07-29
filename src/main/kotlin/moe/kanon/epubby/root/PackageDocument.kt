@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.resources.root
+package moe.kanon.epubby.root
 
 import moe.kanon.epubby.Book
 import moe.kanon.epubby.DocumentSerializer
@@ -29,7 +29,7 @@ import moe.kanon.epubby.utils.combineWith
 import moe.kanon.epubby.utils.getAttributeValueOrNone
 import moe.kanon.epubby.utils.getChildOrNone
 import moe.kanon.epubby.utils.localeOf
-import moe.kanon.epubby.utils.parseFile
+import moe.kanon.epubby.utils.parseXmlFile
 import moe.kanon.epubby.utils.requireMaxFormat
 import moe.kanon.epubby.utils.saveTo
 import moe.kanon.kommons.func.None
@@ -80,7 +80,7 @@ class PackageDocument private constructor(
         private const val NAMESPACE_URI = "http://www.idpf.org/2007/opf"
         internal val NAMESPACE = Namespace.getNamespace(NAMESPACE_URI)
 
-        internal fun parse(book: Book, file: Path): PackageDocument = parseFile(file) {
+        internal fun parse(book: Book, file: Path): PackageDocument = parseXmlFile(file) {
             fun malformed(reason: String): Nothing = raiseMalformedError(book.originFile, file, reason)
 
             val dir = getAttributeValueOrNone("dir").map(Direction.Companion::of)
@@ -198,7 +198,7 @@ class PackageDocument private constructor(
 
     internal fun save() {
         metadata.updateLastModified()
-        logger.info { "Saving package document to file <${book.file.combineWith(file)}>" }
+        logger.debug { "Saving package document to file <${book.file.combineWith(file)}>" }
         toDocument().saveTo(file)
     }
 

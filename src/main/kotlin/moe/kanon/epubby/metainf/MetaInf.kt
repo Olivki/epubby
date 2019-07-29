@@ -22,10 +22,10 @@ import moe.kanon.epubby.DocumentSerializer
 import moe.kanon.epubby.EpubbyException
 import moe.kanon.epubby.SerializedName
 import moe.kanon.epubby.raiseMalformedError
-import moe.kanon.epubby.resources.root.PackageDocument
+import moe.kanon.epubby.root.PackageDocument
 import moe.kanon.epubby.utils.SemVer
 import moe.kanon.epubby.utils.SemVerType
-import moe.kanon.epubby.utils.parseFile
+import moe.kanon.epubby.utils.parseXmlFile
 import moe.kanon.epubby.utils.saveTo
 import moe.kanon.kommons.func.None
 import moe.kanon.kommons.func.Option
@@ -146,7 +146,7 @@ class Container private constructor(
     companion object {
         private const val NAMESPACE_URI = "urn:oasis:names:tc:opendocument:xmlns:container"
 
-        internal fun parse(epub: Path, file: Path): Container = parseFile(file) {
+        internal fun parse(epub: Path, file: Path): Container = parseXmlFile(file) {
             fun malformed(reason: String): Nothing = raiseMalformedError(epub, file, reason)
             val root = file.parent.parent
             //val namespace = Namespace("", NAMESPACE_URI)

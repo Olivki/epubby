@@ -14,20 +14,15 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.resources.root
+package moe.kanon.epubby.root
 
 import moe.kanon.epubby.Book
 import moe.kanon.epubby.ElementSerializer
-import moe.kanon.epubby.EpubVersion
-import moe.kanon.epubby.utils.requireMinFormat
+import moe.kanon.epubby.EpubDeprecated
 import org.jdom2.Element
 
-@EpubVersion(Book.Format.EPUB_3_0)
-class PackageCollection(val book: Book) : ElementSerializer {
-    init {
-        requireMinFormat(book, Book.Format.EPUB_3_0) { "'collection' element is only supported from EPUB 3.0 and up" }
-    }
-
+@EpubDeprecated(Book.Format.EPUB_3_2)
+class PackageBindings(val book: Book) : ElementSerializer {
     override fun toElement(): Element {
         TODO("not implemented")
     }

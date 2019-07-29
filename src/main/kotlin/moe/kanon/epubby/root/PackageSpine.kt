@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.resources.root
+package moe.kanon.epubby.root
 
 import moe.kanon.epubby.Book
 import moe.kanon.epubby.ElementSerializer
 import moe.kanon.epubby.EpubLegacy
 import moe.kanon.epubby.SerializedName
 import moe.kanon.epubby.raiseMalformedError
-import moe.kanon.epubby.resources.root.PackageSpine.ItemReference
+import moe.kanon.epubby.root.PackageSpine.ItemReference
 import moe.kanon.epubby.utils.getAttributeValueOrNone
 import moe.kanon.epubby.utils.stringify
 import moe.kanon.kommons.collections.asUnmodifiable
@@ -105,7 +105,7 @@ class PackageSpine private constructor(
          * Note that the 'toc' attribute that this relies on is marked as a **LEGACY** feature as of
          * [EPUB 3.0][Book.Format.EPUB_3_0], so there is no guarantee that this will always return some value.
          */
-        get() = _tableOfContents.flatMap { book.packageDocument.manifest.getItemOrNone(it) }
+        get() = _tableOfContents.flatMap { book.packageDocument.manifest.getLocalItemOrNone(it) }
         /**
          * Sets the 'toc' attribute of this `spine` element to the [identifier][ManifestItem.identifier] of the given
          * [value].

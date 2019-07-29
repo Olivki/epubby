@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.resources.root
+package moe.kanon.epubby.root
 
 import moe.kanon.epubby.Book
 import moe.kanon.epubby.ElementSerializer

@@ -28,9 +28,9 @@ import java.nio.file.Path
 
 class Page(val book: Book, val resource: PageResource) {
     /**
-     * Returns the [file][Resource.file] of the underlying [resource] of this page.
+     * Returns the [file][Resource.href] of the underlying [resource] of this page.
      */
-    val file: Path get() = resource.file
+    val file: Path get() = resource.href
 
     /**
      * Lazily returns a [Document] by [parsing][Jsoup.parse] [file] as a document.

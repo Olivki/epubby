@@ -33,7 +33,7 @@ import org.jdom2.output.XMLOutputter
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
 
-@PublishedApi internal inline fun <R> parseFile(file: Path, scope: Element.() -> R): R =
+@PublishedApi internal inline fun <R> parseXmlFile(file: Path, scope: Element.() -> R): R =
     file.newInputStream().use { input -> with(SAXBuilder(XMLReaders.NONVALIDATING).build(input).rootElement, scope) }
 
 /**

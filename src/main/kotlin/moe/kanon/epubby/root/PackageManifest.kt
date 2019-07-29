@@ -16,7 +16,7 @@
 
 @file:Suppress("DataClassPrivateConstructor")
 
-package moe.kanon.epubby.resources.root
+package moe.kanon.epubby.root
 
 import moe.kanon.epubby.Book
 import moe.kanon.epubby.ElementSerializer
@@ -25,14 +25,15 @@ import moe.kanon.epubby.SerializedName
 import moe.kanon.epubby.logger
 import moe.kanon.epubby.raiseMalformedError
 import moe.kanon.epubby.resources.Resource
-import moe.kanon.epubby.resources.root.ManifestItem.Local
-import moe.kanon.epubby.resources.root.ManifestItem.Remote
+import moe.kanon.epubby.root.ManifestItem.Local
+import moe.kanon.epubby.root.ManifestItem.Remote
 import moe.kanon.epubby.utils.getAttributeValueOrNone
 import moe.kanon.epubby.utils.stringify
 import moe.kanon.kommons.collections.asUnmodifiable
 import moe.kanon.kommons.func.None
 import moe.kanon.kommons.func.Option
 import moe.kanon.kommons.func.getValueOrNone
+import moe.kanon.kommons.requireThat
 import org.apache.commons.validator.routines.UrlValidator
 import org.jdom2.Attribute
 import org.jdom2.Element
@@ -96,12 +97,12 @@ class PackageManifest private constructor(
                     */
                     if (it.attributes.any { attr -> attr.name == "properties" }) {
                         if ("remote-resources" in it.getAttributeValue("properties")) {
-                            ManifestItem.Remote(id, href, fallback, mediaType, mediaOverlay, properties)
+                            Remote(id, href, fallback, mediaType, mediaOverlay, properties)
                         } else localItemOf(id, href, fallback, mediaType, mediaOverlay, properties)
                     } else {
                         if (urlValidator.isValid(href)) {
                             logger.warn { "'item' element has href that's a valid url, but no 'remote-resources' property; $textual" }
-                            ManifestItem.Remote(id, href, fallback, mediaType, mediaOverlay, properties)
+                            Remote(id, href, fallback, mediaType, mediaOverlay, properties)
                         } else localItemOf(id, href, fallback, mediaType, mediaOverlay, properties)
                     }
                 }
@@ -111,6 +112,7 @@ class PackageManifest private constructor(
         }
     }
 
+    // -- ITEMS -- \\
     /**
      * Returns the [item][ManifestItem] stored under the given [id], or throws a [NoSuchElementException] if none is
      * found.
@@ -123,13 +125,63 @@ class PackageManifest private constructor(
      */
     fun getItemOrNone(id: String): Option<ManifestItem<*>> = items.getValueOrNone(id)
 
+    // -- LOCAL ITEMS -- \\
+    /**
+     * Returns the [local item][ManifestItem.Local] stored under the given [id], or throws a [NoSuchElementException]
+     * if none is found.
+     *
+     * @throws [IllegalArgumentException] if the [item][ManifestItem] stored under the given [id] is a
+     * [remote item][ManifestItem.Remote]
+     */
+    fun getLocalItem(id: String): Local = items[id]?.let {
+        requireThat(it is Local) { "Given id <$id> points towards a remote item, expected a local item" }
+        return@let it as Local // TODO: type inference is being buggy in kotlin 1.3.41
+    } ?: throw NoSuchElementException("No manifest item found under id <$id>")
+
+    /**
+     * Returns the [local item][ManifestItem.Local] stored under the given [id], or [None] if none is found.
+     *
+     * @throws [IllegalArgumentException] if the [item][ManifestItem] stored under the given [id] is a
+     * [remote item][ManifestItem.Remote]
+     */
+    fun getLocalItemOrNone(id: String): Option<Local> = items.getValueOrNone(id).map {
+        requireThat(it is Local) { "Given id <$id> points towards a remote item, expected a local item" }
+        return@map it as Local // TODO: type inference is being buggy in kotlin 1.3.41
+    }
+
+    // -- REMOTE ITEMS -- \\
+    fun addRemoteItem(id: String, item: Remote): Nothing = TODO()
+
+    /**
+     * Returns the [remote item][ManifestItem.Remote] stored under the given [id], or throws a [NoSuchElementException]
+     * if none is found.
+     *
+     * @throws [IllegalArgumentException] if the [item][ManifestItem] stored under the given [id] is a
+     * [local item][ManifestItem.Local]
+     */
+    fun getRemoteItem(id: String): Remote = items[id]?.let {
+        requireThat(it is Remote) { "Given id <$id> points towards a local item, expected a remote item" }
+        return@let it as Remote // TODO: type inference is being buggy in kotlin 1.3.41
+    } ?: throw NoSuchElementException("No manifest item found under id <$id>")
+
+    /**
+     * Returns the [remote item][ManifestItem.Remote] stored under the given [id], or [None] if none is found.
+     *
+     * @throws [IllegalArgumentException] if the [item][ManifestItem] stored under the given [id] is a
+     * [local item][ManifestItem.Local]
+     */
+    fun getRemoteItemOrNone(id: String): Option<Remote> = items.getValueOrNone(id).map {
+        requireThat(it is Remote) { "Given id <$id> points towards a local item, expected a remote item" }
+        return@map it as Remote // TODO: type inference is being buggy in kotlin 1.3.41
+    }
+
     // TODO: Add functions for modifying the manifest?
     // Not sure how needed that is seeing as the 'ResourceRepository' is the class that will mainly be dealing with
     // updating and keeping the manifest updated, only thing it would be needed for would be for remote items?
 
     override fun toElement(): Element = Element("manifest", PackageDocument.NAMESPACE).apply {
         for ((_, item) in items) {
-            if (item is ManifestItem.Local) {
+            if (item is Local) {
                 addContent(
                     item.toElement().setAttribute(
                         "href",
@@ -145,6 +197,7 @@ class PackageManifest private constructor(
     }
 
     override fun iterator(): Iterator<ManifestItem<*>> = items.values.iterator().asUnmodifiable()
+
     override fun equals(other: Any?): Boolean = when {
         this === other -> true
         other !is PackageManifest -> false
