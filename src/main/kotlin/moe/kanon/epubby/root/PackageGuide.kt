@@ -61,8 +61,7 @@ class PackageGuide private constructor(val book: Book, private val references: M
     ElementSerializer, Iterable<Reference> {
     companion object {
         internal fun parse(book: Book, packageDocument: Path, element: Element): PackageGuide = with(element) {
-            fun malformed(reason: String, cause: Throwable? = null): Nothing =
-                raiseMalformedError(book.originFile, packageDocument, reason, cause)
+            fun malformed(reason: String): Nothing = raiseMalformedError(book.originFile, packageDocument, reason)
 
             val references = getChildren("reference", namespace)
                 .asSequence()
@@ -106,7 +105,8 @@ class PackageGuide private constructor(val book: Book, private val references: M
      *
      * @return the newly created `reference` element
      */
-    @JvmOverloads fun addReference(type: Type, href: String, title: String? = type.normalizedName): Reference =
+    @JvmOverloads
+    fun addReference(type: Type, href: String, title: String? = type.normalizedName): Reference =
         Reference(type.serializedName, href, Option(title)).also { references[it.type] = it }
 
     /**
@@ -283,7 +283,7 @@ class PackageGuide private constructor(val book: Book, private val references: M
      * @property [parent] The parent [PackageGuide] of `this` reference.
      * @property [type] The `type` of `this` reference.
      * @property [resource] The [PageResource] that `this` reference is pointing towards.
-     * @property [href] The [href][PageResource.href] of the [resource] that `this` reference is pointing towards.
+     * @property [href] The [href][PageResource.file] of the [resource] that `this` reference is pointing towards.
      * @property [title] The title that a `Reading System` would use to display `this` reference.
      *
      * The `title` property is *not* required for a `Reference` to be valid.

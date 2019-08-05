@@ -16,6 +16,7 @@ buildscript {
 
 plugins {
     kotlin("jvm").version("1.3.41")
+    kotlin("kapt").version("1.3.41")
 
     id("com.github.ben-manes.versions").version("0.21.0")
     
@@ -45,8 +46,8 @@ dependencies {
 
     // Kanon
     implementation(group = "moe.kanon.xml", name = "kanon.xml", version = "3.1.4")
-    implementation(group = "moe.kanon.kommons", name = "kommons.func", version = "1.0.0")
-    implementation(group = "moe.kanon.kommons", name = "kommons.io", version = "1.0.0")
+    implementation(group = "moe.kanon.kommons", name = "kommons.func", version = "1.1.0")
+    implementation(group = "moe.kanon.kommons", name = "kommons.io", version = "1.0.1")
     implementation(group = "moe.kanon.kommons", name = "kommons.lang", version = "0.1.0")
     implementation(group = "moe.kanon.kommons", name = "kommons.collections", version = "0.1.0")
 
@@ -64,6 +65,10 @@ dependencies {
 
     // semver
     implementation(group = "com.vdurmont", name = "semver4j", version = "2.2.0")
+
+    // Google
+    compileOnly(group = "com.google.auto.service", name = "auto-service", version = "1.0-rc4")
+    kapt(group = "com.google.auto.service", name = "auto-service", version = "1.0-rc4")
 
     // Test Dependencies
     testImplementation(group = "io.kotlintest", name = "kotlintest-runner-junit5", version = "3.1.11")

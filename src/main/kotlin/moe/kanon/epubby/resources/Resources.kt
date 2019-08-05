@@ -19,15 +19,25 @@
 package moe.kanon.epubby.resources
 
 import kotlinx.collections.immutable.ImmutableList
-import kotlinx.collections.immutable.immutableListOf
+import kotlinx.collections.immutable.ImmutableSet
+import kotlinx.collections.immutable.immutableSetOf
 import moe.kanon.epubby.Book
 import moe.kanon.epubby.EpubbyException
+import moe.kanon.epubby.logger
+import moe.kanon.epubby.resources.styles.StyleSheet
 import moe.kanon.epubby.root.ManifestItem
 import moe.kanon.epubby.root.PackageDocument
+import moe.kanon.epubby.root.PackageManifest
 import moe.kanon.epubby.root.get
 import moe.kanon.epubby.utils.combineWith
 import moe.kanon.kommons.func.Option
+import moe.kanon.kommons.io.paths.contentType
+import moe.kanon.kommons.io.paths.exists
+import moe.kanon.kommons.io.paths.name
 import moe.kanon.kommons.io.paths.newInputStream
+import moe.kanon.kommons.io.paths.renameTo
+import moe.kanon.kommons.requireThat
+import org.jsoup.nodes.Element
 import java.awt.image.BufferedImage
 import java.io.IOException
 import java.nio.file.Path
@@ -37,17 +47,100 @@ import kotlin.properties.Delegates
 // TODO: Implement something for handling identifier fragments for href
 
 /**
- * Represents a [SOMETHING](...).
+ * Represents a [Publication Resource](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-spec.html#dfn-publication-resource).
+ *
+ * A resource is an object that contains  content or instructions that contribute to the logic and rendering of at
+ * least one [Rendition](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-spec.html#dfn-rendition) of an
+ * [EPUB Publication][Book].
+ *
+ *  Examples of Publication Resources include a Rendition's Package Document, EPUB Content Document, CSS Style Sheets, audio, video, images, embedded fonts and scripts.
  *
  * @param [identifier] the initial `identifier` of the [manifestItem] that this resource represents
  * @param [desiredDirectory] the [name][Path.simpleName] of the [desiredDirectory]
- * @param [mediaTypes] the [media-types](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#attrdef-item-media-type)
- * that represent what type of files this resource can work on, 1 or more
- *
- * @property [mediaTypes] The [media-types](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#attrdef-item-media-type)
- * that represent what type of files this resource can work on.
  */
-sealed class Resource(identifier: String, desiredDirectory: String, vararg val mediaTypes: String) {
+sealed class Resource(file: Path, identifier: String, desiredDirectory: String) {
+    companion object {
+        /**
+         * Returns a new [Resource] instance that matches the given [mediaType], or [MiscResource] if no appropriate
+         * `Resource` implementation could be found.
+         *
+         * @param [mediaType] a string conforming to the [RFC-2046](https://tools.ietf.org/html/rfc2046) standard,
+         * this string is *not* checked for any sort of validity, and is consumed *as is*
+         * @param [file] the [path][Path] pointing towards the file that the returned [Resource] should be wrapping
+         * around, note that this **NEEDS** to point towards an [existing][Path.exists] file
+         * @param [book] the [Book] instance that the returned [Resource] should be tied to
+         * @param [id] the unique identifier that the returned [Resource] should be using, this is used for storing
+         * the resource inside the [manifest][PackageManifest] of the [book]
+         *
+         * ([href.name][Path.name] by default)
+         *
+         * @throws [IllegalArgumentException]
+         * - If the [file-system][Path.getFileSystem] of the given [file] is not the same as the
+         * [file-system][Book.fileSystem] of the given [book].
+         * - If the given [file] points towards a file that [does not exist][Path.notExists]
+         */
+        @JvmOverloads
+        @JvmStatic fun fromMediaType(mediaType: String, file: Path, book: Book, id: String = file.name): Resource {
+            requireThat(file.fileSystem == book.fileSystem) { "File-system of 'file' should be <${book.fileSystem}> and not <${file.fileSystem}>" }
+            requireThat(file.exists) { "'file' does not point towards an existing file <$file>" }
+            return when (mediaType) {
+                in TableOfContentsResource.MEDIA_TYPES -> TableOfContentsResource(book, file, id)
+                in PageResource.MEDIA_TYPES -> PageResource(book, file, id)
+                in StyleSheetResource.MEDIA_TYPES -> StyleSheetResource(book, file, id)
+                in ImageResource.MEDIA_TYPES -> ImageResource(book, file, id)
+                in FontResource.MEDIA_TYPES -> FontResource(book, file, id)
+                in AudioResource.MEDIA_TYPES -> AudioResource(book, file, id)
+                in ScriptResource.MEDIA_TYPES -> ScriptResource(book, file, id)
+                in VideoResource.MEDIA_TYPES -> VideoResource(book, file, id)
+                else -> {
+                    logger.debug { "File <$file> with media-type <$mediaType> did not match any 'Resource' implementations, marking as 'MiscResource'.." }
+                    MiscResource(book, file, id)
+                }
+            }
+        }
+
+        /**
+         * Invokes the [fromMediaType] function with `mediaType` as the [contentType][Path.contentType] of the given
+         * [file].
+         *
+         * @return an appropriate [Resource] instance for the given [file], or [MiscResource] if no `media-type` could
+         * be found for `file`
+         *
+         * @see [fromMediaType]
+         */
+        @JvmOverloads
+        @JvmStatic fun fromFile(file: Path, book: Book, id: String = file.name): Resource =
+            file.contentType?.let { fromMediaType(it, file, book, id) } ?: MiscResource(book, file, id).also {
+                logger.debug { "File <$file> has an unknown media-type, marking as 'MiscResource'" }
+            }
+
+        /**
+         * Returns a set of the [media-types](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-spec.html#sec-cmt-supported)
+         * that the given [resource] is made to wrap around, or an empty set if `resource` is a [MiscResource].
+         *
+         * @see [Resource.mediaTypes]
+         */
+        @JvmStatic fun getMediaTypesOf(resource: Resource): ImmutableSet<String> = when (resource) {
+            is TableOfContentsResource -> TableOfContentsResource.MEDIA_TYPES
+            is PageResource -> PageResource.MEDIA_TYPES
+            is StyleSheetResource -> StyleSheetResource.MEDIA_TYPES
+            is ImageResource -> ImageResource.MEDIA_TYPES
+            is FontResource -> FontResource.MEDIA_TYPES
+            is AudioResource -> AudioResource.MEDIA_TYPES
+            is ScriptResource -> ScriptResource.MEDIA_TYPES
+            is VideoResource -> VideoResource.MEDIA_TYPES
+            is MiscResource -> immutableSetOf()
+        }
+    }
+
+    /**
+     * Returns a set of the supported [media-types](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-spec.html#sec-cmt-supported)
+     * of `this` resource.
+     *
+     * @see [getMediaTypesOf]
+     */
+    val mediaTypes: ImmutableSet<String> by lazy { getMediaTypesOf(this) }
+
     /**
      * The [Book] instance that `this` resource belongs to.
      */
@@ -56,17 +149,34 @@ sealed class Resource(identifier: String, desiredDirectory: String, vararg val m
     /**
      * The underlying file that `this` resource is created for.
      */
-    abstract var href: Path
-        protected set
+    var file: Path = file
+        @JvmSynthetic internal set(value) {
+            // we need to update the references BEFORE we actually change the file, otherwise it won't be properly
+            // reflected
+            updateReferencesTo(value)
+            field = value
+            updateManifest(href = value)
+        }
+
+    /**
+     * Returns a relative [Path] to the [file] of this resource.
+     */
+    val relativeFile: Path get() = book.packageDocument.file.relativize(file)
 
     /**
      * Returns a string representing the full path to `this` resource.
      *
      * Suppose our [epub file][Book.file] has the following path: `H:\Books\Pride_and_Prejudice.epub`, and we have a
-     * `PageResource` with a [href] with the following path `/OEBPS/Text/Cover.xhtml`, then this would return
+     * `PageResource` with a [file] with the following path `/OEBPS/Text/Cover.xhtml`, then this would return
      * `"H:\Books\Pride_and_Prejudice.epub\OEBPS\Text\Cover.xhtml"`.
      */
-    val fullPath: String get() = book.file.combineWith(href)
+    val fullPath: String get() = book.file.combineWith(file)
+
+    /**
+     * Returns a string representation of [file] that can be used within the EPUB.
+     * TODO: Explanation
+     */
+    val href: String get() = book.packageDocument.file.parent.relativize(file).toString()
 
     /**
      * The "desired" directory where this resource "ideally" wants to reside.
@@ -75,7 +185,7 @@ sealed class Resource(identifier: String, desiredDirectory: String, vararg val m
      * all resource files in the same directory as the [package document][PackageDocument].
      */
     // this is 'lazy' as to avoid any issues with calling the abstract value 'book' directly when initializing it
-    val desiredDirectory: Path by lazy { book.packageDocument.file.resolve(desiredDirectory) }
+    open val desiredDirectory: Path by lazy { book.packageDocument.file.parent.resolve(desiredDirectory) }
 
     /**
      * The identifier of the [manifestItem] that this resource represents.
@@ -83,14 +193,17 @@ sealed class Resource(identifier: String, desiredDirectory: String, vararg val m
      * Setting the value of this property will update the `id` of the `manifest item` across the entire system.
      */
     var identifier: String by Delegates.observable(identifier) { _, oldValue, newValue ->
-        val newItem = book.packageManifest.getLocalItem(oldValue).copy(identifier = newValue)
-        book.packageManifest.items -= oldValue
-        book.packageManifest.items[newValue] = newItem
+        if (oldValue in book.manifest && oldValue != newValue) {
+            logger.debug { "Updating 'identifier' of resource <$this> from <$oldValue> to <$newValue>" }
+            val newItem = book.manifest.getLocalItem(oldValue).copy(identifier = newValue)
+            book.manifest.items -= oldValue
+            book.manifest.items[newValue] = newItem
 
-        if (this is PageResource) {
-            val ref = book.packageSpine[oldValue]
-            book.packageSpine.references.apply {
-                this[this.indexOf(ref)] = ref.copy(reference = newItem)
+            if (this is PageResource) {
+                val ref = book.spine[oldValue]
+                book.spine.references.apply {
+                    this[this.indexOf(ref)] = ref.copy(reference = newItem)
+                }
             }
         }
     }
@@ -98,7 +211,23 @@ sealed class Resource(identifier: String, desiredDirectory: String, vararg val m
     /**
      * The [manifest item][ManifestItem] that this resource represents.
      */
-    val manifestItem: ManifestItem.Local get() = book.packageManifest.getLocalItem(identifier)
+    val manifestItem: ManifestItem.Local get() = book.manifest.getLocalItem(identifier)
+
+    /**
+     * Returns a list containing all [Element]s that have an `href`/`src` reference to this resource, or an  empty list
+     * if no such elements are found.
+     *
+     * Note that invoking this property may cause serious overhead, as this will traverse *all* the elements in *all*
+     * [pages][Book.pages] of the [book].
+     */
+    val references: ImmutableList<ResourceReference> get() = book.pages.getReferencesOf(this)
+
+    /**
+     * Handles the updating of all page references *(`href`, `src`, etc..)* of this resource.
+     */
+    @JvmSynthetic internal fun updateReferencesTo(file: Path) {
+        for (ref in references) ref.updateReferenceTo(this, file)
+    }
 
     /**
      * Handles the updating the of the [manifestItem] that this resource represents.
@@ -127,11 +256,11 @@ sealed class Resource(identifier: String, desiredDirectory: String, vararg val m
         // if the given 'identifier' is different than the currently known 'identifier' of this resource, we want to
         // update all the references properly, which the 'identifier' property is set to do, so we just invoke that
         if (identifier != this.identifier) this.identifier = identifier
-        if (href != this.href) this.href = href
-        book.packageManifest.items[identifier] = newItem
+        if (href != this.file) this.file = href
+        book.manifest.items[identifier] = newItem
         if (this is PageResource) {
-            val ref = book.packageSpine[identifier]
-            book.packageSpine.references.apply {
+            val ref = book.spine[identifier]
+            book.spine.references.apply {
                 this[this.indexOf(ref)] = ref.copy(reference = newItem)
             }
         }
@@ -151,87 +280,103 @@ sealed class Resource(identifier: String, desiredDirectory: String, vararg val m
     open fun onDeletion() {
     }
 
+    /**
+     *
+     * @throws [EpubbyException] TODO
+     * @throws [IOException] if an i/o error occurs
+     */
     @Throws(EpubbyException::class, IOException::class)
     fun renameTo(name: String) {
-        TODO("not implemented")
+        // TODO: Check if this works properly
+        file = file.renameTo(name)
     }
+
+    /**
+     * Returns whether or not the given [href] is equal to this resources [href][Resource.href]. This function also
+     * takes care of cases where an `href` attribute might contain a fragment-identifier *(`#`)*.
+     */
+    @JvmOverloads
+    fun isHrefEqual(href: String, ignoreCase: Boolean = false): Boolean =
+        if ('#' in href) href.split('#')[0].equals(this.href, ignoreCase) else href.equals(this.href, ignoreCase)
 
     /**
      * Throws a [ResourceCreationException] using the given [message] and [cause] and the data stored in this resource.
      */
     protected inline fun raiseCreationError(message: String? = null, cause: Throwable? = null): Nothing =
-        throw ResourceCreationException(href, book.file, message, cause)
+        throw ResourceCreationException(file, book.file, message, cause)
 
     /**
      * Throws a [ResourceDeletionException] using the given [message] and [cause] and the data stored in this resource.
      */
     protected inline fun raiseDeletionError(message: String? = null, cause: Throwable? = null): Nothing =
-        throw ResourceDeletionException(href, book.file, message, cause)
+        throw ResourceDeletionException(file, book.file, message, cause)
 
     override fun equals(other: Any?): Boolean = when {
         this === other -> true
         other !is Resource -> false
-        !mediaTypes.contentEquals(other.mediaTypes) -> false
         book != other.book -> false
-        href != other.href -> false
-        identifier != other.identifier -> false
+        file != other.file -> false
         else -> true
     }
 
     override fun hashCode(): Int {
-        var result = mediaTypes.contentHashCode()
-        result = 31 * result + book.hashCode()
-        result = 31 * result + href.hashCode()
-        result = 31 * result + identifier.hashCode()
+        var result = book.hashCode()
+        result = 31 * result + file.hashCode()
         return result
     }
 }
 
 // TODO: Make it work for the EPUB 2.0 'ncx' file and the EPUB 3.0 navigation document
-class TableOfContentsResource(override val book: Book, override var href: Path, identifier: String) :
-    Resource(identifier, "/") {
+class TableOfContentsResource(override val book: Book, file: Path, identifier: String) :
+    Resource(file, identifier, "/") {
     companion object {
         // TODO: Make this also recognize the 'nav xhtml document'
-        @JvmField val MEDIA_TYPES: ImmutableList<String> = immutableListOf("application/x-dtbncx+xml")
+        @JvmField val MEDIA_TYPES: ImmutableSet<String> =
+            immutableSetOf("application/x-dtbncx+xml", "application/oebps-package+xml")
     }
+
+    // TODO: Change this if it's using a XHTML ToC, or maybe just create both somehow?
+    override val desiredDirectory: Path by lazy { book.packageDocument.file.parent }
 
     override fun toString(): String = "TableOfContentsResource(identifier='$identifier', href='$href', book=$book)"
 }
 
-class PageResource(override val book: Book, override var href: Path, identifier: String) :
-    Resource(identifier, "Text/", "application/xhtml+xml") {
+class PageResource(override val book: Book, file: Path, identifier: String) :
+    Resource(file, identifier, "Text/") {
     companion object {
-        @JvmField val MEDIA_TYPES: ImmutableList<String> = immutableListOf("application/xhtml+xml")
+        @JvmField val MEDIA_TYPES: ImmutableSet<String> = immutableSetOf("application/xhtml+xml")
     }
 
     override fun toString(): String = "PageResource(identifier='$identifier', href='$href', book=$book)"
 }
 
-class StyleSheetResource(override val book: Book, override var href: Path, identifier: String) :
-    Resource(identifier, "Styles/", "text/css") {
+class StyleSheetResource(override val book: Book, file: Path, identifier: String) :
+    Resource(file, identifier, "Styles/") {
     companion object {
-        @JvmField val MEDIA_TYPES: ImmutableList<String> = immutableListOf("text/css")
+        @JvmField val MEDIA_TYPES: ImmutableSet<String> = immutableSetOf("text/css")
     }
+
+    val styleSheet: StyleSheet by lazy { book.styles.addStyleSheet(StyleSheet.fromResource(this)) }
 
     override fun toString(): String = "StyleSheetResource(identifier='$identifier', href='$href', book=$book)"
 }
 
-class ImageResource(override val book: Book, override var href: Path, identifier: String) :
-    Resource(identifier, "Images/", "image/gif", "image/jpeg", "image/png", "image/svg+xml") {
+class ImageResource(override val book: Book, file: Path, identifier: String) :
+    Resource(file, identifier, "Images/") {
     companion object {
-        @JvmField val MEDIA_TYPES: ImmutableList<String> =
-            immutableListOf("image/gif", "image/jpeg", "image/png", "image/svg+xml")
+        @JvmField val MEDIA_TYPES: ImmutableSet<String> =
+            immutableSetOf("image/gif", "image/jpeg", "image/png", "image/svg+xml")
     }
 
     /**
-     * Lazily returns a [BufferedImage] read from the underlying [href] of `this` resource.
+     * Lazily returns a [BufferedImage] read from the underlying [file] of `this` resource.
      *
      * This operation may be rather costly depending on the size of the image.
      */
     @get:Throws(ResourceCreationException::class)
     val image: BufferedImage by lazy {
         try {
-            ImageIO.read(href.newInputStream())
+            ImageIO.read(file.newInputStream())
         } catch (e: IOException) {
             raiseCreationError("Failed to read image <$fullPath>, ${e.message}", e)
         }
@@ -240,44 +385,44 @@ class ImageResource(override val book: Book, override var href: Path, identifier
     override fun toString(): String = "ImageResource(identifier='$identifier', href='$href', book=$book)"
 }
 
-class FontResource(override val book: Book, override var href: Path, identifier: String) :
-    Resource(identifier, "Fonts/", "application/vnd.ms-opentype", "application/font-woff") {
+class FontResource(override val book: Book, file: Path, identifier: String) :
+    Resource(file, identifier, "Fonts/") {
     companion object {
-        @JvmField val MEDIA_TYPES: ImmutableList<String> =
-            immutableListOf("application/vnd.ms-opentype", "application/font-woff")
+        @JvmField val MEDIA_TYPES: ImmutableSet<String> =
+            immutableSetOf("application/vnd.ms-opentype", "application/font-woff")
     }
 
     override fun toString(): String = "FontResource(identifier='$identifier', href='$href', book=$book)"
 }
 
-class AudioResource(override val book: Book, override var href: Path, identifier: String) :
-    Resource(identifier, "Audio/", "audio/mpeg") {
+class AudioResource(override val book: Book, file: Path, identifier: String) :
+    Resource(file, identifier, "Audio/") {
     companion object {
-        @JvmField val MEDIA_TYPES: ImmutableList<String> = immutableListOf("audio/mpeg")
+        @JvmField val MEDIA_TYPES: ImmutableSet<String> = immutableSetOf("audio/mpeg")
     }
 
     override fun toString(): String = "AudioResource(identifier='$identifier', href='$href', book=$book)"
 }
 
-class ScriptResource(override val book: Book, override var href: Path, identifier: String) :
-    Resource(identifier, "Scripts/", "text/javascript") {
+class ScriptResource(override val book: Book, file: Path, identifier: String) :
+    Resource(file, identifier, "Scripts/") {
     companion object {
-        @JvmField val MEDIA_TYPES: ImmutableList<String> = immutableListOf("text/javascript")
+        @JvmField val MEDIA_TYPES: ImmutableSet<String> = immutableSetOf("text/javascript")
     }
 
     override fun toString(): String = "ScriptResource(identifier='$identifier', href='$href', book=$book)"
 }
 
-class VideoResource(override val book: Book, override var href: Path, identifier: String) :
-    Resource(identifier, "Video/", "audio/mp4") {
+class VideoResource(override val book: Book, file: Path, identifier: String) :
+    Resource(file, identifier, "Video/") {
     companion object {
-        @JvmField val MEDIA_TYPES: ImmutableList<String> = immutableListOf("audio/mp4")
+        @JvmField val MEDIA_TYPES: ImmutableSet<String> = immutableSetOf("audio/mp4")
     }
 
     override fun toString(): String = "VideoResource(identifier='$identifier', href='$href', book=$book)"
 }
 
-class MiscResource(override val book: Book, override var href: Path, identifier: String) :
-    Resource(identifier, "Misc/") {
+class MiscResource(override val book: Book, file: Path, identifier: String) :
+    Resource(file, identifier, "Misc/") {
     override fun toString(): String = "MiscResource(identifier='$identifier', href='$href', book=$book)"
 }

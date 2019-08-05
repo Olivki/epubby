@@ -84,7 +84,8 @@ val Element.isParentEmpty: Boolean get() = this.parent().children().size <= 1 &&
  * This is sometimes needed, as JSoup decides to *not* remove classes when using the inbuilt method for it every now
  * and then.
  */
-@JvmOverloads fun Element.removeClass(force: Boolean = false) {
+@JvmOverloads
+fun Element.removeClass(force: Boolean = false) {
     if (force) {
         for (it in this.attributes().filter { it.key.equals("class", true) }) this.removeAttr(it.key)
     } else {
@@ -105,7 +106,8 @@ val Element.isParentEmpty: Boolean get() = this.parent().children().size <= 1 &&
  * This is sometimes needed, as JSoup decides to *not* remove classes when using the inbuilt method for it every now
  * and then.
  */
-@JvmOverloads fun Element.replaceClass(newClass: String, force: Boolean = false) {
+@JvmOverloads
+fun Element.replaceClass(newClass: String, force: Boolean = false) {
     this.removeClass(force)
     this.addClass(newClass)
 }
@@ -132,7 +134,8 @@ operator fun Element.contains(query: String): Boolean = this.children().any { it
  *
  * (`["p", "span"]` by default.)
  */
-@JvmOverloads fun Element.onlyContains(
+@JvmOverloads
+fun Element.onlyContains(
     query: String,
     ignoredBodies: Array<String> = arrayOf("div", "section", "body"),
     ignoredElements: Array<String> = arrayOf("p", "span")
@@ -160,7 +163,8 @@ val Elements.isNotEmpty: Boolean get() = !this.isEmpty()
  * This is sometimes needed, as JSoup decides to *not* remove classes when using the inbuilt method for it every now
  * and then.
  */
-@JvmOverloads fun Elements.removeClasses(force: Boolean = false) {
+@JvmOverloads
+fun Elements.removeClasses(force: Boolean = false) {
     for (element in this) {
         if (force) {
             for (it in element.attributes().filter { it.key.equals("class", true) }) this.removeAttr(it.key)
@@ -184,7 +188,8 @@ val Elements.isNotEmpty: Boolean get() = !this.isEmpty()
  * This is sometimes needed, as JSoup decides to *not* remove classes when using the inbuilt method for it every now
  * and then.
  */
-@JvmOverloads fun Elements.replaceClasses(newClass: String, force: Boolean = false) {
+@JvmOverloads
+fun Elements.replaceClasses(newClass: String, force: Boolean = false) {
     this.removeClasses(force)
     this.addClass(newClass)
 }
@@ -193,7 +198,7 @@ val Elements.isNotEmpty: Boolean get() = !this.isEmpty()
 /**
  * Sets up the [outputSettings][Document.outputSettings] of `this` document to match the ones used in epubby.
  */
-fun Document.defaultOutputSettings() {
+fun Document.applyDefaultOutputSettings() {
     this.outputSettings().apply {
         prettyPrint(true)
         syntax(Document.OutputSettings.Syntax.xml) // wtf is this naming convention for enums
@@ -203,7 +208,7 @@ fun Document.defaultOutputSettings() {
 }
 
 fun Document.toXHTML(): String {
-    this.defaultOutputSettings()
+    this.applyDefaultOutputSettings()
     return this.outerHtml()
 }
 

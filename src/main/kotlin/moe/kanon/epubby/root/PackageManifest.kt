@@ -33,6 +33,7 @@ import moe.kanon.kommons.collections.asUnmodifiable
 import moe.kanon.kommons.func.None
 import moe.kanon.kommons.func.Option
 import moe.kanon.kommons.func.getValueOrNone
+import moe.kanon.kommons.io.paths.notExists
 import moe.kanon.kommons.requireThat
 import org.apache.commons.validator.routines.UrlValidator
 import org.jdom2.Attribute
@@ -109,7 +110,39 @@ class PackageManifest private constructor(
         }
     }
 
+    /**
+     * Removes all [local items][ManifestItem] which has a [href][ManifestItem.Local.href] that points towards a
+     * [non-existent][Path.notExists] file.
+     */
+    fun clean() {
+        val faultyItems = items.values
+            .asSequence()
+            .filterIsInstance<Local>()
+            .filter { it.href.notExists }
+            .map { it.identifier }
+        items -= faultyItems
+    }
+
     // -- ITEMS -- \\
+    /**
+     * Returns whether or not the this `manifest` has an item with the given [id].
+     */
+    @JvmName("hasItem")
+    operator fun contains(id: String): Boolean = id in items
+
+    /**
+     * Returns whether or not this `manifest` contains the given [item].
+     */
+    @JvmName("hasItem")
+    operator fun contains(item: ManifestItem<*>): Boolean = items.containsValue(item)
+
+    /**
+     * Returns whether or not this `manifest` contains an item that has the same [identifier][ManifestItem.identifier]
+     * as the [identifier][Resource.identifier] of the given [resource].
+     */
+    @JvmName("hasResource")
+    operator fun contains(resource: Resource): Boolean = resource.identifier in items
+
     /**
      * Returns the [item][ManifestItem] stored under the given [id], or throws a [NoSuchElementException] if none is
      * found.

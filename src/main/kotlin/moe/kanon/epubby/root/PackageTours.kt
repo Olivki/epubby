@@ -38,8 +38,7 @@ class PackageTours private constructor(val book: Book, private val tours: Mutabl
     Iterable<PackageTours.Tour> {
     companion object {
         internal fun parse(book: Book, packageDocument: Path, tours: Element) = with(tours) {
-            fun malformed(reason: String, cause: Throwable? = null): Nothing =
-                raiseMalformedError(book.originFile, packageDocument, reason, cause)
+            fun malformed(reason: String): Nothing = raiseMalformedError(book.originFile, packageDocument, reason)
 
             val tourElements = getChildren("tour", namespace)
                 .asSequence()

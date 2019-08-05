@@ -18,10 +18,10 @@ package moe.kanon.epubby
 
 import moe.kanon.epubby.Book.Format
 import moe.kanon.epubby.metainf.MetaInf
-import moe.kanon.epubby.resources.PageRepository
 import moe.kanon.epubby.resources.Resource
 import moe.kanon.epubby.resources.ResourceRepository
-import moe.kanon.epubby.resources.StyleSheetRepository
+import moe.kanon.epubby.resources.pages.PageRepository
+import moe.kanon.epubby.resources.styles.StyleSheetRepository
 import moe.kanon.epubby.root.PackageDocument
 import moe.kanon.epubby.root.PackageManifest
 import moe.kanon.epubby.root.PackageMetadata
@@ -31,7 +31,9 @@ import moe.kanon.epubby.utils.SemVer
 import moe.kanon.epubby.utils.SemVerType
 import moe.kanon.epubby.utils.compareTo
 import moe.kanon.epubby.utils.inside
+import moe.kanon.kommons.func.None
 import moe.kanon.kommons.func.Option
+import moe.kanon.kommons.io.paths.touch
 import mu.KLogger
 import mu.KotlinLogging
 import java.io.Closeable
@@ -88,29 +90,29 @@ class Book internal constructor(
 
     // TODO: Documentation
 
-    val packageManifest: PackageManifest get() = packageDocument.manifest
+    val manifest: PackageManifest get() = packageDocument.manifest
 
-    val packageMetadata: PackageMetadata get() = packageDocument.metadata
+    val metadata: PackageMetadata get() = packageDocument.metadata
 
-    val packageSpine: PackageSpine get() = packageDocument.spine
+    val spine: PackageSpine get() = packageDocument.spine
 
     // -- METADATA -- \\
     /**
      * Returns the title of `this` book.
      */
     var title: String
-        get() = packageMetadata.title.value
+        get() = metadata.title.value
         set(value) {
-            packageMetadata.title = packageMetadata.title.copy(value = value)
+            metadata.title = metadata.title.copy(value = value)
         }
 
     /**
      * Returns the language of `this` book.
      */
     var language: Locale
-        get() = packageMetadata.language.value
+        get() = metadata.language.value
         set(value) {
-            packageMetadata.language = packageMetadata.language.copy(value = value)
+            metadata.language = metadata.language.copy(value = value)
         }
 
     // -- REPOSITORIES -- \\
@@ -121,7 +123,8 @@ class Book internal constructor(
 
     val pages: PageRepository = PageRepository(this)
 
-    val styleSheets: StyleSheetRepository = StyleSheetRepository(this)
+    val styles: StyleSheetRepository =
+        StyleSheetRepository(this)
 
     /**
      * The [Format] that `this` book uses.
@@ -135,14 +138,20 @@ class Book internal constructor(
 
     init {
         logger.info { "Book format: $format" }
-        logger.info { "Book titles: [${packageMetadata.titles.joinToString { it.value }}]" }
-        logger.info { "Book languages: [${packageMetadata.languages.joinToString { it.value.toString() }}]" }
+        logger.info { "Book titles: [${metadata.titles.joinToString { it.value }}]" }
+        logger.info { "Book languages: [${metadata.languages.joinToString { it.value.toString() }}]" }
         resources.populateFromManifest()
+        pages.populateRepository()
     }
 
     fun saveAll() {
         logger.info { "Attempting to save book to destination <$file>..." }
+        pages.transformers.transformAllPages()
+        // saving
         packageDocument.save()
+        pages.savePages()
+        styles.saveStyleSheets()
+        file.touch()
         logger.info { "Book has been successfully saved to <$file>!" }
     }
 
@@ -181,9 +190,19 @@ class Book internal constructor(
     }
 
     // -- UTILITY FUNCTIONS -- \\
-    fun getResource(id: String): Resource = TODO()
+    /**
+     * Returns the [Resource] stored under the given [id], or throws a [NoSuchElementException] if none is found.
+     *
+     * @see [getResourceOrNone]
+     */
+    fun getResource(id: String): Resource = resources.getResource(id)
 
-    fun getResourceOrNone(id: String): Option<Resource> = TODO()
+    /**
+     * Returns the [Resource] stored under the given [id], or [None] if none is found.
+     *
+     * @see [getResource]
+     */
+    fun getResourceOrNone(id: String): Option<Resource> = resources.getResourceOrNone(id)
 
     /**
      * Returns a new [Path] instance tied to the underlying [fileSystem] of `this` book.

@@ -131,8 +131,13 @@ class PackageDocument private constructor(
          * @throws [EpubbyException] if the [guide] property is already set.
          */
         set(value) {
-            if (field.isPresent) throw EpubbyException(book.file, "Can't overwrite already existing 'guide' element")
-            field = value
+            if (value != None) {
+                if (field.isPresent) throw EpubbyException(
+                    book.file,
+                    "Can't overwrite already existing 'guide' element"
+                )
+                field = value
+            }
         }
 
     /**
@@ -150,8 +155,13 @@ class PackageDocument private constructor(
          * @throws [EpubbyException] if the [bindings] property is already set.
          */
         set(value) {
-            if (field.isPresent) throw EpubbyException(book.file, "Can't overwrite already existing 'bindings' element")
-            field = value
+            if (value != None) {
+                if (field.isPresent) throw EpubbyException(
+                    book.file,
+                    "Can't overwrite already existing 'bindings' element"
+                )
+                field = value
+            }
         }
 
     /**
@@ -168,11 +178,13 @@ class PackageDocument private constructor(
          * @throws [EpubbyException] if the [collection] property is already set.
          */
         set(value) {
-            if (field.isPresent) throw EpubbyException(
-                book.file,
-                "Can't overwrite already existing 'collection' element"
-            )
-            field = value
+            if (value != None) {
+                if (field.isPresent) throw EpubbyException(
+                    book.file,
+                    "Can't overwrite already existing 'collection' element"
+                )
+                field = value
+            }
         }
 
     /**
@@ -191,9 +203,14 @@ class PackageDocument private constructor(
          * [EPUB 2.0][Book.Format.EPUB_2_0]
          */
         set(value) {
-            requireMaxFormat(book, Book.Format.EPUB_2_0) { "'tours' element has been deprecated since EPUB 2.0" }
-            if (field.isPresent) throw EpubbyException(book.file, "Can't overwrite already existing 'tours' element")
-            field = value
+            if (value != None) {
+                requireMaxFormat(book, Book.Format.EPUB_2_0) { "'tours' element has been deprecated since EPUB 2.0" }
+                if (field.isPresent) throw EpubbyException(
+                    book.file,
+                    "Can't overwrite already existing 'tours' element"
+                )
+                field = value
+            }
         }
 
     internal fun save() {
@@ -209,7 +226,7 @@ class PackageDocument private constructor(
             direction.ifPresent { "dir" { it } }
             identifier.ifPresent { "id" { it } }
             language.ifPresent {
-                this@xml.attribute("lang", nameSpace = Namespace.XML_NAMESPACE) { it.toLanguageTag() }
+                source.setAttribute("lang", it.toLanguageTag(), Namespace.XML_NAMESPACE)
             }
             prefix.ifPresent { "prefix" { it } }
         }
