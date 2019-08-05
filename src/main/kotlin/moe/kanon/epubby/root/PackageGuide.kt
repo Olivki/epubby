@@ -66,26 +66,27 @@ class PackageGuide private constructor(val book: Book, private val references: M
 
             val references = getChildren("reference", namespace)
                 .asSequence()
-                .map { reference ->
-                    val textual = reference.stringify(Format.getCompactFormat())
-                    val type = (reference.getAttributeValue("type")
-                        ?: malformed("'reference' element is missing required 'type' attribute; [$textual]")).let {
-                        return@let if (Type.getOrNone(it).isEmpty && !(it.startsWith("other.", ignoreCase = true))) {
-                            // we want to log the occurrence in case the user might get confused as to why a value
-                            // completely changed
-                            logger.warn { "Encountered unknown guide reference type <$it> that is not marked with 'other.'" }
-                            "other.$it"
-                        } else it
-                    }
-                    val href = reference.getAttributeValue("href")
-                        ?: malformed("'reference' element is missing required 'href' attribute; [$textual]")
-                    val title = reference.getAttributeValueOrNone("title")
-                    return@map Reference(type, href, title)
-                }
-                .associateBy { it.type }
-                .toMutableMap()
+                .map { createReference(it, ::malformed) }
+                .associateByTo(LinkedHashMap()) { it.type }
 
             return PackageGuide(book, references)
+        }
+
+        private fun createReference(element: Element, malformed: (String) -> Nothing): Reference {
+            val textual = element.stringify(Format.getCompactFormat())
+            val type = (element.getAttributeValue("type")
+                ?: malformed("'reference' element is missing required 'type' attribute; [$textual]")).let {
+                return@let if (Type.getOrNone(it).isEmpty && !(it.startsWith("other.", ignoreCase = true))) {
+                    // we want to log the occurrence in case the user might get confused as to why a value
+                    // completely changed
+                    logger.warn { "Encountered unknown guide reference type <$it> that is not marked with 'other.'" }
+                    "other.$it"
+                } else it
+            }
+            val href = element.getAttributeValue("href")
+                ?: malformed("'reference' element is missing required 'href' attribute; [$textual]")
+            val title = element.getAttributeValueOrNone("title")
+            return Reference(type, href, title)
         }
     }
 

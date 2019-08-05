@@ -63,31 +63,36 @@ class PackageSpine private constructor(
             val toc = getAttributeValueOrNone("toc")
             val references = getChildren("itemref", namespace)
                 .asSequence()
-                .map { element ->
-                    val textual = element.stringify(Format.getCompactFormat())
-                    val idref = element.getAttributeValue("idref")
-                        ?: malformed("'itemref' element missing required 'idref' attribute; $textual")
-                    val id = element.getAttributeValueOrNone("id")
-                    val rawLinear = element.getAttributeValueOrNone("linear")
-                    val linear = try {
-                        rawLinear.map { Boolean.parse(it.trim()) }
-                    } catch (e: ParseException) {
-                        // we know it's safe to access the value of 'rawLinear' because if 'rawLinear' was 'None' then
-                        // it would not be throwing a 'ParseException'
-                        malformed("expected value of 'linear' to be 'yes' or 'no', got '${rawLinear.value}'", e)
-                    }
-                    val properties = element.getAttributeValueOrNone("properties")
-                    val reference: ManifestItem<*> = try {
-                        manifest[idref]
-                    } catch (e: NoSuchElementException) {
-                        malformed("'itemref' element is referencing an unknown manifest item; $textual", e)
-                    }
-                    return@map ItemReference(reference, id, linear, properties)
-                }
-                .toMutableList()
+                .mapTo(ArrayList()) { createReference(manifest, it, ::malformed) }
                 .ifEmpty { malformed("'spine' element needs to contain at least one 'itemref', but it's empty") }
 
             return@with PackageSpine(book, identifier, pageProgressionDirection, toc, references)
+        }
+
+        private fun createReference(
+            manifest: PackageManifest,
+            element: Element,
+            malformed: (String, Throwable?) -> Nothing
+        ): ItemReference {
+            val textual = element.stringify(Format.getCompactFormat())
+            val idRef = element.getAttributeValue("idref")
+                ?: malformed("'itemref' element missing required 'idref' attribute; $textual", null)
+            val id = element.getAttributeValueOrNone("id")
+            val rawLinear = element.getAttributeValueOrNone("linear")
+            val linear = try {
+                rawLinear.map { Boolean.parse(it.trim()) }
+            } catch (e: ParseException) {
+                // we know it's safe to access the value of 'rawLinear' because if 'rawLinear' was 'None' then
+                // it would not be throwing a 'ParseException'
+                malformed("expected value of 'linear' to be 'yes' or 'no', got '${rawLinear.value}'", e)
+            }
+            val properties = element.getAttributeValueOrNone("properties")
+            val reference: ManifestItem<*> = try {
+                manifest[idRef]
+            } catch (e: NoSuchElementException) {
+                malformed("'itemref' element is referencing an unknown manifest item; $textual", e)
+            }
+            return ItemReference(reference, id, linear, properties)
         }
     }
 

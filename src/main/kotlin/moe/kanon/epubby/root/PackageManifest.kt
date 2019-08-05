@@ -54,61 +54,58 @@ class PackageManifest private constructor(
     companion object {
         internal fun parse(book: Book, packageDocument: Path, element: Element): PackageManifest = with(element) {
             fun malformed(reason: String): Nothing = raiseMalformedError(book.originFile, packageDocument, reason)
-            fun localItemOf(
-                id: String,
-                href: String,
-                fallback: String?,
-                mediaType: String?,
-                mediaOverlay: String?,
-                properties: String?
-            ): ManifestItem.Local {
-                val path = book.pathOf(href).let { if (it.isAbsolute) it else packageDocument.parent.resolve(it) }
-                return ManifestItem.Local(id, path, fallback, mediaType, mediaOverlay, properties)
-            }
+            fun hrefToPath(href: String): Path = book.pathOf(href)
+                .let { if (it.isAbsolute) it else packageDocument.parent.resolve(it) }
 
-            val urlValidator = UrlValidator()
             val items: MutableMap<String, ManifestItem<*>> = getChildren("item", namespace)
                 .asSequence()
-                .map {
-                    val textual = it.stringify(Format.getCompactFormat())
-                    val id = it.getAttributeValue("id") ?: malformed("item element is missing required 'id' element")
-                    val href =
-                        it.getAttributeValue("href") ?: malformed("item element is missing required 'href' element")
-                    val fallback: String? = it.getAttributeValue("fallback")
-                    val mediaType: String? = it.getAttributeValue("media-type")
-                    val mediaOverlay: String? = it.getAttributeValue("media-overlay")
-                    val properties: String? = it.getAttributeValue("properties")
-                    /*
-                    * Let's talk about 'local' and 'remote' resources for a bit, and by talk I mean, let's talk about
-                    * the specification. So the EPUB32 specification for "resource-locations" (https://w3c.github.io/publ-epub-revision/epub32/spec/epub-spec.html#sec-resource-locations)
-                    * states the following:
-                    *      "The inclusion of Remote Resources in an EPUB Publication is indicated via the
-                    *      remote-resources property on the manifest item element"
-                    *  while the actual specification for the `manifest` element shows the following example of a
-                    * remote resource:
-                    *      Manifest:
-                    *          <item id="audio01"
-                    *                href="http://www.example.com/book/audio/ch01.mp4"
-                    *                media-type="audio/mp4"/>
-                    *  Notice something missing there? That's right, it's missing the supposed "resource-locations"
-                    * property, in fact, it does not even have a `properties` attribute at all. Needless to say, this
-                    * confused me a bit, so for safetys sake, I'll be double checking whether a resource is remote
-                    * or not, just to try and avoid any possibly issues.
-                    */
-                    if (it.attributes.any { attr -> attr.name == "properties" }) {
-                        if ("remote-resources" in it.getAttributeValue("properties")) {
-                            Remote(id, href, fallback, mediaType, mediaOverlay, properties)
-                        } else localItemOf(id, href, fallback, mediaType, mediaOverlay, properties)
-                    } else {
-                        if (urlValidator.isValid(href)) {
-                            logger.warn { "'item' element has href that's a valid url, but no 'remote-resources' property; $textual" }
-                            Remote(id, href, fallback, mediaType, mediaOverlay, properties)
-                        } else localItemOf(id, href, fallback, mediaType, mediaOverlay, properties)
-                    }
-                }
+                .map { createItem(it, ::malformed, ::hrefToPath) }
                 .associateByTo(HashMap()) { it.identifier }
             if (items.isEmpty()) malformed("'manifest' element needs to contain at least one 'item' child, but it's empty")
             return@with PackageManifest(book, getAttributeValueOrNone("id"), items)
+        }
+
+        private fun createItem(
+            element: Element,
+            malformed: (String) -> Nothing,
+            getPath: (String) -> Path
+        ): ManifestItem<*> {
+            val urlValidator = UrlValidator()
+            val textual = element.stringify(Format.getCompactFormat())
+            val id = element.getAttributeValue("id") ?: malformed("item element is missing required 'id' element")
+            val href =
+                element.getAttributeValue("href") ?: malformed("item element is missing required 'href' element")
+            val fallback: String? = element.getAttributeValue("fallback")
+            val mediaType: String? = element.getAttributeValue("media-type")
+            val mediaOverlay: String? = element.getAttributeValue("media-overlay")
+            val properties: String? = element.getAttributeValue("properties")
+            /*
+            * Let's talk about 'local' and 'remote' resources for a bit, and by talk I mean, let's talk about
+            * the specification. So the EPUB32 specification for "resource-locations" (https://w3c.github.io/publ-epub-revision/epub32/spec/epub-spec.html#sec-resource-locations)
+            * states the following:
+            *      "The inclusion of Remote Resources in an EPUB Publication is indicated via the
+            *      remote-resources property on the manifest item element"
+            *  while the actual specification for the `manifest` element shows the following example of a
+            * remote resource:
+            *      Manifest:
+            *          <item id="audio01"
+            *                href="http://www.example.com/book/audio/ch01.mp4"
+            *                media-type="audio/mp4"/>
+            *  Notice something missing there? That's right, it's missing the supposed "resource-locations"
+            * property, in fact, it does not even have a `properties` attribute at all. Needless to say, this
+            * confused me a bit, so for safetys sake, I'll be double checking whether a resource is remote
+            * or not, just to try and avoid any possibly issues.
+            */
+            return if (element.attributes.any { attr -> attr.name == "properties" }) {
+                if ("remote-resources" in element.getAttributeValue("properties")) {
+                    Remote(id, href, fallback, mediaType, mediaOverlay, properties)
+                } else Local(id, getPath(href), fallback, mediaType, mediaOverlay, properties)
+            } else {
+                if (urlValidator.isValid(href)) {
+                    logger.warn { "'item' element has href that's a valid url, but no 'remote-resources' property; $textual" }
+                    Remote(id, href, fallback, mediaType, mediaOverlay, properties)
+                } else Local(id, getPath(href), fallback, mediaType, mediaOverlay, properties)
+            }
         }
     }
 

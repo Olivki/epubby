@@ -26,7 +26,6 @@ import moe.kanon.epubby.ElementSerializer
 import moe.kanon.epubby.EpubLegacy
 import moe.kanon.epubby.EpubRemoved
 import moe.kanon.epubby.EpubVersion
-import moe.kanon.epubby.EpubbyException
 import moe.kanon.epubby.SerializedName
 import moe.kanon.epubby.logger
 import moe.kanon.epubby.raiseMalformedError
@@ -75,126 +74,122 @@ class PackageMetadata private constructor(
 
             val identifiers = getChildren("identifier", DC_NAMESPACE)
                 .asSequence()
-                .map { DublinCore.Identifier(it.value.trim(), it.getAttributeValue("id")) }
-                .toMutableList()
+                .mapTo(ArrayList(), ::createIdentifier)
                 .ifEmpty { malformed("missing required 'dc:identifier' element in 'metadata'") }
             val titles = getChildren("title", DC_NAMESPACE)
                 .asSequence()
-                .map {
-                    DublinCore.Title(
-                        it.value.trim(),
-                        it.getAttributeValue("id"),
-                        it.getAttributeValue("dir")?.let(Direction.Companion::of),
-                        it.getAttributeValue("lang", JNamespace.XML_NAMESPACE)?.let(::localeOf)
-                    )
-                }
-                .toMutableList()
+                .mapTo(ArrayList(), ::createTitle)
                 .ifEmpty { malformed("missing required 'dc:title' element in 'metadata'") }
             val languages = getChildren("language", DC_NAMESPACE)
                 .asSequence()
-                .map { DublinCore.Language(localeOf(it.value.trim()), it.getAttributeValue("id")) }
-                .toMutableList()
+                .mapTo(ArrayList(), ::createLanguage)
                 .ifEmpty { malformed("missing required 'dc:language' element in 'metadata'") }
+            val knownNames = setOf("identifier", "title", "language")
             val dublinCoreElements: MutableList<DublinCore<*>> = children
                 .asSequence()
                 .filter { it.namespace == DC_NAMESPACE }
-                .filterNot { it.name == "identifier" || it.name == "title" || it.name == "language" }
-                .filterNot { it.text.isEmpty() && it.attributes.isEmpty() }
-                .map {
-                    // hooh boy
-                    val value = it.text.trim()
-                    val dir = it.getAttributeValue("dir")?.let(Direction.Companion::of)
-                    val id = it.getAttributeValue("id")
-                    val language = it.getAttributeValue("lang")?.let(::localeOf)
-                    val dublinCore = when (it.name.toLowerCase()) {
-                        "contributor" -> DublinCore.Contributor(value, id, dir, language)
-                        "coverage" -> DublinCore.Coverage(value, id, dir, language)
-                        "creator" -> DublinCore.Creator(value, id, dir, language)
-                        "date" -> DublinCore.Date(value, id)
-                        "description" -> DublinCore.Description(value, id, dir, language)
-                        "format" -> DublinCore.Format(value, id)
-                        "identifier" -> DublinCore.Identifier(value, id)
-                        "language" -> DublinCore.Language(localeOf(value), id)
-                        "publisher" -> DublinCore.Publisher(value, id, dir, language)
-                        "relation" -> DublinCore.Relation(value, id, dir, language)
-                        "rights" -> DublinCore.Rights(value, id, dir, language)
-                        "source" -> DublinCore.Source(value, id)
-                        "subject" -> DublinCore.Subject(value, id, dir, language)
-                        "title" -> DublinCore.Title(value, id, dir, language)
-                        "type" -> DublinCore.Type(value, id)
-                        else -> throw EpubbyException(
-                            book.originFile,
-                            "Unknown dublin-core element <$name> in file <${book.originFile}>"
-                        )
-                    }
-                    dublinCore._attributes.addAll(
-                        it.attributes.asSequence()
-                            .filter { attr -> attr.namespace == OPF_NAMESPACE }
-                            .map { attr -> attr.detach() }
-                    )
-                    return@map dublinCore
-                }
-                .toMutableList()
-            val metaElements = children
+                .filter { it.name !in knownNames && it.text.isNotBlank() && it.attributes.isNotEmpty() }
+                .mapTo(ArrayList()) { createDublinCore(it, ::malformed) }
+            val knownAttributes = setOf("charset", "content", "http-equiv", "name", "scheme")
+            val metaElements = getChildren("meta", namespace)
                 .asSequence()
-                .filter { it.name == "meta" }
-                .map {
-                    return@map if (book.version > Book.Format.EPUB_2_0) {
-                        when {
-                            // the 'property' attribute is REQUIRED according to the EPUB specification, which means
-                            // that any 'meta' elements that are missing it are NOT valid elements
-                            it.attributes.none { attr -> attr.name == "property" } -> {
-                                logFaultyMetaElement(it, "missing required 'property' attribute")
-                                return@map null
-                            }
-                            // "Every meta element MUST express a value that is at least one character in length after
-                            // white space normalization" which means that if the text is blank after being normalized
-                            // it's not a valid 'meta' element
-                            it.textNormalize.isBlank() -> {
-                                logFaultyMetaElement(it, "value/text is blank")
-                                return@map null
-                            }
-                            else -> MetaElement.Modern(
-                                it.text,
-                                it.getAttributeValue("property"),
-                                it.getAttributeValue("id"),
-                                it.getAttributeValue("dir")?.let(Direction.Companion::of),
-                                it.getAttributeValue("refines"),
-                                it.getAttributeValue("scheme"),
-                                it.getAttributeValue("lang", JNamespace.XML_NAMESPACE)?.let(::localeOf)
-                            )
-                        }
-                    } else {
-                        MetaElement.Legacy.newInstance(
-                            it.getAttributeValue("charset"),
-                            it.getAttributeValue("content"),
-                            it.getAttributeValue("http-equiv"),
-                            it.getAttributeValue("name"),
-                            it.getAttributeValue("scheme"),
-                            it.attributes.filterNot { attr ->
-                                attr.name == "charset" || attr.name == "content" || attr.name == "http-equiv"
-                                    || attr.name == "name" || attr.name == "scheme"
-                            }.toImmutableList()
-                        )
-                    }
-                }
-                .filterNotNull()
-                .toMutableList()
-            val links = children.asSequence()
-                .filter { it.name == "link" }
-                .map {
-                    Link(
-                        it.getAttributeValue("href") ?: malformed("'link' element is missing 'href' attribute"),
-                        it.getAttributeValue("rel") ?: malformed("'link' element is missing 'rel' attribute"),
-                        it.getAttributeValueOrNone("media-type"),
-                        it.getAttributeValueOrNone("id"),
-                        it.getAttributeValueOrNone("properties"),
-                        it.getAttributeValueOrNone("refines")
-                    )
-                }
-                .toMutableList()
+                .map { createMeta(book, it, knownAttributes, ::logFaultyMetaElement) }
+                // remove any invalid meta-elements, this is because we don't want to raise an exception and stop the
+                // program just because of a faulty meta-element
+                .filterNotNullTo(ArrayList())
+            val links = getChildren("link", namespace).mapTo(ArrayList()) { createLink(it, ::malformed) }
             return@with PackageMetadata(book, identifiers, titles, languages, dublinCoreElements, metaElements, links)
         }
+
+        private fun createIdentifier(element: Element): DublinCore.Identifier =
+            DublinCore.Identifier(element.textNormalize, element.getAttributeValue("id"))
+
+        private fun createTitle(element: Element): DublinCore.Title = DublinCore.Title(
+            element.textNormalize,
+            element.getAttributeValue("id"),
+            element.getAttributeValue("dir")?.let(Direction.Companion::of),
+            element.getAttributeValue("lang", JNamespace.XML_NAMESPACE)?.let(::localeOf)
+        )
+
+        private fun createLanguage(element: Element): DublinCore.Language =
+            DublinCore.Language(localeOf(element.textNormalize), element.getAttributeValue("id"))
+
+        private fun createDublinCore(element: Element, malformed: (String) -> Nothing): DublinCore<*> {
+            val value = element.textNormalize
+            val dir = element.getAttributeValue("dir")?.let(Direction.Companion::of)
+            val id = element.getAttributeValue("id")
+            val language = element.getAttributeValue("lang")?.let(::localeOf)
+            // this is missing the 'identifier', 'title' and 'language' elements as those should be dealt with separately
+            val dublinCore: DublinCore<*> = when (element.name.toLowerCase()) {
+                "contributor" -> DublinCore.Contributor(value, id, dir, language)
+                "coverage" -> DublinCore.Coverage(value, id, dir, language)
+                "creator" -> DublinCore.Creator(value, id, dir, language)
+                "date" -> DublinCore.Date(value, id)
+                "description" -> DublinCore.Description(value, id, dir, language)
+                "format" -> DublinCore.Format(value, id)
+                "publisher" -> DublinCore.Publisher(value, id, dir, language)
+                "relation" -> DublinCore.Relation(value, id, dir, language)
+                "rights" -> DublinCore.Rights(value, id, dir, language)
+                "source" -> DublinCore.Source(value, id)
+                "subject" -> DublinCore.Subject(value, id, dir, language)
+                "type" -> DublinCore.Type(value, id)
+                else -> malformed("unknown dublin-core element <${element.name}>")
+            }
+            val attributes = element.attributes
+                .asSequence()
+                .filter { it.namespace == OPF_NAMESPACE }
+                .map(Attribute::detach)
+            dublinCore._attributes.addAll(attributes)
+            return dublinCore
+        }
+
+        private fun createMeta(
+            book: Book,
+            element: Element,
+            knownAttributes: Set<String>,
+            faultyMeta: (Element, String) -> Unit
+        ): MetaElement? {
+            return if (book.version > Book.Format.EPUB_2_0) when {
+                // the 'property' attribute is REQUIRED according to the EPUB specification, which means
+                // that any 'meta' elements that are missing it are NOT valid elements
+                element.attributes.none { it.name == "property" } -> {
+                    faultyMeta(element, "missing required 'property' attribute")
+                    null
+                }
+                // "Every meta element MUST express a value that is at least one character in length after
+                // white space normalization" which means that if the text is blank after being normalized
+                // it's not a valid 'meta' element
+                element.textNormalize.isBlank() -> {
+                    faultyMeta(element, "value/text is blank")
+                    null
+                }
+                else -> MetaElement.Modern(
+                    element.text,
+                    element.getAttributeValue("property"),
+                    element.getAttributeValue("id"),
+                    element.getAttributeValue("dir")?.let(Direction.Companion::of),
+                    element.getAttributeValue("refines"),
+                    element.getAttributeValue("scheme"),
+                    element.getAttributeValue("lang", JNamespace.XML_NAMESPACE)?.let(::localeOf)
+                )
+            } else MetaElement.Legacy.newInstance(
+                element.getAttributeValue("charset"),
+                element.getAttributeValue("content"),
+                element.getAttributeValue("http-equiv"),
+                element.getAttributeValue("name"),
+                element.getAttributeValue("scheme"),
+                element.attributes.filterNot { it.name in knownAttributes }.toImmutableList()
+            )
+        }
+
+        private fun createLink(element: Element, malformed: (String) -> Nothing): Link = Link(
+            element.getAttributeValue("href") ?: malformed("'link' element is missing 'href' attribute"),
+            element.getAttributeValue("rel") ?: malformed("'link' element is missing 'rel' attribute"),
+            element.getAttributeValueOrNone("media-type"),
+            element.getAttributeValueOrNone("id"),
+            element.getAttributeValueOrNone("properties"),
+            element.getAttributeValueOrNone("refines")
+        )
     }
 
     // -- IDENTIFIERS -- \\

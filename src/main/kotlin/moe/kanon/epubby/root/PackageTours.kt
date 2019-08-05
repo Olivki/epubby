@@ -43,29 +43,22 @@ class PackageTours private constructor(val book: Book, private val tours: Mutabl
 
             val tourElements = getChildren("tour", namespace)
                 .asSequence()
-                .map { tour ->
-                    Tour(
-                        tour.getAttributeValue("id") ?: malformed("'tour' element is missing required 'id' attribute"),
-                        tour.getAttributeValue("title")
-                            ?: malformed("'tour' element is missing required 'title' attribute"),
-                        tour.getChildren("site", tour.namespace)
-                            .map { site ->
-                                Tour.Site(
-                                    site.getAttributeValue("href")
-                                        ?: malformed("'site' element is missing required 'href' attribute"),
-                                    site.getAttributeValue("title")
-                                        ?: malformed("'site' element is missing required 'title' attribute")
-                                )
-                            }
-                            .ifEmpty { malformed("'tour' elements need to contain at least one 'site' element") }
-                            .toMutableList()
-                    )
-                }
-                .associateBy { it.identifier }
-                .toMutableMap()
+                .map { createTour(it, ::malformed) }
+                .associateByTo(LinkedHashMap()) { it.identifier }
 
             return@with PackageTours(book, tourElements)
         }
+
+        private fun createTour(element: Element, malformed: (String) -> Nothing): Tour = Tour(
+            element.getAttributeValue("id") ?: malformed("'tour' element is missing required 'id' attribute"),
+            element.getAttributeValue("title") ?: malformed("'tour' element is missing required 'title' attribute"),
+            element.getChildren("site", element.namespace).mapTo(ArrayList()) {
+                return@mapTo Tour.Site(
+                    it.getAttributeValue("href") ?: malformed("'site' element is missing required 'href' attribute"),
+                    it.getAttributeValue("title") ?: malformed("'site' element is missing required 'title' attribute")
+                )
+            }.ifEmpty { malformed("'tour' elements need to contain at least one 'site' element") }
+        )
     }
 
     // TODO: Add functions for modifying tours and tour (lol)
