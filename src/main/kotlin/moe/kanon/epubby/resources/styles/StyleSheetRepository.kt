@@ -29,7 +29,13 @@ import java.nio.file.Path
  * A repository containing all the [StyleSheet] instances used by the given [book].
  */
 class StyleSheetRepository(val book: Book) : Iterable<StyleSheet> {
-    private val styleSheets: MutableSet<StyleSheet> = HashSet()
+    @JvmSynthetic internal val styleSheets: MutableSet<StyleSheet> = HashSet()
+
+    @JvmSynthetic internal fun populateRepository() {
+        for (resource in book.resources.asSequence().filterIsInstance<StyleSheetResource>()) {
+            styleSheets += StyleSheet.fromResource(resource)
+        }
+    }
 
     // TODO: Documentation and more functions
 

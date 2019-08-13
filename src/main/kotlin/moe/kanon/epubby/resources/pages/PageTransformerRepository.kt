@@ -21,7 +21,7 @@ import kotlinx.collections.immutable.toImmutableHashSet
 import moe.kanon.epubby.Book
 import moe.kanon.epubby.logger
 import moe.kanon.kommons.collections.asUnmodifiable
-import moe.kanon.kommons.lang.serviceLoaderFor
+import moe.kanon.kommons.reflection.loadServices
 import java.util.*
 import kotlin.collections.HashSet
 
@@ -32,6 +32,10 @@ class PageTransformerRepository(val book: Book) : Iterable<PageTransformer> {
      * Returns a set of all the currently available [page-transformers][PageTransformer].
      */
     val entries: ImmutableSet<PageTransformer> get() = transformers.toImmutableHashSet()
+
+    fun clearTransformers() {
+        transformers.clear()
+    }
 
     /**
      * Invokes [transformPage] on all the [pages][Book.pages] of the [book].
@@ -45,19 +49,20 @@ class PageTransformerRepository(val book: Book) : Iterable<PageTransformer> {
      */
     fun transformPage(page: Page) {
         if (transformers.isNotEmpty()) logger.debug { "Transforming page <$page>.." }
-        for (transformer in transformers) transformer.transformPage(book, page, page.document)
+        for (transformer in transformers) transformer.transformPage(book, page, page.document, page.body)
     }
 
     /**
      * Registers all the page-transformers that are available using the [ServiceLoader] utility.
      */
-    fun registerInstalledTransformers() {
-        for (service in serviceLoaderFor<PageTransformer>()) {
+    fun registerInstalled() {
+        for (service in loadServices<PageTransformer>()) {
             registerTransformer(service)
         }
     }
 
     fun registerTransformer(transformer: PageTransformer) {
+        transformer.onInit(book)
         transformers += transformer
     }
 

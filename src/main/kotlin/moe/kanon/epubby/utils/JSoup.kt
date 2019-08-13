@@ -146,7 +146,29 @@ fun Element.onlyContains(
         ((ignoredBodies.any { element matches it }) || ((ignoredElements.any { element matches it }) && element.isTextEmpty))
     }
 
+/**
+ * Returns `true` if `this` element has a child that [matches] the given [query], otherwise `false`.
+ */
+fun Element.hasChild(query: String): Boolean = this.children().any { it matches query }
+
+/**
+ * Returns `true` if `this` elment has *any* children that matches *any* of the given [queries], otherwise `false`.
+ */
+fun Element.hasChildren(vararg queries: String): Boolean =
+    this.children().any { queries.any { query -> it matches query } }
+
 // -- ELEMENTS -- \\
+/**
+ * Returns `true` if `this` element has a child that [matches] the given [query], otherwise `false`.
+ */
+fun Elements.hasChild(query: String): Boolean = this.any { it matches query }
+
+/**
+ * Returns `true` if `this` elment has *any* children that matches *any* of the given [queries], otherwise `false`.
+ */
+fun Elements.hasChildren(vararg queries: String): Boolean =
+    this.any { queries.any { query -> it matches query } }
+
 /**
  * Returns `false` if `this` [Elements] does not have any children, or `true` if it does.
  */

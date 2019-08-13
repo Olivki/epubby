@@ -213,7 +213,7 @@ class PackageDocument private constructor(
             }
         }
 
-    internal fun save() {
+    internal fun saveDocument() {
         metadata.updateLastModified()
         logger.debug { "Saving package document to file <${book.file.combineWith(file)}>" }
         toDocument().saveTo(file)

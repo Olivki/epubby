@@ -19,6 +19,7 @@ package moe.kanon.epubby.toc
 import moe.kanon.epubby.Book
 import moe.kanon.epubby.DocumentSerializer
 import moe.kanon.epubby.ElementSerializer
+import moe.kanon.epubby.EpubLegacy
 import moe.kanon.epubby.EpubVersion
 import moe.kanon.epubby.resources.PageResource
 import moe.kanon.epubby.utils.parseDocFile
@@ -26,14 +27,24 @@ import moe.kanon.epubby.utils.parseXmlFile
 import moe.kanon.kommons.collections.asUnmodifiable
 import moe.kanon.kommons.func.None
 import moe.kanon.kommons.func.Option
-import org.jdom2.Document
-import org.jdom2.Element
 import java.nio.file.Path
+import org.jdom2.Document as XmlDocument
+import org.jdom2.Element as XmlElement
+import org.jsoup.nodes.Document as HtmlDocument
 
-class TableOfContents private constructor(val book: Book, private val entries: MutableList<Entry>) : DocumentSerializer,
-    Iterable<TableOfContents.Entry> {
+class TableOfContents private constructor(
+    val book: Book,
+    private val entries: MutableList<Entry>,
+    private val ncxDoc: Option<XmlElement> = None,
+    private val navDoc: Option<HtmlDocument> = None
+) : DocumentSerializer, Iterable<TableOfContents.Entry> {
     companion object {
-        @EpubVersion(Book.Format.EPUB_2_0)
+        /**
+         * Parses an [NCX](http://www.daisy.org/z3986/2005/Z3986-2005.html#NCX) file into a [TableOfContents] instance.
+         *
+         * [EPUB specification entry](http://www.idpf.org/epub/20/spec/OPF_2.0.1_draft.htm#Section2.4.1)
+         */
+        @EpubLegacy(Book.Format.EPUB_3_0)
         internal fun parseNcx(book: Book, ncxFile: Path): TableOfContents = parseXmlFile(ncxFile) {
             TODO()
         }
@@ -55,7 +66,7 @@ class TableOfContents private constructor(val book: Book, private val entries: M
 
     override fun iterator(): Iterator<Entry> = entries.iterator().asUnmodifiable()
 
-    override fun toDocument(): Document {
+    override fun toDocument(): XmlDocument {
         TODO("not implemented")
     }
 
@@ -119,7 +130,7 @@ class TableOfContents private constructor(val book: Book, private val entries: M
 
         override fun iterator(): Iterator<Entry> = children.iterator().asUnmodifiable()
 
-        override fun toElement(): Element {
+        override fun toElement(): XmlElement {
             TODO("not implemented")
         }
     }

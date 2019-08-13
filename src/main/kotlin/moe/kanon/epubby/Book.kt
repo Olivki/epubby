@@ -141,6 +141,7 @@ class Book internal constructor(
         logger.info { "Book titles: [${metadata.titles.joinToString { it.value }}]" }
         logger.info { "Book languages: [${metadata.languages.joinToString { it.value.toString() }}]" }
         resources.populateFromManifest()
+        styles.populateRepository()
         pages.populateRepository()
     }
 
@@ -148,7 +149,7 @@ class Book internal constructor(
         logger.info { "Attempting to save book to destination <$file>..." }
         pages.transformers.transformAllPages()
         // saving
-        packageDocument.save()
+        packageDocument.saveDocument()
         pages.savePages()
         styles.saveStyleSheets()
         file.touch()

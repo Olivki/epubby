@@ -22,7 +22,6 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.ImmutableSet
 import kotlinx.collections.immutable.immutableSetOf
 import moe.kanon.epubby.Book
-import moe.kanon.epubby.EpubbyException
 import moe.kanon.epubby.logger
 import moe.kanon.epubby.resources.styles.StyleSheet
 import moe.kanon.epubby.root.ManifestItem
@@ -33,6 +32,7 @@ import moe.kanon.epubby.utils.combineWith
 import moe.kanon.kommons.func.Option
 import moe.kanon.kommons.io.paths.contentType
 import moe.kanon.kommons.io.paths.exists
+import moe.kanon.kommons.io.paths.extension
 import moe.kanon.kommons.io.paths.name
 import moe.kanon.kommons.io.paths.newInputStream
 import moe.kanon.kommons.io.paths.renameTo
@@ -150,9 +150,11 @@ sealed class Resource(file: Path, identifier: String, desiredDirectory: String) 
      * The underlying file that `this` resource is created for.
      */
     var file: Path = file
-        @JvmSynthetic internal set(value) {
+        @Throws(IOException::class)
+        set(value) {
             // we need to update the references BEFORE we actually change the file, otherwise it won't be properly
             // reflected
+            requireThat(value.fileSystem == book.fileSystem) { "The file-system of 'value' is not the same as the books file-system" }
             updateReferencesTo(value)
             field = value
             updateManifest(href = value)
@@ -177,6 +179,8 @@ sealed class Resource(file: Path, identifier: String, desiredDirectory: String) 
      * TODO: Explanation
      */
     val href: String get() = book.packageDocument.file.parent.relativize(file).toString()
+
+    val relativeHref: String get() = relativeFile.toString()
 
     /**
      * The "desired" directory where this resource "ideally" wants to reside.
@@ -281,14 +285,18 @@ sealed class Resource(file: Path, identifier: String, desiredDirectory: String) 
     }
 
     /**
+     * Renames the [file] this resource is wrapping around to the given [name].
      *
-     * @throws [EpubbyException] TODO
+     * Note that this function *only* changes the [simple name][Path.simpleName] of the file, meaning that the
+     * [extension][Path.extension] of it is left as-is. This function is merely intended for *simple* renaming of file
+     * names, for more advanced operations it is recommended to set the `file` property directly.
+     *
      * @throws [IOException] if an i/o error occurs
      */
-    @Throws(EpubbyException::class, IOException::class)
+    @Throws(IOException::class)
     fun renameTo(name: String) {
         // TODO: Check if this works properly
-        file = file.renameTo(name)
+        file = file.renameTo(name + file.extension)
     }
 
     /**
@@ -296,8 +304,11 @@ sealed class Resource(file: Path, identifier: String, desiredDirectory: String) 
      * takes care of cases where an `href` attribute might contain a fragment-identifier *(`#`)*.
      */
     @JvmOverloads
-    fun isHrefEqual(href: String, ignoreCase: Boolean = false): Boolean =
-        if ('#' in href) href.split('#')[0].equals(this.href, ignoreCase) else href.equals(this.href, ignoreCase)
+    fun isHrefEqual(href: String, ignoreCase: Boolean = false): Boolean = when {
+        '#' in href -> href.split('#')[0].equals(this.href, ignoreCase)
+            || href.split('#')[0].equals(this.relativeFile.toString(), ignoreCase)
+        else -> href.equals(this.href, ignoreCase) || href.equals(this.relativeFile.toString(), ignoreCase)
+    }
 
     /**
      * Throws a [ResourceCreationException] using the given [message] and [cause] and the data stored in this resource.
@@ -356,7 +367,11 @@ class StyleSheetResource(override val book: Book, file: Path, identifier: String
         @JvmField val MEDIA_TYPES: ImmutableSet<String> = immutableSetOf("text/css")
     }
 
-    val styleSheet: StyleSheet by lazy { book.styles.addStyleSheet(StyleSheet.fromResource(this)) }
+    val styleSheet: StyleSheet get() = book.styles.styleSheets.first { it.resource == this }
+
+    override fun onDeletion() {
+        for (page in book.pages) page.removeStyleSheet(styleSheet)
+    }
 
     override fun toString(): String = "StyleSheetResource(identifier='$identifier', href='$href', book=$book)"
 }

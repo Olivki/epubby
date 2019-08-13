@@ -18,18 +18,20 @@ package moe.kanon.epubby.resources.pages
 
 import moe.kanon.epubby.Book
 import org.jsoup.nodes.Document
+import org.jsoup.nodes.Element
 
 /**
  * Represents a transformer that works on [Page] instances, changing various parts of its structure.
  */
-abstract class PageTransformer {
+interface PageTransformer {
     /**
      * Gets invoked during the initial load of all page-transformers.
      */
-    open fun onInit(book: Book): PageTransformer = this
+    @JvmDefault fun onInit(book: Book) {}
 
     /**
-     * Gets invoked at the start of the [book] saving process.
+     * Gets invoked at the start of the [book] saving process, allows this transformer to modify the contents of the
+     * given [page].
      */
-    abstract fun transformPage(book: Book, page: Page, document: Document)
+    fun transformPage(book: Book, page: Page, document: Document, body: Element)
 }

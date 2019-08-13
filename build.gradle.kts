@@ -34,7 +34,6 @@ repositories {
     mavenCentral()
     jcenter()
     maven(url = "https://dl.bintray.com/kotlin/kotlinx") { name = "kotlinx" }
-    maven(url = "https://dl.bintray.com/olivki/kanon.kommons") { name = "kanon.kommons" }
 }
 
 dependencies {
@@ -46,7 +45,8 @@ dependencies {
 
     // Kanon
     implementation(group = "moe.kanon.xml", name = "kanon.xml", version = "3.1.4")
-    implementation(group = "moe.kanon.kommons", name = "kommons.func", version = "1.1.0")
+    implementation(group = "moe.kanon.kommons", name = "kommons.func", version = "1.2.0")
+    implementation(group = "moe.kanon.kommons", name = "kommons.reflection", version = "0.3.1")
     implementation(group = "moe.kanon.kommons", name = "kommons.io", version = "1.0.1")
     implementation(group = "moe.kanon.kommons", name = "kommons.lang", version = "0.1.0")
     implementation(group = "moe.kanon.kommons", name = "kommons.collections", version = "0.1.0")
@@ -66,6 +66,9 @@ dependencies {
     // semver
     implementation(group = "com.vdurmont", name = "semver4j", version = "2.2.0")
 
+    // css dsl
+    implementation(group = "azadev.kotlin", name = "aza-kotlin-css", version = "1.0")
+
     // Google
     compileOnly(group = "com.google.auto.service", name = "auto-service", version = "1.0-rc4")
     kapt(group = "com.google.auto.service", name = "auto-service", version = "1.0-rc4")
@@ -75,12 +78,15 @@ dependencies {
     testImplementation(group = "org.apache.logging.log4j", name = "log4j-core", version = "2.12.0")
     testImplementation(group = "org.fusesource.jansi", name = "jansi", version = "1.18")
     testImplementation(group = "org.slf4j", name = "slf4j-simple", version = "1.8.0-beta2")
+
+    testCompileOnly(group = "com.google.auto.service", name = "auto-service", version = "1.0-rc4")
+    kaptTest(group = "com.google.auto.service", name = "auto-service", version = "1.0-rc4")
 }
 
 tasks.withType<KotlinCompile> {
     kotlinOptions {
         jvmTarget = "1.8"
-        freeCompilerArgs = listOf("-XXLanguage:+InlineClasses")
+        freeCompilerArgs = listOf("-Xjvm-default=enable")
     }
 }
 
