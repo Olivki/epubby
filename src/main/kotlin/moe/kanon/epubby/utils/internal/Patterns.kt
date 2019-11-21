@@ -14,9 +14,14 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.resources
+package moe.kanon.epubby.utils.internal
 
-import moe.kanon.epubby.Book
+@PublishedApi
+internal object Patterns {
+    // -- WHITESPACE -- \\
+    @JvmField val WHITESPACE = "\\s".toRegex()
+    @JvmField val EXCESSIVE_WHITESPACE = "\\s{2,}".toRegex()
 
-class Resources(val book: Book) {
+    // -- SPACE -- \\
+    @JvmField val EXCESSIVE_SPACE = " {2,}".toRegex()
 }

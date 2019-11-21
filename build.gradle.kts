@@ -33,7 +33,6 @@ val gitUrl = "https://gitlab.com/Olivki/epubby"
 repositories {
     mavenCentral()
     jcenter()
-    maven(url = "https://dl.bintray.com/kotlin/kotlinx") { name = "kotlinx" }
 }
 
 dependencies {
@@ -41,35 +40,33 @@ dependencies {
     implementation(kotlin("stdlib-jdk8"))
     implementation(kotlin("reflect"))
     implementation(group = "org.jetbrains.kotlinx", name = "kotlinx-html-jvm", version = "0.6.12")
-    implementation(group = "org.jetbrains.kotlinx", name = "kotlinx-collections-immutable", version = "0.1")
+    implementation(group = "org.jetbrains.kotlinx", name = "kotlinx-collections-immutable-jvm", version = "0.3")
 
     // Kanon
-    implementation(group = "moe.kanon.xml", name = "kanon.xml", version = "3.1.4")
-    implementation(group = "moe.kanon.kommons", name = "kommons.func", version = "1.2.0")
-    implementation(group = "moe.kanon.kommons", name = "kommons.reflection", version = "0.3.1")
-    implementation(group = "moe.kanon.kommons", name = "kommons.io", version = "1.0.1")
-    implementation(group = "moe.kanon.kommons", name = "kommons.lang", version = "0.1.0")
-    implementation(group = "moe.kanon.kommons", name = "kommons.collections", version = "0.1.0")
+    implementation(group = "moe.kanon.kommons", name = "kommons.func", version = "1.4.0")
+    implementation(group = "moe.kanon.kommons", name = "kommons.reflection", version = "0.5.0")
+    implementation(group = "moe.kanon.kommons", name = "kommons.io", version = "1.4.0")
+    implementation(group = "moe.kanon.kommons", name = "kommons.lang", version = "0.2.0")
+    implementation(group = "moe.kanon.kommons", name = "kommons.collections", version = "0.9.0")
+
+    // XML
+    implementation(group = "org.jdom", name = "jdom2", version = "2.0.6")
 
     // Apache
     implementation(group = "commons-validator", name = "commons-validator", version = "1.6")
+    implementation(group = "org.apache.logging.log4j", name = "log4j-api-kotlin", version = "1.0.0")
 
     // css handler
     implementation(group = "com.helger", name = "ph-css", version = "6.2.0")
 
-    // kotlin logging wrapper
-    implementation(group = "io.github.microutils", name = "kotlin-logging", version = "1.6.26")
-
     // JSoup
     implementation(group = "org.jsoup", name = "jsoup", version = "1.12.1")
-
-    // semver
-    implementation(group = "com.vdurmont", name = "semver4j", version = "2.2.0")
 
     // css dsl
     implementation(group = "azadev.kotlin", name = "aza-kotlin-css", version = "1.0")
 
     // Google
+    implementation(group = "com.google.guava", name = "guava", version = "28.1-jre")
     compileOnly(group = "com.google.auto.service", name = "auto-service", version = "1.0-rc4")
     kapt(group = "com.google.auto.service", name = "auto-service", version = "1.0-rc4")
 

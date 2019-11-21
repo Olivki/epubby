@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.resources
+package moe.kanon.epubby.structs.props
 
-import moe.kanon.epubby.Book
-
-class Resources(val book: Book) {
-}
+/**
+ * Represents the [rel](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#attrdef-link-rel)
+ * attribute.
+ */
+typealias Relationship = Properties

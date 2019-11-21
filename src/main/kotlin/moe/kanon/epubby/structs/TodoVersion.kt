@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.resources
+package moe.kanon.epubby.structs
 
-import moe.kanon.epubby.Book
-
-class Resources(val book: Book) {
+// TODO: Replace the Version data class with enums?
+enum class TodoVersion(val major: Int, val minor: Int) {
 }

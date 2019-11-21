@@ -14,9 +14,17 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.resources
+package moe.kanon.epubby.structs.props
 
-import moe.kanon.epubby.Book
+import moe.kanon.kommons.lang.identityHash
 
-class Resources(val book: Book) {
+internal object EmptyPrefix : PropertyPrefix {
+    override val prefix: String? = null
+    override val url: String = ""
+
+    override fun equals(other: Any?): Boolean = other is EmptyPrefix
+
+    override fun hashCode(): Int = identityHash
+
+    override fun toString(): String = "EmptyPrefix"
 }

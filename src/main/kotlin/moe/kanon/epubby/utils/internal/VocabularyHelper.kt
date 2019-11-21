@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.resources
+package moe.kanon.epubby.utils.internal
 
-import moe.kanon.epubby.Book
+import moe.kanon.epubby.structs.props.Property
 
-class Resources(val book: Book) {
-}
+internal inline fun <reified E> findProperty(ref: String): E
+    where E : Enum<E>, E : Property = enumValues<E>().firstOrNull { it.reference == ref }
+    ?: throw NoSuchElementException("No vocabulary entry found with the given reference '$ref'")

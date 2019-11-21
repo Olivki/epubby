@@ -14,9 +14,23 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.resources
+package moe.kanon.epubby.pack
 
 import moe.kanon.epubby.Book
+import moe.kanon.epubby.utils.Namespaces
+import org.jdom2.Element
+import org.jdom2.Namespace
+import java.nio.file.Path
 
-class Resources(val book: Book) {
+class Spine {
+    // TODO: Check if this namespace is correct
+    @JvmSynthetic
+    internal fun toElement(namespace: Namespace = Namespaces.OPF): Element {
+        TODO()
+    }
+
+    companion object {
+        @JvmSynthetic
+        internal fun fromElement(book: Book, element: Element, file: Path): Spine = TODO()
+    }
 }

@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.resources
+package moe.kanon.epubby.utils.internal
 
-import moe.kanon.epubby.Book
+import org.apache.logging.log4j.kotlin.KotlinLogger
+import org.apache.logging.log4j.kotlin.logger as namedLogger
 
-class Resources(val book: Book) {
-}
+@get:JvmSynthetic
+internal val logger: KotlinLogger = namedLogger("epubby")

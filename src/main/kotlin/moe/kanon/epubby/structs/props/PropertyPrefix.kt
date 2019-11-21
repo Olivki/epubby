@@ -14,9 +14,23 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.resources
+package moe.kanon.epubby.structs.props
 
-import moe.kanon.epubby.Book
+/**
+ * Represents the `prefix` used by [Property] implementations.
+ */
+interface PropertyPrefix {
+    /**
+     * The shorthand name used to refer to the underlying [url] when [processing][BasicProperty.process] a property.
+     */
+    val prefix: String?
 
-class Resources(val book: Book) {
+    /**
+     * The URL that this prefix points towards.
+     */
+    val url: String
+
+    companion object {
+        @JvmStatic fun from(prefix: String, url: String): PropertyPrefix = BasicPropertyPrefix(prefix, url)
+    }
 }

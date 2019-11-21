@@ -14,9 +14,20 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.resources
+package moe.kanon.epubby.structs.props
 
-import moe.kanon.epubby.Book
-
-class Resources(val book: Book) {
+/**
+ * A prefix for a [BasicProperty].
+ *
+ * @property [name] The shorthand name used to refer to the underlying [url] when [processing][BasicProperty.process] a
+ * property.
+ *
+ * May be `null`.
+ * @property [url] The URL that this prefix points towards.
+ */
+internal data class BasicPropertyPrefix(override val prefix: String?, override val url: String) : PropertyPrefix {
+    override fun toString(): String = when (prefix) {
+        null -> "{$url}"
+        else -> "{$prefix:$url}"
+    }
 }

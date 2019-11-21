@@ -14,9 +14,7 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.resources
+package moe.kanon.epubby.metainf
 
-import moe.kanon.epubby.Book
-
-class Resources(val book: Book) {
+class MetaInfMetadata {
 }

@@ -18,6 +18,7 @@
 
 package moe.kanon.epubby.utils
 
+import moe.kanon.epubby.MalformedBookException
 import moe.kanon.kommons.func.None
 import moe.kanon.kommons.func.Option
 import moe.kanon.kommons.io.paths.newInputStream
@@ -33,9 +34,42 @@ import org.jdom2.output.XMLOutputter
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
 
-@PublishedApi internal inline fun <R> parseXmlFile(file: Path, scope: Element.() -> R): R =
-    file.newInputStream().use { input -> with(SAXBuilder(XMLReaders.NONVALIDATING).build(input).rootElement, scope) }
 
+// -- INTERNAL -- \\
+@PublishedApi
+internal inline fun <R> parseXmlFile(file: Path, scope: (doc: Document, root: Element) -> R): R =
+    file.newInputStream().use { input ->
+        val doc = SAXBuilder(XMLReaders.NONVALIDATING).build(input)
+        scope(doc, doc.rootElement)
+    }
+
+@PublishedApi
+internal fun Element.attr(name: String, container: Path, current: Path): String =
+    getAttributeValue(name) ?: throw MalformedBookException.withDebug(
+        container,
+        current,
+        "Element '${this.name}' is missing required attribute '$name'"
+    )
+
+@PublishedApi
+internal fun Element.child(
+    name: String,
+    container: Path,
+    current: Path,
+    namespace: Namespace = this.namespace
+): Element = getChild(name, namespace) ?: throw MalformedBookException.withDebug(
+    container,
+    current,
+    "Element '${this.name}' is missing required child element '$name'"
+)
+
+@PublishedApi
+internal inline fun Document.docScope(block: Element.() -> Unit): Document = this.apply { rootElement.apply(block) }
+
+@PublishedApi
+internal inline fun <R> Document.scope(block: Element.() -> R): R = with(this) { rootElement.run(block) }
+
+// -- PUBLIC -- \\
 /**
  * Returns the first child with the given [name] and [namespace], or [None] if none is found.
  */

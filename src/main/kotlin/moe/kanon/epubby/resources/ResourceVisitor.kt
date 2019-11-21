@@ -16,7 +16,7 @@
 
 package moe.kanon.epubby.resources
 
-import moe.kanon.epubby.Book
+interface ResourceVisitor {
 
-class Resources(val book: Book) {
+    fun onUnknown(resource: UnknownResource)
 }

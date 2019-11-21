@@ -29,14 +29,25 @@ import java.nio.file.Path
 
 // -- ELEMENT -- \\
 /**
- * Returns whether or not the `trimmed` version of the `text` inside of this [Element] is empty.
+ * Returns `true` if the [text][Element.text] of `this` element [is blank][String.isBlank], `false` otherwise.
  */
-val Element.isTextEmpty: Boolean get() = this.text().trim().isEmpty()
+val Element.isTextBlank: Boolean get() = this.text().isBlank()
 
 /**
- * Returns whether or not the trimmed version of `this` [Element]'s [ownText()][Element.ownText] is empty.
+ * Returns `true` if the [text][Element.text] of `this` element [is not blank][String.isNotBlank], `false` otherwise.
  */
-val Element.isOwnTextEmpty: Boolean get() = this.ownText().trim().isEmpty()
+val Element.isTextNotBlank: Boolean get() = this.text().isNotBlank()
+
+/**
+ * Returns `true` if the [own text][Element.ownText] of `this` element [is blank][String.isBlank], `false` otherwise.
+ */
+val Element.isOwnTextBlank: Boolean get() = this.ownText().isBlank()
+
+/**
+ * Returns `true` if the [own text][Element.ownText] of `this` element [is not blank][String.isBlank], `false`
+ * otherwise.
+ */
+val Element.isOwnTextNotBlank: Boolean get() = this.ownText().isNotBlank()
 
 /**
  * Infix function for [Element. is].
@@ -52,26 +63,29 @@ inline infix fun Element.matches(query: String): Boolean = this.`is`(query)
  * Unlike the other `hasClass` method that accepts a `String`, this one doesn't check for a specific class, but rather
  * if the `element` has the `attribute` "class" at all.
  */
-val Element.hasClass: Boolean get() = this.hasClass(this.className())
+val Element.hasClass: Boolean
+    @JvmName("hasClass") get() = this.hasClass(this.className())
 
 /**
- * Returns whether or not this [Element] is empty.
- *
- * This is done by checking if this element has any children and that the text of it is empty.
+ * Returns `true` if `this` element has no [children][Element.children] and its [text][Element.text] is empty, `false`
+ * otherwise.
  */
-val Element.isEmpty: Boolean get() = this.children().size <= 0 && this.isOwnTextEmpty
+val Element.isEmpty: Boolean get() = this.children().size <= 0 && this.isOwnTextBlank
 
 /**
- * Returns whether or not the `parent` of this [Element] is empty.
- *
- * This is done by checking that the amount of `children` the parent has is **not** greater than `1` *(This is done
- * because there'll always be at least `1` child, which is `this` element.)*, and that the text of the `parent` is
- * empty after being trimmed.
- *
- * Calling it `isParentEmpty` might be a bit misleading, but most other names that could explain what this does
- * properly would end up being very long-winded.
+ * Returns `true` if `this` element has [children][Element.children] and its [text][Element.text] is not empty, `false`
+ * otherwise.
  */
-val Element.isParentEmpty: Boolean get() = this.parent().children().size <= 1 && this.parent().isOwnTextEmpty
+val Element.isNotEmpty: Boolean get() = !this.isEmpty
+
+/**
+ * Returns `true` if `this` element is the only child of its [parent][Element.parent], `false` otherwise.
+ * Returns whether or not the `parent` of `this` element is empty.
+ *
+ * Note that if the `parent` of `this` elements [own text][Element.ownText] is not blank, then `false` will be returned,
+ * as text content is considered to be a child in this context.
+ */
+val Element.isOnlyChildOfParent: Boolean get() = this.parent().children().size <= 1 && this.parent().isOwnTextBlank
 
 /**
  * Removes the "class" `attribute` of this [Element], without needing to know the name of it.
@@ -123,16 +137,11 @@ fun Element.replaceClass(newClass: String, force: Boolean = false) {
 operator fun Element.contains(query: String): Boolean = this.children().any { it.contains(query) }
 
 /**
- * Returns whether or not `this` [Element] only contains the specified [query].
- *
- * This function will ignore any of the elements defined in the [ignoredBodies] and the [ignoredElements] parameters.
+ * Returns `true` if `this` element *only* contains the specified [query], ignoring the given [ignoredBodies] and
+ * [ignoredElements].
  *
  * @param [ignoredBodies] which element "bodies" to ignore when looking through the document
- *
- * (`["div", "section", "body"]` by default.)
  * @param [ignoredElements] which elements to ignore when looking through the document
- *
- * (`["p", "span"]` by default.)
  */
 @JvmOverloads
 fun Element.onlyContains(
@@ -143,7 +152,7 @@ fun Element.onlyContains(
     .asSequence()
     .filter { !(it matches query) }
     .any { element ->
-        ((ignoredBodies.any { element matches it }) || ((ignoredElements.any { element matches it }) && element.isTextEmpty))
+        ((ignoredBodies.any { element matches it }) || ((ignoredElements.any { element matches it }) && element.isTextBlank))
     }
 
 /**
@@ -164,15 +173,15 @@ fun Element.hasChildren(vararg queries: String): Boolean =
 fun Elements.hasChild(query: String): Boolean = this.any { it matches query }
 
 /**
- * Returns `true` if `this` elment has *any* children that matches *any* of the given [queries], otherwise `false`.
+ * Returns `true` if `this` element has *any* children that matches *any* of the given [queries], otherwise `false`.
  */
 fun Elements.hasChildren(vararg queries: String): Boolean =
     this.any { queries.any { query -> it matches query } }
 
 /**
- * Returns `false` if `this` [Elements] does not have any children, or `true` if it does.
+ * Returns `true` if `this` elements does not have any children, `false` otherwise.
  */
-val Elements.isNotEmpty: Boolean get() = !this.isEmpty()
+fun Elements.isNotEmpty(): Boolean = !this.isEmpty()
 
 /**
  * Removes the "class" `attributes` from all [Element]s contained in this [Elements].
@@ -189,7 +198,9 @@ val Elements.isNotEmpty: Boolean get() = !this.isEmpty()
 fun Elements.removeClasses(force: Boolean = false) {
     for (element in this) {
         if (force) {
-            for (it in element.attributes().filter { it.key.equals("class", true) }) this.removeAttr(it.key)
+            for (it in element.attributes().filter { it.key.equals("class", true) }) {
+                this.removeAttr(it.key)
+            }
         } else {
             element.removeClass(element.className())
         }
@@ -211,16 +222,15 @@ fun Elements.removeClasses(force: Boolean = false) {
  * and then.
  */
 @JvmOverloads
-fun Elements.replaceClasses(newClass: String, force: Boolean = false) {
+fun Elements.replaceAllClasses(newClass: String, force: Boolean = false) {
     this.removeClasses(force)
     this.addClass(newClass)
 }
 
-// -- DOCUMENT -- \\
-/**
- * Sets up the [outputSettings][Document.outputSettings] of `this` document to match the ones used in epubby.
- */
-fun Document.applyDefaultOutputSettings() {
+// -- INTERNAL -- \\
+@PublishedApi
+@JvmSynthetic
+internal fun Document.applyDefaultOutputSettings() {
     this.outputSettings().apply {
         prettyPrint(true)
         syntax(Document.OutputSettings.Syntax.xml) // wtf is this naming convention for enums
@@ -229,10 +239,15 @@ fun Document.applyDefaultOutputSettings() {
     }
 }
 
-fun Document.toXHTML(): String {
+@PublishedApi
+@JvmSynthetic
+internal fun Document.toXHTML(): String {
     this.applyDefaultOutputSettings()
     return this.outerHtml()
 }
 
-@PublishedApi internal inline fun <R> parseDocFile(file: Path, scope: Document.() -> R): R =
-    file.newInputStream().use { input -> with(Jsoup.parse(input, "UTF-8", file.toString()), scope) }
+@PublishedApi
+@JvmSynthetic
+internal inline fun <R> parseHtmlFile(file: Path, scope: (Document) -> R): R = file.newInputStream().use { input ->
+    scope(Jsoup.parse(input, "UTF-8", file.toString()))
+}

@@ -14,9 +14,6 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.resources
+package moe.kanon.epubby.structs.props.vocabs
 
-import moe.kanon.epubby.Book
-
-class Resources(val book: Book) {
-}
+internal enum class VocabularyMode { PROPERTY, RELATION }

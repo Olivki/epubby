@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.resources
+package moe.kanon.epubby.utils.internal
 
-import moe.kanon.epubby.Book
+import com.google.common.net.MediaType
+import moe.kanon.kommons.io.paths.contentType
+import java.nio.file.Path
 
-class Resources(val book: Book) {
-}
+internal val Path.mediaType: MediaType? get() = this.contentType?.let(MediaType::parse)
