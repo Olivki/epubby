@@ -45,6 +45,7 @@ enum class MetadataLinkVocabulary(override val reference: String) : Property {
         BasicPropertyPrefix(null, "http://idpf.org/epub/vocab/package/link/#")
 
     companion object {
-        @JvmStatic fun fromReference(reference: String): MetadataLinkVocabulary = findProperty(reference)
+        @JvmStatic
+        fun fromReference(reference: String): MetadataLinkVocabulary = findProperty(reference)
     }
 }

@@ -16,8 +16,8 @@
 
 package moe.kanon.epubby.structs.props
 
-import moe.kanon.epubby.pack.Manifest
-import moe.kanon.epubby.pack.Metadata
+import moe.kanon.epubby.packages.Manifest
+import moe.kanon.epubby.packages.Metadata
 import moe.kanon.epubby.structs.props.vocabs.ManifestVocabulary
 import moe.kanon.epubby.structs.props.vocabs.MetadataLinkRelVocabulary
 import moe.kanon.epubby.structs.props.vocabs.MetadataLinkVocabulary
@@ -46,35 +46,37 @@ interface Property {
     /**
      * Returns a new `property` attribute containing the value represented by this property.
      */
-    @JvmDefault fun toAttribute(name: String = "property", namespace: Namespace = Namespace.NO_NAMESPACE): Attribute =
+    @JvmDefault
+    fun toAttribute(name: String = "property", namespace: Namespace = Namespace.NO_NAMESPACE): Attribute =
         Attribute(name, reference, namespace)
 
     /**
      * [Processes](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#sec-property-processing)
      * this property into a [URL] and returns the result.
      */
-    @JvmDefault fun process(): URL = URL("${prefix.url}$reference")
+    @JvmDefault
+    fun process(): URL = URL("${prefix.url}$reference")
 
     companion object {
-        @JvmStatic fun from(prefix: PropertyPrefix, reference: String): Property = BasicProperty(prefix, reference)
+        @JvmStatic
+        fun from(prefix: PropertyPrefix, reference: String): Property = BasicProperty(prefix, reference)
 
-        @JvmSynthetic internal fun parse(
+        @JvmSynthetic
+        internal fun parse(
             caller: KClass<*>,
             input: String,
             mode: VocabularyMode = VocabularyMode.PROPERTY
-        ): Property {
-            return if (':' in input) {
-                val (prefix, reference) = input.split(':')
-                from(PackagePrefix.fromPrefix(prefix), reference)
-            } else when (caller) {
-                Manifest::class -> ManifestVocabulary.fromReference(input) as Property
-                Metadata.Link::class -> when (mode) {
-                    VocabularyMode.PROPERTY -> MetadataLinkVocabulary.fromReference(input) as Property
-                    VocabularyMode.RELATION -> MetadataLinkRelVocabulary.fromReference(input) as Property
-                }
-                Metadata.Meta::class -> MetadataMetaVocabulary.fromReference(input) as Property
-                else -> throw IllegalArgumentException("Caller <$caller> does not have any known vocabularies")
+        ): Property = if (':' in input) {
+            val (prefix, reference) = input.split(':')
+            from(PackagePrefix.fromPrefix(prefix), reference)
+        } else when (caller) {
+            Manifest::class -> ManifestVocabulary.fromReference(input) as Property
+            Metadata.Link::class -> when (mode) {
+                VocabularyMode.PROPERTY -> MetadataLinkVocabulary.fromReference(input) as Property
+                VocabularyMode.RELATION -> MetadataLinkRelVocabulary.fromReference(input) as Property
             }
+            Metadata.Meta::class -> MetadataMetaVocabulary.fromReference(input) as Property
+            else -> throw IllegalArgumentException("Caller <$caller> does not have any known vocabularies")
         }
     }
 }

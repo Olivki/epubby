@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.pack
+package moe.kanon.epubby.packages
 
 import moe.kanon.epubby.Book
 import moe.kanon.epubby.structs.Direction

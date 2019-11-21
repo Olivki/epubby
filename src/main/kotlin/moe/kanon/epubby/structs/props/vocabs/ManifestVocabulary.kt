@@ -69,6 +69,7 @@ enum class ManifestVocabulary(override val reference: String) : Property {
         BasicPropertyPrefix(null, "http://idpf.org/epub/vocab/package/item/#")
 
     companion object {
-        @JvmStatic fun fromReference(reference: String): ManifestVocabulary = findProperty(reference)
+        @JvmStatic
+        fun fromReference(reference: String): ManifestVocabulary = findProperty(reference)
     }
 }

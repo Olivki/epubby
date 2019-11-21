@@ -21,18 +21,15 @@ import java.nio.file.Path
 
 // TODO: Documentation
 
-open class BookException(message: String? = null, cause: Throwable? = null) : Exception(message, cause)
-
-// TODO: Message
-class WrappedBookException(cause: Throwable) : BookException("", cause)
+open class EpubbyException(message: String? = null, cause: Throwable? = null) : Exception(message, cause)
 
 open class MalformedBookException(
     val container: Path,
     val currentFile: Path,
     message: String? = null,
     cause: Throwable? = null
-) : BookException(message, cause) {
-    companion object {
+) : EpubbyException(message, cause) {
+    internal companion object {
         @JvmSynthetic
         internal fun withDebug(container: Path, message: String, cause: Throwable? = null): MalformedBookException {
             val detailedMessage = """

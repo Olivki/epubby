@@ -14,35 +14,23 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.pack
+package moe.kanon.epubby.packages
 
-import com.google.common.net.MediaType
 import moe.kanon.epubby.Book
-import moe.kanon.epubby.structs.Identifier
-import moe.kanon.epubby.structs.props.Properties
 import moe.kanon.epubby.utils.Namespaces
-import moe.kanon.kommons.func.Either
 import org.jdom2.Element
 import org.jdom2.Namespace
-import java.net.URL
 import java.nio.file.Path
 
-class Manifest {
+class Spine {
     // TODO: Check if this namespace is correct
     @JvmSynthetic
     internal fun toElement(namespace: Namespace = Namespaces.OPF): Element {
         TODO()
     }
 
-    data class Item(
-        val identifier: Identifier,
-        val href: Either<Path, URL>,
-        val mediaType: MediaType? = null,
-        val properties: Properties = Properties.empty() // if the properties is empty, do not serialize as attribute on element
-    )
-
     companion object {
         @JvmSynthetic
-        internal fun fromElement(book: Book, element: Element, file: Path): Manifest = TODO()
+        internal fun fromElement(book: Book, element: Element, file: Path): Spine = TODO()
     }
 }

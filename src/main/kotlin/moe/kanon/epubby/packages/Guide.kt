@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.pack
+package moe.kanon.epubby.packages
 
 import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.toPersistentHashMap
 import moe.kanon.epubby.Book
-import moe.kanon.epubby.pack.Guide.Reference
+import moe.kanon.epubby.packages.Guide.Reference
 import moe.kanon.epubby.resources.pages.Page
 import moe.kanon.epubby.utils.Namespaces
 import moe.kanon.epubby.utils.attr
@@ -226,6 +226,22 @@ class Guide private constructor(val book: Book, private val refs: MutableMap<Str
 
     override fun toString(): String = "Guide[for='${book.title}']"
 
+    /**
+     * Implementation of the `reference` element contained inside of the [guide][Guide] of the [book].
+     *
+     * The **required** [type] parameter describes the publication component `this` reference is pointing towards. The
+     * value for the `type` property **must** be a [Type] constant when applicable. Other types **may** be used
+     * when none of the predefined types are applicable; their names **must** begin with the string `"other."`. The
+     * value for the `type` property is case-sensitive.
+     *
+     * @property [parent] The parent [PackageGuide] of `this` reference.
+     * @property [type] The `type` of `this` reference.
+     * @property [resource] The [PageResource] that `this` reference is pointing towards.
+     * @property [href] The [href][PageResource.file] of the [resource] that `this` reference is pointing towards.
+     * @property [title] The title that a `Reading System` would use to display `this` reference.
+     *
+     * The `title` property is *not* required for a reference to be valid.
+     */
     // TODO: Turn the 'href' property into some sort of a data structure?
     data class Reference internal constructor(val type: String, var href: String, var title: String? = null) {
         /**
@@ -346,7 +362,7 @@ class Guide private constructor(val book: Book, private val refs: MutableMap<Str
             val refs = getChildren("reference", namespace)
                 .asSequence()
                 .map { createReference(it, book.file, documentFile) }
-                .onEach { logger.debug { "Constructed reference instance <$it> from file '${book.file}'" } }
+                .onEach { logger.debug { "Constructed reference instance <$it>'" } }
                 .associateByTo(hashMapOf()) { it.type }
             return Guide(book, refs)
         }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.pack
+package moe.kanon.epubby.packages
 
 import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.toImmutableMap

@@ -16,31 +16,14 @@
 
 package moe.kanon.epubby.resources
 
-interface ResourceVisitor {
-    @JvmDefault
-    fun onTableOfContents(resource: TableOfContentsResource) {}
+import moe.kanon.epubby.structs.Identifier
 
-    @JvmDefault
-    fun onPage(resource: PageResource) {}
+/**
+ * Returns `true` if there exists a resource with the given [identifier], `false` otherwise.
+ */
+operator fun Resources.contains(identifier: Identifier): Boolean = hasResource(identifier)
 
-    @JvmDefault
-    fun onStyleSheet(resource: StyleSheetResource) {}
-
-    @JvmDefault
-    fun onImage(resource: ImageResource) {}
-
-    @JvmDefault
-    fun onFont(resource: FontResource) {}
-
-    @JvmDefault
-    fun onAudio(resource: AudioResource) {}
-
-    @JvmDefault
-    fun onScript(resource: ScriptResource) {}
-
-    @JvmDefault
-    fun onVideo(resource: VideoResource) {}
-
-    @JvmDefault
-    fun onMisc(resource: MiscResource) {}
-}
+/**
+ * Returns `true` if the given [resource] is known, `false` otherwise.
+ */
+operator fun Resources.contains(resource: Resource): Boolean = hasResource(resource)

@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.pack
+package moe.kanon.epubby.packages
 
 import moe.kanon.epubby.Book
 import org.jdom2.Element
 import java.nio.file.Path
 
-class Bindings {
+class Collection {
     companion object {
         @JvmSynthetic
-        internal fun fromElement(book: Book, element: Element, file: Path): Bindings = TODO()
+        internal fun fromElement(book: Book, element: Element, file: Path): Collection = TODO()
     }
 }

@@ -19,6 +19,7 @@ package moe.kanon.epubby.structs
 import moe.kanon.epubby.Book
 import moe.kanon.epubby.resources.Resource
 import moe.kanon.epubby.utils.attr
+import moe.kanon.kommons.io.paths.name
 import org.jdom2.Attribute
 import org.jdom2.Element
 import org.jdom2.Namespace
@@ -39,6 +40,12 @@ data class Identifier(val value: String) {
         Attribute("id", value, namespace)
 
     companion object {
+        /**
+         * Returns a new identifier where the [name][Path.name] of the given [file] is used as the value.
+         */
+        @JvmStatic
+        fun fromFile(file: Path): Identifier = Identifier(file.name)
+
         @JvmSynthetic
         internal fun fromElement(element: Element, container: Path, current: Path): Identifier =
             Identifier(element.attr("id", container, current))

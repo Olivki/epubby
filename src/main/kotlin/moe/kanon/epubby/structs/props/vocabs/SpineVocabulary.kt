@@ -47,6 +47,7 @@ enum class SpineVocabulary(override val reference: String) : Property {
     override val prefix: PropertyPrefix = BasicPropertyPrefix(null, "http://idpf.org/epub/vocab/package/itemref/#")
 
     companion object {
-        @JvmStatic fun fromReference(reference: String): SpineVocabulary = findProperty(reference)
+        @JvmStatic
+        fun fromReference(reference: String): SpineVocabulary = findProperty(reference)
     }
 }

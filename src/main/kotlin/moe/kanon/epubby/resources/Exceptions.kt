@@ -14,23 +14,15 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.pack
+package moe.kanon.epubby.resources
 
-import moe.kanon.epubby.Book
-import moe.kanon.epubby.utils.Namespaces
-import org.jdom2.Element
-import org.jdom2.Namespace
+import moe.kanon.epubby.EpubbyException
 import java.nio.file.Path
 
-class Spine {
-    // TODO: Check if this namespace is correct
-    @JvmSynthetic
-    internal fun toElement(namespace: Namespace = Namespaces.OPF): Element {
-        TODO()
-    }
-
-    companion object {
-        @JvmSynthetic
-        internal fun fromElement(book: Book, element: Element, file: Path): Spine = TODO()
-    }
-}
+/**
+ * Thrown to indicate that an error occurred somewhere when working with a [Resource] implementation.
+ *
+ * @property [resourceFile] The file that the [Resource] implementation is tied to.
+ */
+open class ResourceException(val resourceFile: Path, message: String?, cause: Throwable? = null) :
+    EpubbyException(message, cause)

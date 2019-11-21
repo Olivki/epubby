@@ -57,7 +57,8 @@ dependencies {
     implementation(group = "org.apache.logging.log4j", name = "log4j-api-kotlin", version = "1.0.0")
 
     // css handler
-    implementation(group = "com.helger", name = "ph-css", version = "6.2.0")
+    //implementation(group = "com.helger", name = "ph-css", version = "6.2.0")
+    implementation(group = "net.sf.cssbox", name = "jstyleparser", version = "3.5")
 
     // JSoup
     implementation(group = "org.jsoup", name = "jsoup", version = "1.12.1")
@@ -83,7 +84,7 @@ dependencies {
 tasks.withType<KotlinCompile> {
     kotlinOptions {
         jvmTarget = "1.8"
-        freeCompilerArgs = listOf("-Xjvm-default=enable")
+        freeCompilerArgs = listOf("-Xuse-experimental=kotlin.Experimental", "-Xjvm-default=enable")
     }
 }
 

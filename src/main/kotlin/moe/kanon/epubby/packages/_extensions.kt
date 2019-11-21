@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.pack
+package moe.kanon.epubby.packages
 
-import moe.kanon.epubby.pack.Guide.Reference
-import moe.kanon.epubby.pack.Guide.Type
+import moe.kanon.epubby.packages.Guide.Reference
+import moe.kanon.epubby.packages.Guide.Type
 
 // -- GUIDE -- \\
 /**
@@ -128,3 +128,5 @@ operator fun Guide.get(customType: String): Reference = getCustomReference(custo
  * consistent across all functions that accept a `customType`.
  */
 operator fun Guide.contains(customType: String): Boolean = hasCustomType(customType)
+
+// TODO: Manifest operators

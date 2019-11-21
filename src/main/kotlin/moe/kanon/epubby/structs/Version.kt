@@ -18,7 +18,7 @@
 
 package moe.kanon.epubby.structs
 
-import moe.kanon.epubby.BookException
+import moe.kanon.epubby.EpubbyException
 import moe.kanon.kommons.requireThat
 
 // TODO: EPUB has actually used a patch version before, with 2.0.1, this system will fail on parsing that version
@@ -26,7 +26,8 @@ import moe.kanon.kommons.requireThat
 // because EPUB format versions do not adhere to semantic versioning (as they do not have a patch version) I've opted
 // to create my own simple version implementation just for EPUB format versions.
 data class Version private constructor(val major: Int, val minor: Int) : Comparable<Version> {
-    companion object {
+    internal companion object {
+        @JvmField val EPUB_2_0 = Version(2, 0)
         /**
          * Represents the [EPUB 3.0](http://www.idpf.org/epub/dir/#epub301) format.
          *
@@ -35,7 +36,10 @@ data class Version private constructor(val major: Int, val minor: Int) : Compara
          * Specifications for EPUB 3.0 format can be found [here](http://www.idpf.org/epub/301/spec/epub-publications.html).
          */
         @JvmField val EPUB_3_0 = Version(3, 0)
+        @JvmField val EPUB_3_1 = Version(3, 1)
+        @JvmField val EPUB_3_2 = Version(3, 2)
 
+        @JvmSynthetic
         internal fun fromString(version: String): Version {
             validateThat(version, version.isNotBlank()) { "can't be blank / empty" }
             validateThat(version, version.first().isDigit()) { "needs to start with a digit" }
@@ -125,5 +129,5 @@ data class Version private constructor(val major: Int, val minor: Int) : Compara
     override fun toString(): String = "$major.$minor"
 
     class FaultyVersionException(val version: String, message: String, cause: Throwable? = null) :
-        BookException(message, cause)
+        EpubbyException(message, cause)
 }

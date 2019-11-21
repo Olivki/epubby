@@ -92,6 +92,7 @@ enum class MetadataLinkRelVocabulary(
         BasicPropertyPrefix(null, "http://idpf.org/epub/vocab/package/link/#")
 
     companion object {
-        @JvmStatic fun fromReference(reference: String): MetadataLinkRelVocabulary = findProperty(reference)
+        @JvmStatic
+        fun fromReference(reference: String): MetadataLinkRelVocabulary = findProperty(reference)
     }
 }
