@@ -18,6 +18,13 @@ package moe.kanon.epubby.packages
 
 import moe.kanon.epubby.packages.Guide.Reference
 import moe.kanon.epubby.packages.Guide.Type
+import moe.kanon.epubby.packages.Manifest.Item
+import moe.kanon.epubby.resources.Resource
+import moe.kanon.epubby.structs.Identifier
+
+// -- BINDINGS -- \\
+
+// -- COLLECTION -- \\
 
 // -- GUIDE -- \\
 /**
@@ -58,7 +65,7 @@ operator fun Guide.contains(type: Type): Boolean = hasType(type)
  *
  * Note that if a `reference` already exists under the given [customType], then it will be overridden.
  *
- * The [OPF][Package] specification states that;
+ * The [OPF][PackageDocument] specification states that;
  *
  * >".. Other types **may** be used when none of the [predefined types][Type] are applicable; their names
  * **must** begin with the string `'other.'`"
@@ -79,7 +86,7 @@ operator fun Guide.set(customType: String, href: String) {
 /**
  * Removes the [reference][Reference] element stored under the specified [customType].
  *
- * The [OPF][Package] specification states that;
+ * The [OPF][PackageDocument] specification states that;
  *
  * >".. Other types **may** be used when none of the [predefined types][Type] are applicable; their names
  * **must** begin with the string `'other.'`"
@@ -100,7 +107,7 @@ operator fun Guide.minusAssign(customType: String) {
  * Returns the [reference][Reference] stored under the given [customType], or throws a [NoSuchElementException] if
  * none is found.
  *
- * The [OPF][Package] specification states that;
+ * The [OPF][PackageDocument] specification states that;
  *
  * >".. Other types **may** be used when none of the [predefined types][Type] are applicable; their names
  * **must** begin with the string `'other.'`"
@@ -116,7 +123,7 @@ operator fun Guide.get(customType: String): Reference = getCustomReference(custo
 /**
  * Returns `true` if this guide has a reference with the given [customType], `false` otherwise.
  *
- * The [OPF][Package] specification states that;
+ * The [OPF][PackageDocument] specification states that;
  *
  * >".. Other types **may** be used when none of the [predefined types][Type] are applicable; their names
  * **must** begin with the string `'other.'`"
@@ -129,4 +136,31 @@ operator fun Guide.get(customType: String): Reference = getCustomReference(custo
  */
 operator fun Guide.contains(customType: String): Boolean = hasCustomType(customType)
 
-// TODO: Manifest operators
+// -- MANIFEST -- \\
+/**
+ * Returns the [item][Item] stored under the given [identifier], or throws a [NoSuchElementException] if none is
+ * found.
+ */
+operator fun Manifest.get(identifier: Identifier): Item<*> = getItem(identifier)
+
+/**
+ * Returns `true` if this manifest has an [item][Item] with the given [identifier], `false` otherwise.
+ */
+operator fun Manifest.contains(identifier: Identifier): Boolean = hasItem(identifier)
+
+/**
+ * Returns `true` if this manifest contains the given [item], `false` otherwise.
+ */
+operator fun Manifest.contains(item: Item<*>): Boolean = hasItem(item)
+
+/**
+ * Returns `true` if this manifest contains a [local item][Item.Local] that points towards the given [resource],
+ * `false` otherwise.
+ */
+operator fun Manifest.contains(resource: Resource): Boolean = hasItemFor(resource)
+
+// -- METADATA -- \\
+
+// -- SPINE -- \\
+
+// -- TOURS -- \\

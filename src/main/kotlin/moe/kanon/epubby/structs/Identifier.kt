@@ -24,22 +24,43 @@ import org.jdom2.Attribute
 import org.jdom2.Element
 import org.jdom2.Namespace
 import java.nio.file.Path
+import java.util.WeakHashMap
 
 /**
  * Represents the `id` attribute.
  *
  * TODO: Some sort of verification of the validity of `value` as an identifier?
  */
-data class Identifier(val value: String) {
-    private lateinit var resource: Resource
-
+class Identifier private constructor(val value: String) {
     fun findResourceOrNull(book: Book): Resource? = TODO()
 
     @JvmSynthetic
-    internal fun toAttribute(namespace: Namespace = Namespace.NO_NAMESPACE): Attribute =
-        Attribute("id", value, namespace)
+    internal fun toAttribute(name: String = "id", namespace: Namespace = Namespace.NO_NAMESPACE): Attribute =
+        Attribute(name, value, namespace)
+
+    @JvmSynthetic
+    operator fun component1(): String = value
+
+    override fun equals(other: Any?): Boolean = when {
+        this === other -> true
+        other !is Identifier -> false
+        value != other.value -> false
+        else -> true
+    }
+
+    override fun hashCode(): Int = value.hashCode()
+
+    override fun toString(): String = value
 
     companion object {
+        private val KNOWN_IDENTIFIERS = WeakHashMap<String, Identifier>()
+
+        @JvmStatic
+        fun of(value: String): Identifier = KNOWN_IDENTIFIERS.getOrPut(value) { Identifier(value) }
+
+        @JvmStatic
+        fun isKnown(identifier: String): Boolean = identifier in KNOWN_IDENTIFIERS
+
         /**
          * Returns a new identifier where the [name][Path.name] of the given [file] is used as the value.
          */

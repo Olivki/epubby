@@ -28,12 +28,12 @@ typealias BookResult<T> = Try<T>
 internal fun fail(message: String, cause: Throwable? = null): Nothing = throw EpubbyException(message, cause)
 
 @PublishedApi
-internal fun malformed(container: Path, message: String, cause: Throwable? = null): Nothing =
-    throw MalformedBookException(container, container, message, cause)
+internal fun malformed(epub: Path, message: String, cause: Throwable? = null): Nothing =
+    throw MalformedBookException.withDebug(epub, epub, message, cause)
 
 @PublishedApi
-internal fun malformed(container: Path, currentFile: Path, message: String, cause: Throwable? = null): Nothing =
-    throw MalformedBookException(container, currentFile, message, cause)
+internal fun malformed(epub: Path, currentFile: Path, message: String, cause: Throwable? = null): Nothing =
+    throw MalformedBookException.withDebug(epub, currentFile, message, cause)
 
 @PublishedApi
 internal fun <T> failure(message: String, cause: Throwable?): Try<T> = Failure(EpubbyException(message, cause))

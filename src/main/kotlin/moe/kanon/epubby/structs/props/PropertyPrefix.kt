@@ -31,6 +31,7 @@ interface PropertyPrefix {
     val url: String
 
     companion object {
-        @JvmStatic fun from(prefix: String, url: String): PropertyPrefix = BasicPropertyPrefix(prefix, url)
+        @JvmStatic
+        fun of(prefix: String, url: String): PropertyPrefix = BasicPropertyPrefix(prefix, url)
     }
 }

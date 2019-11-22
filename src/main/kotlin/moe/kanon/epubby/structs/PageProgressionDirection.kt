@@ -20,27 +20,29 @@ import org.jdom2.Attribute
 import org.jdom2.Namespace
 
 /**
- * Represents the two possible values a [dir](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#attrdef-dir)
+ * Represents the three possible values a [page-progression-direction](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#attrdef-spine-page-progression-direction)
  * attribute can have.
  */
-enum class Direction(val serializedName: String) {
+enum class PageProgressionDirection(val serializedName: String) {
     LEFT_TO_RIGHT("ltr"),
-    RIGHT_TO_LEFT("rtl");
+    RIGHT_TO_LEFT("rtl"),
+    DEFAULT("default");
 
     @JvmSynthetic
     internal fun toAttribute(namespace: Namespace = Namespace.NO_NAMESPACE): Attribute =
-        Attribute("dir", serializedName, namespace)
+        Attribute("page-progression-direction", serializedName, namespace)
 
     companion object {
         /**
-         * Returns the [Direction] that matches the given [tag], or throws a [IllegalArgumentException] if `tag` does
-         * not match a direction.
+         * Returns the [PageProgressionDirection] that matches the given [tag], or throws a [IllegalArgumentException]
+         * if `tag` does not match a direction.
          */
         @JvmStatic
-        fun of(tag: String): Direction = when (tag.toLowerCase()) {
+        fun of(tag: String): PageProgressionDirection = when (tag.toLowerCase()) {
             "ltr" -> LEFT_TO_RIGHT
             "rtl" -> RIGHT_TO_LEFT
-            else -> throw IllegalArgumentException("Expected \"ltr\" or \"rtl\", got \"$tag\"")
+            "default" -> DEFAULT
+            else -> throw IllegalArgumentException("Expected \"ltr\", \"rtl\", or \"default\" got \"$tag\"")
         }
     }
 }

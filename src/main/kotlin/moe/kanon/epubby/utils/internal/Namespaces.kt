@@ -14,14 +14,12 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.utils
+package moe.kanon.epubby.utils.internal
 
+import moe.kanon.epubby.metainf.MetaInfContainer
 import org.jdom2.Namespace
 
-/**
- * Contains all the namespaces used by various parts of the framework.
- */
-object Namespaces {
+internal object Namespaces {
     /**
      * DublinCore namespace.
      *
@@ -45,4 +43,10 @@ object Namespaces {
      * Used for the `'.ncx'` navigation document.
      */
     @JvmField val DAISY_NCX: Namespace = Namespace.getNamespace("http://www.daisy.org/z3986/2005/ncx/")
+
+    /**
+     * Used specifically for the [MetaInfContainer].
+     */
+    @JvmField val META_INF_CONTAINER: Namespace =
+        Namespace.getNamespace("", "urn:oasis:names:tc:opendocument:xmlns:container")
 }

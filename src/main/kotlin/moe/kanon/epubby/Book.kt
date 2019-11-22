@@ -16,11 +16,25 @@
 
 package moe.kanon.epubby
 
+import moe.kanon.epubby.metainf.MetaInf
+import moe.kanon.epubby.packages.Manifest
+import moe.kanon.epubby.packages.Metadata
+import moe.kanon.epubby.packages.PackageDocument
+import moe.kanon.epubby.packages.Spine
+import moe.kanon.epubby.resources.Resource
+import moe.kanon.epubby.resources.Resources
+import moe.kanon.epubby.resources.pages.Pages
+import moe.kanon.epubby.structs.Identifier
 import moe.kanon.epubby.structs.Version
+import moe.kanon.epubby.utils.internal.logger
+import moe.kanon.kommons.io.paths.name
+import moe.kanon.kommons.io.paths.touch
 import java.io.Closeable
-import java.io.IOException
+import java.net.URI
 import java.nio.file.FileSystem
 import java.nio.file.Path
+import java.nio.file.spi.FileSystemProvider
+import java.util.Locale
 
 /**
  * Represents the container that makes up an [EPUB](...).
@@ -45,17 +59,70 @@ import java.nio.file.Path
  * as no copy is made when creating a new epub from scratch.
  */
 class Book internal constructor(
-    val version: Version,
+    val metaInf: MetaInf,
     val file: Path,
     val fileSystem: FileSystem,
-    val originFile: Path
+    val originFile: Path,
+    val root: Path,
+    val version: Version
 ) : Closeable {
-    /**
-     * Returns the root directory of the book.
-     */
-    val root: Path = getPath("/")
+    // TODO: Name? packageDocument is kind of a mouth-full..
+    val packageDocument: PackageDocument = PackageDocument.fromBook(this)
 
-    val title: String = TODO()
+    val packageFile: Path get() = packageDocument.file
+
+    // TODO: Name?
+    val packageRoot: Path = packageFile.parent
+
+    // TODO: Documentation
+    val manifest: Manifest get() = packageDocument.manifest
+
+    val metadata: Metadata get() = packageDocument.metadata
+
+    val spine: Spine get() = packageDocument.spine
+
+    /**
+     * Returns the primary title of `this` book.
+     */
+    var title: String
+        get() = metadata.title.value
+        set(value) {
+            metadata.title.value = value
+        }
+
+    /**
+     * Returns the primary language of `this` book.
+     */
+    var language: Locale
+        get() = metadata.language.value
+        set(value) {
+            metadata.language.value = value
+        }
+
+    val resources: Resources = Resources(this)
+
+    val pages: Pages = Pages(this)
+
+    init {
+        resources.populateFromManifest()
+        pages.populateFromSpine()
+    }
+
+    fun getResource(identifier: Identifier): Resource = resources.getResource(identifier)
+
+    fun getResourceOrNull(identifier: Identifier): Resource? = resources.getResourceOrNull(identifier)
+
+    /**
+     * Constructs and returns a new `path` based on the given [path], the returned `path` is tied to the [fileSystem]
+     * of `this` book.
+     *
+     * See [FileSystemProvider.getPath] for more information regarding how the `Path` instance is created.
+     *
+     * @param [path] the path uri
+     *
+     * @see FileSystemProvider.getPath
+     */
+    fun getPath(path: URI): Path = fileSystem.provider().getPath(path)
 
     /**
      * Returns a new [Path] instance tied to the underlying [fileSystem] of `this` book.
@@ -80,12 +147,20 @@ class Book internal constructor(
      */
     fun getPath(first: String, vararg more: String): Path = fileSystem.getPath(first, *more)
 
+    fun `save all this shit to the place yo lol`() {
+        logger.info { "Saving book <$this> to file '${file.name}'" }
+        pages.transformers.transformAllPages()
+        packageDocument.writeToFile()
+        pages.writeAllPages()
+        file.touch()
+        logger.info { "The book has been successfully saved." }
+    }
+
     /**
-     * Signals to the system that `this` book will not be worked on any longer.
+     * Closes the [fileSystem] of `this` book, and any other streams that are currently in use.
      *
-     * This will close all the streams that are currently in use by the book. And as such, this function should only
-     * be invoked when all operations on the book are finished. Any calls to the book after this function has
-     * been invoked will most likely result in several exceptions being thrown.
+     * After this function has been invoked no more operations should be done on `this` book instance, as it can no
+     * longer be modified once its `fileSystem` has been closed.
      *
      * To ensure that `this` book gets closed at a logical time, `try-with-resources` can be used;
      *
@@ -104,8 +179,9 @@ class Book internal constructor(
      *  }
      * ```
      */
-    @Throws(IOException::class)
     override fun close() {
         fileSystem.close()
     }
+
+    override fun toString(): String = "Book(version='$version', title='$title', language='$language', file='$file')"
 }

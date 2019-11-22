@@ -25,9 +25,48 @@ import moe.kanon.kommons.requireThat
 //       Look into changing how this is done?
 // because EPUB format versions do not adhere to semantic versioning (as they do not have a patch version) I've opted
 // to create my own simple version implementation just for EPUB format versions.
-data class Version private constructor(val major: Int, val minor: Int) : Comparable<Version> {
-    internal companion object {
-        @JvmField val EPUB_2_0 = Version(2, 0)
+class Version private constructor(val major: Int, val minor: Int) : Comparable<Version> {
+    val isSupported: Boolean by lazy { TODO() }
+
+    init {
+        requireThat(major >= 0) { "major should be positive" }
+        requireThat(minor >= 0) { "minor should be positive" }
+    }
+
+    override fun compareTo(other: Version): Int = when {
+        major > other.major -> 1
+        major < other.major -> -1
+        minor > other.minor -> 1
+        minor < other.minor -> -1
+        else -> 0
+    }
+
+    override fun equals(other: Any?): Boolean = when {
+        this === other -> true
+        other !is Version -> false
+        major != other.major -> false
+        minor != other.minor -> false
+        else -> true
+    }
+
+    override fun hashCode(): Int {
+        var result = major
+        result = 31 * result + minor
+        return result
+    }
+
+    override fun toString(): String = "$major.$minor"
+
+    class FaultyVersionException internal constructor(val version: String, message: String, cause: Throwable? = null) :
+        EpubbyException(message, cause)
+
+    class UnsupportedVersionException internal constructor(val version: String) :
+        EpubbyException("Epubby does not know how to handle version '$version' of the EPUB format")
+
+    companion object {
+        private val KNOWN_VERSIONS = HashMap<String, Version>()
+
+        @JvmField val EPUB_2_0 = getOrCache(2, 0)
         /**
          * Represents the [EPUB 3.0](http://www.idpf.org/epub/dir/#epub301) format.
          *
@@ -35,9 +74,16 @@ data class Version private constructor(val major: Int, val minor: Int) : Compara
          *
          * Specifications for EPUB 3.0 format can be found [here](http://www.idpf.org/epub/301/spec/epub-publications.html).
          */
-        @JvmField val EPUB_3_0 = Version(3, 0)
-        @JvmField val EPUB_3_1 = Version(3, 1)
-        @JvmField val EPUB_3_2 = Version(3, 2)
+        @JvmField val EPUB_3_0 = getOrCache(3, 0)
+        @JvmField val EPUB_3_1 = getOrCache(3, 1)
+        @JvmField val EPUB_3_2 = getOrCache(3, 2)
+
+        private fun getOrCache(major: Int, minor: Int): Version =
+            KNOWN_VERSIONS.getOrPut("$major.$minor") { Version(major, minor) }
+
+        @JvmSynthetic
+        internal fun fromInteger(major: Int, minor: Int): Version =
+            KNOWN_VERSIONS["$major.$minor"] ?: throw UnsupportedVersionException("$major.$minor")
 
         @JvmSynthetic
         internal fun fromString(version: String): Version {
@@ -98,7 +144,7 @@ data class Version private constructor(val major: Int, val minor: Int) : Compara
                 fail(version, "'minor' version can't be converted to an integer", e)
             }
 
-            return Version(major, minor)
+            return fromInteger(major, minor)
         }
 
         private inline fun validateThat(version: String, condition: Boolean, message: () -> Any) {
@@ -110,24 +156,4 @@ data class Version private constructor(val major: Int, val minor: Int) : Compara
 
         private enum class ParseState { UNINITIALIZED, NUMBER, DOT }
     }
-
-    val isSupported: Boolean by lazy { TODO() }
-
-    init {
-        requireThat(major >= 0) { "Major version needs to be positive" }
-        requireThat(minor >= 0) { "Minor version needs to be positive" }
-    }
-
-    override fun compareTo(other: Version): Int = when {
-        major > other.major -> 1
-        major < other.major -> -1
-        minor > other.minor -> 1
-        minor < other.minor -> -1
-        else -> 0
-    }
-
-    override fun toString(): String = "$major.$minor"
-
-    class FaultyVersionException(val version: String, message: String, cause: Throwable? = null) :
-        EpubbyException(message, cause)
 }

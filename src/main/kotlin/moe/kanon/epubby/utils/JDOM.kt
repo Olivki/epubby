@@ -44,9 +44,9 @@ internal inline fun <R> parseXmlFile(file: Path, scope: (doc: Document, root: El
     }
 
 @PublishedApi
-internal fun Element.attr(name: String, container: Path, current: Path): String =
+internal fun Element.attr(name: String, epub: Path, current: Path): String =
     getAttributeValue(name) ?: throw MalformedBookException.withDebug(
-        container,
+        epub,
         current,
         "Element '${this.name}' is missing required attribute '$name'"
     )
@@ -54,11 +54,11 @@ internal fun Element.attr(name: String, container: Path, current: Path): String 
 @PublishedApi
 internal fun Element.child(
     name: String,
-    container: Path,
+    epub: Path,
     current: Path,
     namespace: Namespace = this.namespace
 ): Element = getChild(name, namespace) ?: throw MalformedBookException.withDebug(
-    container,
+    epub,
     current,
     "Element '${this.name}' is missing required child element '$name'"
 )
@@ -96,7 +96,7 @@ fun Element.getAttributeValueOrNone(name: String, namespace: Namespace = Namespa
  * @param [fileName] the name of the file. *(This is the full file name, including the extension.)*
  * @param [format] the [Format] that should be used when writing this document to the file
  */
-fun Document.saveTo(directory: Path, fileName: String, format: Format = Format.getPrettyFormat()): Path =
+fun Document.writeTo(directory: Path, fileName: String, format: Format = Format.getPrettyFormat()): Path =
     directory.resolve(fileName).also { file ->
         file.newOutputStream(StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING).use {
             XMLOutputter(format).output(this, it)
@@ -109,7 +109,7 @@ fun Document.saveTo(directory: Path, fileName: String, format: Format = Format.g
  * @param [file] the file to which the document should be saved
  * @param [format] the [Format] that should be used when writing this document to the file
  */
-fun Document.saveTo(file: Path, format: Format = Format.getPrettyFormat()): Path = file.also {
+fun Document.writeTo(file: Path, format: Format = Format.getPrettyFormat()): Path = file.also {
     it.newOutputStream(StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING).use { out ->
         XMLOutputter(format).output(this, out)
     }

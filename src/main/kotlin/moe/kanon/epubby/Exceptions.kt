@@ -24,7 +24,7 @@ import java.nio.file.Path
 open class EpubbyException(message: String? = null, cause: Throwable? = null) : Exception(message, cause)
 
 open class MalformedBookException(
-    val container: Path,
+    val epub: Path,
     val currentFile: Path,
     message: String? = null,
     cause: Throwable? = null
@@ -63,12 +63,3 @@ open class MalformedBookException(
         }
     }
 }
-
-@PublishedApi
-@JvmSynthetic
-internal fun malformedFail(
-    container: Path,
-    currentFile: Path,
-    message: String,
-    cause: Throwable? = null
-): Nothing = throw MalformedBookException.withDebug(container, currentFile, message, cause)

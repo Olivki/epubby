@@ -16,6 +16,7 @@
 
 package moe.kanon.epubby.structs.props
 
+import moe.kanon.epubby.metainf.MetaInfContainer
 import moe.kanon.epubby.packages.Manifest
 import moe.kanon.epubby.packages.Metadata
 import moe.kanon.epubby.structs.props.vocabs.ManifestVocabulary
@@ -59,7 +60,7 @@ interface Property {
 
     companion object {
         @JvmStatic
-        fun from(prefix: PropertyPrefix, reference: String): Property = BasicProperty(prefix, reference)
+        fun of(prefix: PropertyPrefix, reference: String): Property = BasicProperty(prefix, reference)
 
         @JvmSynthetic
         internal fun parse(
@@ -68,7 +69,7 @@ interface Property {
             mode: VocabularyMode = VocabularyMode.PROPERTY
         ): Property = if (':' in input) {
             val (prefix, reference) = input.split(':')
-            from(PackagePrefix.fromPrefix(prefix), reference)
+            of(PackagePrefix.fromPrefix(prefix), reference)
         } else when (caller) {
             Manifest::class -> ManifestVocabulary.fromReference(input) as Property
             Metadata.Link::class -> when (mode) {
@@ -76,6 +77,7 @@ interface Property {
                 VocabularyMode.RELATION -> MetadataLinkRelVocabulary.fromReference(input) as Property
             }
             Metadata.Meta::class -> MetadataMetaVocabulary.fromReference(input) as Property
+            MetaInfContainer.Link::class -> MetadataLinkRelVocabulary.fromReference(input) as Property
             else -> throw IllegalArgumentException("Caller <$caller> does not have any known vocabularies")
         }
     }

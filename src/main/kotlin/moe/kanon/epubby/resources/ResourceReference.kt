@@ -32,13 +32,14 @@ import java.nio.file.Path
 // TODO: Name
 // TODO: Change this class? Maybe make it internal only?..
 data class ResourceReference internal constructor(
-    val parent: Page,
     val element: Element,
     val attribute: Attribute,
     val fragmentIdentifier: String? = if ('#' in attribute.value) attribute.value.substringAfter('#') else null
 ) {
     @JvmSynthetic
     internal fun updateReferenceTo(resource: Resource, file: Path) {
-        TODO()
+        val relativeFile = resource.book.packageDocument.file.relativize(file)
+        val location = relativeFile.toString() + (fragmentIdentifier?.let { "#$it" } ?: "")
+        element.attr(attribute.key, location)
     }
 }

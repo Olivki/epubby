@@ -16,6 +16,7 @@
 
 package moe.kanon.epubby.structs.props
 
+import moe.kanon.epubby.structs.props.vocabs.VocabularyMode
 import moe.kanon.epubby.utils.internal.Patterns
 import moe.kanon.kommons.requireThat
 import org.jdom2.Attribute
@@ -52,10 +53,14 @@ class Properties private constructor(private val delegate: MutableList<Property>
         }
 
         @JvmSynthetic
-        internal fun parse(caller: KClass<*>, input: String): Properties = input
-            .replace(Patterns.EXCESSIVE_WHITESPACE, " ")
+        internal fun parse(
+            caller: KClass<*>,
+            input: String,
+            mode: VocabularyMode = VocabularyMode.PROPERTY
+        ): Properties = input
+            .replace(Patterns.EXCESSIVE_WHITESPACE, " ") // TODO: remove?
             .split(' ')
-            .mapTo(ArrayList()) { Property.parse(caller, it) }
+            .mapTo(ArrayList()) { Property.parse(caller, it, mode) }
             .let(::Properties)
     }
 }

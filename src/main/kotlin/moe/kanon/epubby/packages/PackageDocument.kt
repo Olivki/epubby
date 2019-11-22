@@ -19,27 +19,62 @@ package moe.kanon.epubby.packages
 import moe.kanon.epubby.Book
 import moe.kanon.epubby.structs.Direction
 import moe.kanon.epubby.structs.Identifier
-import moe.kanon.epubby.utils.Namespaces
 import moe.kanon.epubby.utils.attr
 import moe.kanon.epubby.utils.child
 import moe.kanon.epubby.utils.docScope
-import moe.kanon.epubby.utils.scope
+import moe.kanon.epubby.utils.internal.Namespaces
+import moe.kanon.epubby.utils.internal.logger
+import moe.kanon.epubby.utils.parseXmlFile
+import moe.kanon.epubby.utils.writeTo
 import moe.kanon.kommons.lang.delegates.KDelegates
+import moe.kanon.kommons.lang.delegates.isWriteOnceSet
+import moe.kanon.kommons.requireThat
 import org.jdom2.Document
 import org.jdom2.Element
 import org.jdom2.Namespace
+import java.io.IOException
 import java.nio.file.Path
 import java.util.Locale
+import kotlin.properties.Delegates
 
-class Package private constructor(
+/**
+ * Represents a [package document](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#sec-package-doc).
+ *
+ * TODO
+ *
+ * @property [book] The [Book] instance that `this` package-document is tied to.
+ * @property [file] The underlying package document file that this class is wrapped around.
+ * @property [direction] Specifies the base text direction of the content and attribute values of the carrying element
+ * and its descendants.
+ *
+ * Inherent directionality specified using unicode takes precedence over this property.
+ * @property [identifier] The identifier of `this` package-document.
+ *
+ * This *MUST* be unique within the document scope.
+ * @property [prefix] Defines additional prefix mappings not reserved by the epub specification.
+ *
+ * [Read more](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#sec-prefix-attr)
+ * @property [language] Specifies the language used in all the sub-elements of this package-document.
+ * @property [uniqueIdentifier] Should be an `IDREF` that identifies the `dc:identifier` element.
+ * @property [version] This specifies which epub specification the [book] was made to follow.
+ * @property [metadata] TODO
+ * @property [manifest] TODO
+ * @property [spine] TODO
+ */
+class PackageDocument private constructor(
     val book: Book,
-    val document: Path,
-    var uniqueIdentifier: Identifier,
+    val file: Path,
+    uniqueIdentifier: Identifier,
     val attributes: Attributes,
     val metadata: Metadata,
     val manifest: Manifest,
     val spine: Spine
 ) {
+    var uniqueIdentifier: Identifier by Delegates.vetoable(uniqueIdentifier) { _, _, new ->
+        requireThat(new.value.isNotBlank()) { "unique-identifier for package-document should not be blank" }
+        true
+    }
+
     /**
      * The [guide][Guide] element for the [book] this package is tied to.
      *
@@ -88,15 +123,41 @@ class Package private constructor(
      */
     var tours: Tours by KDelegates.writeOnce()
 
+    /**
+     * Returns `true` if `this` package-document has a [guide][Guide], `false` otherwise.
+     */
+    fun hasGuide(): Boolean = this::guide.isWriteOnceSet
+
+    /**
+     * Returns `true` if `this` package-document has a [bindings][Bindings], `false` otherwise.
+     */
+    fun hasBindings(): Boolean = this::bindings.isWriteOnceSet
+
+    /**
+     * Returns `true` if `this` package-document has a [collection][Collection], `false` otherwise.
+     */
+    fun hasCollection(): Boolean = this::collection.isWriteOnceSet
+
+    /**
+     * Returns `true` if `this` package-document has a [tours][Tours], `false` otherwise.
+     */
+    fun hasTours(): Boolean = this::tours.isWriteOnceSet
+
+    @Throws(IOException::class)
+    fun writeToFile() {
+        toDocument().writeTo(file)
+    }
+
     @JvmSynthetic
     internal fun toDocument(): Document = Document(Element("package", Namespaces.OPF)).docScope {
         setAttribute("version", book.version.toString())
         setAttribute("unique-identifier", uniqueIdentifier.value)
-        this@Package.attributes.applyTo(this)
+        this@PackageDocument.attributes.applyTo(this)
 
         addContent(metadata.toElement())
         addContent(manifest.toElement())
         addContent(spine.toElement())
+        // TODO: The other elements
     }
 
     // TODO: Maybe do it a different way, or keep it like this to separate the serialization more from the public api?
@@ -109,35 +170,49 @@ class Package private constructor(
         @JvmSynthetic
         internal fun applyTo(element: Element) {
             direction?.also { element.setAttribute("dir", it.serializedName) }
-            identifier?.also { element.setAttribute("id", it.value) }
+            identifier?.also { element.setAttribute(it.toAttribute()) }
             prefix?.also { element.setAttribute("lang", it, Namespace.XML_NAMESPACE) }
             language?.also { element.setAttribute("prefix", it.toLanguageTag()) }
         }
     }
 
-    companion object {
+    internal companion object {
         @JvmSynthetic
-        internal fun fromDocument(book: Book, file: Path, document: Document): Package = document.scope {
-            val uniqueIdentifier = attr("unique-identifier", book.file, file).let(::Identifier)
-            val attrs = createAttributes(this)
-            // Namespace.getNamespace("", Namespaces.OPF.uri)
-            val metadata = Metadata.fromElement(book, child("metadata", book.file, file, namespace), file)
-            val manifest = Manifest.fromElement(book, child("manifest", book.file, file, namespace), file)
-            val spine = Spine.fromElement(book, child("spine", book.file, file, namespace), file)
-            return Package(book, file, uniqueIdentifier, attrs, metadata, manifest, spine).also { pack ->
-                getChild("guide", namespace)?.also { pack.guide = Guide.fromElement(book, it, file) }
-                getChild("bindings", namespace)?.also { pack.bindings = Bindings.fromElement(book, it, file) }
-                getChild("collection", namespace)?.also { pack.collection = Collection.fromElement(book, it, file) }
-                getChild("tours", namespace)?.also { pack.tours = Tours.fromElement(book, it, file) }
+        internal fun fromBook(book: Book): PackageDocument {
+            val file = book.metaInf.container.packageDocument.path
+            parseXmlFile(file) { _, root ->
+                val namespace = root.namespace
+                val uniqueId = root.attr("unique-identifier", book.file, file).let { Identifier.of(it) }
+                val attributes = createAttributes(root)
+                val metadataElement = root.child("metadata", book.file, file, namespace)
+                val metadata = Metadata.fromElement(book, metadataElement, file)
+                val manifestElement = root.child("manifest", book.file, file, namespace)
+                val manifest = Manifest.fromElement(book, manifestElement, file)
+                val spineElement = root.child("spine", book.file, file, namespace)
+                val spine = Spine.fromElement(book, spineElement, file)
+                return PackageDocument(book, file, uniqueId, attributes, metadata, manifest, spine).also {
+                    root.getChild("guide", namespace)?.also { element ->
+                        it.guide = Guide.fromElement(book, element, file)
+                    }
+                    root.getChild("bindings", namespace)?.also { element ->
+                        it.bindings = Bindings.fromElement(book, element, file)
+                    }
+                    root.getChild("collection", namespace)?.also { element ->
+                        it.collection = Collection.fromElement(book, element, file)
+                    }
+                    root.getChild("tours", namespace)?.also { element ->
+                        it.tours = Tours.fromElement(book, element, file)
+                    }
+                }
             }
         }
 
         private fun createAttributes(element: Element): Attributes = with(element) {
             val dir = getAttributeValue("dir")?.let(Direction.Companion::of)
-            val id = getAttributeValue("id")?.let(::Identifier)
+            val id = getAttributeValue("id")?.let { Identifier.of(it) }
             val prefix = getAttributeValue("prefix")
             val lang = getAttributeValue("lang", Namespace.XML_NAMESPACE).let(Locale::forLanguageTag)
-            return Attributes(dir, id, prefix, lang)
+            return Attributes(dir, id, prefix, lang).also { logger.debug { "Constructed attributes instance <$it>" } }
         }
     }
 }

@@ -30,8 +30,9 @@ import moe.kanon.epubby.structs.props.PackagePrefix
 import moe.kanon.epubby.structs.props.Properties
 import moe.kanon.epubby.structs.props.Property
 import moe.kanon.epubby.structs.props.Relationship
-import moe.kanon.epubby.utils.Namespaces
+import moe.kanon.epubby.structs.props.vocabs.VocabularyMode
 import moe.kanon.epubby.utils.attr
+import moe.kanon.epubby.utils.internal.Namespaces
 import moe.kanon.epubby.utils.internal.logger
 import moe.kanon.epubby.utils.internal.malformed
 import moe.kanon.kommons.checkThat
@@ -243,7 +244,7 @@ class Metadata private constructor(
                 _dublinCoreElements[_dublinCoreElements.indexOfFirst(::predicate)] = element
             } else _dublinCoreElements += element
         } else {
-            val property = Property.from(PackagePrefix.DC_TERMS, "modified")
+            val property = Property.of(PackagePrefix.DC_TERMS, "modified")
             fun predicate(it: Meta) = (it as Meta.Modern).property == property
             val element = Meta.Modern(lastModified.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME), property)
 
@@ -253,10 +254,20 @@ class Metadata private constructor(
         }
     }
 
-    // TODO: Check if this namespace is correct
     @JvmSynthetic
-    internal fun toElement(namespace: Namespace = Namespaces.OPF): Element {
-        TODO()
+    internal fun toElement(namespace: Namespace = Namespaces.OPF): Element = Element("metadata", namespace).apply {
+        addNamespaceDeclaration(Namespaces.DUBLIN_CORE)
+
+        if (book.version < Version.EPUB_3_0) {
+            addNamespaceDeclaration(Namespaces.OPF_WITH_PREFIX)
+        }
+
+        _identifiers.forEach { addContent(it.toElement()) }
+        _titles.forEach { addContent(it.toElement()) }
+        _languages.forEach { addContent(it.toElement()) }
+        _dublinCoreElements.forEach { addContent(it.toElement()) }
+        _metaElements.forEach { addContent(it.toElement()) }
+        _links.forEach { addContent(it.toElement()) }
     }
 
     // this is so that rather than having to have two different lists that may or may not contain any elements depending
@@ -268,6 +279,9 @@ class Metadata private constructor(
      * element used in EPUB 3.0.
      */
     sealed class Meta {
+        @JvmSynthetic
+        internal abstract fun toElement(namespace: Namespace = Namespaces.OPF): Element
+
         /**
          * Represents the [meta](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#elemdef-meta)
          * element used in EPUB 3.0.
@@ -294,7 +308,7 @@ class Metadata private constructor(
             val language: Locale? = null
         ) : Meta() {
             @JvmSynthetic
-            internal fun toElement(namespace: Namespace = Namespaces.OPF): Element = Element("meta", namespace).apply {
+            override fun toElement(namespace: Namespace): Element = Element("meta", namespace).apply {
                 setAttribute(property.toAttribute(namespace = namespace))
                 identifier?.also { setAttribute("id", it.value) }
                 direction?.also { setAttribute("dir", it.toString()) }
@@ -326,7 +340,7 @@ class Metadata private constructor(
             val globalAttributes: ImmutableList<Attribute> = persistentListOf()
         ) : Meta() {
             @JvmSynthetic
-            internal fun toElement(namespace: Namespace = Namespaces.OPF): Element = Element("meta", namespace).apply {
+            override fun toElement(namespace: Namespace): Element = Element("meta", namespace).apply {
                 charset?.also { setAttribute("charset", it.name()) }
                 this@Legacy.content?.also { setAttribute("content", it) }
                 httpEquivalent?.also { setAttribute("http-equiv", it) }
@@ -434,7 +448,7 @@ class Metadata private constructor(
             //checkThat(relation.isNotEmpty()) { "relation should not be empty" }
             setAttribute(relation.toAttribute("rel", namespace))
             mediaType?.also { setAttribute("media-type", it.toString()) }
-            identifier?.also { setAttribute(it.toAttribute(namespace)) }
+            identifier?.also { setAttribute(it.toAttribute(namespace = namespace)) }
 
             if (properties.isNotEmpty()) {
                 setAttribute(properties.toAttribute(namespace = namespace))
@@ -451,15 +465,12 @@ class Metadata private constructor(
         @JvmSynthetic
         internal fun fromElement(book: Book, element: Element, file: Path): Metadata = with(element) {
             val identifiers = getChildren("identifier", Namespaces.DUBLIN_CORE)
-                .asSequence()
                 .mapTo(ArrayList(), ::createIdentifier)
                 .ifEmpty { malformed(book.file, file, "missing required 'dc:identifier' element in 'metadata'") }
             val titles = getChildren("title", Namespaces.DUBLIN_CORE)
-                .asSequence()
                 .mapTo(ArrayList(), ::createTitle)
                 .ifEmpty { malformed(book.file, file, "missing required 'dc:title' element in 'metadata'") }
             val languages = getChildren("language", Namespaces.DUBLIN_CORE)
-                .asSequence()
                 .mapTo(ArrayList(), ::createLanguage)
                 .ifEmpty { malformed(book.file, file, "missing required 'dc:language' element in 'metadata'") }
             val dublinCoreElements: MutableList<DublinCore<*>> = children
@@ -473,8 +484,7 @@ class Metadata private constructor(
                 // remove any invalid meta-elements, this is because we don't want to raise an exception and stop the
                 // program just because of a faulty meta-element
                 .filterNotNullTo(ArrayList())
-            val links = getChildren("link", namespace)
-                .mapTo(ArrayList()) { createLink(it, book.file, file) }
+            val links = getChildren("link", namespace).mapTo(ArrayList()) { createLink(it, book.file, file) }
             return@with Metadata(book, identifiers, titles, languages, dublinCoreElements, metaElements, links)
         }
 
@@ -498,7 +508,7 @@ class Metadata private constructor(
                         val value = element.text
                         val property =
                             element.attr("property", container, current).let { Property.parse(Meta::class, it) }
-                        val identifier = element.getAttributeValue("id")?.let(::Identifier)
+                        val identifier = element.getAttributeValue("id")?.let { Identifier.of(it) }
                         val direction = element.getAttributeValue("dir")?.let(Direction.Companion::of)
                         val refines = element.getAttributeValue("refines")
                         val scheme = element.getAttributeValue("scheme")
@@ -521,13 +531,13 @@ class Metadata private constructor(
 
         private fun createIdentifier(element: Element): DublinCore.Identifier {
             val value = element.textNormalize
-            val identifier = element.getAttributeValue("id")?.let(::Identifier)
+            val identifier = element.getAttributeValue("id")?.let { Identifier.of(it) }
             return DublinCore.Identifier(value, identifier)
         }
 
         private fun createTitle(element: Element): DublinCore.Title {
             val value = element.textNormalize
-            val identifier = element.getAttributeValue("id")?.let(::Identifier)
+            val identifier = element.getAttributeValue("id")?.let { Identifier.of(it) }
             val direction = element.getAttributeValue("dir")?.let(Direction.Companion::of)
             val language = element.getAttributeValue("lang", Namespace.XML_NAMESPACE)?.let(Locale::forLanguageTag)
             return DublinCore.Title(value, identifier, direction, language)
@@ -535,14 +545,14 @@ class Metadata private constructor(
 
         private fun createLanguage(element: Element): DublinCore.Language {
             val value = Locale.forLanguageTag(element.textNormalize)
-            val identifier = element.getAttributeValue("id")?.let(::Identifier)
+            val identifier = element.getAttributeValue("id")?.let { Identifier.of(it) }
             return DublinCore.Language(value, identifier)
         }
 
         private fun createDublinCore(element: Element, container: Path, current: Path): DublinCore<*> {
             val value = element.textNormalize
             val direction = element.getAttributeValue("dir")?.let(Direction.Companion::of)
-            val identifier = element.getAttributeValue("id")?.let(::Identifier)
+            val identifier = element.getAttributeValue("id")?.let { Identifier.of(it) }
             val language = element.getAttributeValue("lang")?.let(Locale::forLanguageTag)
             // this is missing the 'identifier', 'title' and 'language' elements as those should be dealt with separately
             val dublinCore: DublinCore<*> = when (element.name.toLowerCase()) {
@@ -571,9 +581,10 @@ class Metadata private constructor(
 
         private fun createLink(element: Element, container: Path, current: Path): Link = with(element) {
             val href = attr("href", container, current)
-            val relation = attr("rel", container, current).let { Properties.parse(Link::class, it) }
+            val relation =
+                attr("rel", container, current).let { Properties.parse(Link::class, it, VocabularyMode.RELATION) }
             val mediaType = getAttributeValue("media-type")?.let(MediaType::parse)
-            val identifier = getAttributeValue("id")?.let(::Identifier)
+            val identifier = getAttributeValue("id")?.let { Identifier.of(it) }
             val properties = getAttributeValue("properties")?.let {
                 Properties.parse(Link::class, it)
             } ?: Properties.empty()

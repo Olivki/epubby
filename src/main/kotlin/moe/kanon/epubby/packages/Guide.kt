@@ -21,8 +21,8 @@ import kotlinx.collections.immutable.toPersistentHashMap
 import moe.kanon.epubby.Book
 import moe.kanon.epubby.packages.Guide.Reference
 import moe.kanon.epubby.resources.pages.Page
-import moe.kanon.epubby.utils.Namespaces
 import moe.kanon.epubby.utils.attr
+import moe.kanon.epubby.utils.internal.Namespaces
 import moe.kanon.epubby.utils.internal.logger
 import moe.kanon.kommons.collections.asUnmodifiable
 import moe.kanon.kommons.collections.getValueOrThrow
@@ -36,7 +36,7 @@ import java.nio.file.Path
 /**
  * Represents the [guide](http://www.idpf.org/epub/20/spec/OPF_2.0.1_draft.htm#Section2.6) element.
  *
- * Within the [package][Package] there **may** be one `guide element`, containing one or more reference
+ * Within the [package][PackageDocument] there **may** be one `guide element`, containing one or more reference
  * elements. The guide element identifies fundamental structural components of the publication, to enable
  * [Reading Systems](http://www.idpf.org/epub/31/spec/epub-spec.html#gloss-epub-reading-system) to provide convenient
  * access to them.
@@ -121,7 +121,7 @@ class Guide private constructor(val book: Book, private val refs: MutableMap<Str
      *
      * Note that if a `reference` already exists under the given [customType], then it will be overridden.
      *
-     * The [OPF][Package] specification states that;
+     * The [OPF][PackageDocument] specification states that;
      *
      * >".. Other types **may** be used when none of the [predefined types][Type] are applicable; their names
      * **must** begin with the string `'other.'`"
@@ -150,7 +150,7 @@ class Guide private constructor(val book: Book, private val refs: MutableMap<Str
     /**
      * Removes the [reference][Reference] element stored under the specified [customType].
      *
-     * The [OPF][Package] specification states that;
+     * The [OPF][PackageDocument] specification states that;
      *
      * >".. Other types **may** be used when none of the [predefined types][Type] are applicable; their names
      * **must** begin with the string `'other.'`"
@@ -176,7 +176,7 @@ class Guide private constructor(val book: Book, private val refs: MutableMap<Str
      * Returns the [reference][Reference] stored under the given [customType], or throws a [NoSuchElementException] if
      * none is found.
      *
-     * The [OPF][Package] specification states that;
+     * The [OPF][PackageDocument] specification states that;
      *
      * >".. Other types **may** be used when none of the [predefined types][Type] are applicable; their names
      * **must** begin with the string `'other.'`"
@@ -193,7 +193,7 @@ class Guide private constructor(val book: Book, private val refs: MutableMap<Str
     /**
      * Returns the [reference][Reference] stored under the given [customType], or `null` if none is found.
      *
-     * The [OPF][Package] specification states that;
+     * The [OPF][PackageDocument] specification states that;
      *
      * >".. Other types **may** be used when none of the [predefined types][Type] are applicable; their names
      * **must** begin with the string `'other.'`"
@@ -209,7 +209,7 @@ class Guide private constructor(val book: Book, private val refs: MutableMap<Str
     /**
      * Returns `true` if this guide has a reference with the given [customType], `false` otherwise.
      *
-     * The [OPF][Package] specification states that;
+     * The [OPF][PackageDocument] specification states that;
      *
      * >".. Other types **may** be used when none of the [predefined types][Type] are applicable; their names
      * **must** begin with the string `'other.'`"
@@ -242,7 +242,6 @@ class Guide private constructor(val book: Book, private val refs: MutableMap<Str
      *
      * The `title` property is *not* required for a reference to be valid.
      */
-    // TODO: Turn the 'href' property into some sort of a data structure?
     data class Reference internal constructor(val type: String, var href: String, var title: String? = null) {
         /**
          * Returns the [Type] tied to the specified [type] of this `reference`, or `null` if the [type] of `this` ref
@@ -356,7 +355,7 @@ class Guide private constructor(val book: Book, private val refs: MutableMap<Str
         }
     }
 
-    companion object {
+    internal companion object {
         @JvmSynthetic
         internal fun fromElement(book: Book, element: Element, documentFile: Path): Guide = with(element) {
             val refs = getChildren("reference", namespace)
@@ -367,8 +366,8 @@ class Guide private constructor(val book: Book, private val refs: MutableMap<Str
             return Guide(book, refs)
         }
 
-        private fun createReference(element: Element, container: Path, current: Path): Reference {
-            val type = element.attr("type", container, current).let {
+        private fun createReference(element: Element, epub: Path, container: Path): Reference {
+            val type = element.attr("type", epub, container).let {
                 when {
                     Type.getOrNull(it) == null && !(it.startsWith("other.", true)) -> {
                         logger.warn { "Reference type '$it' is not a known type and is missing the 'other.' prefix required for custom types. It will be stored as 'other.$it'" }
@@ -377,7 +376,7 @@ class Guide private constructor(val book: Book, private val refs: MutableMap<Str
                     else -> it
                 }
             }
-            val href = element.attr("href", container, current)
+            val href = element.attr("href", epub, container)
             val title = element.getAttributeValue("title")
             return Reference(type, href, title)
         }

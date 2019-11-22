@@ -24,8 +24,8 @@ import moe.kanon.epubby.resources.Resource
 import moe.kanon.epubby.structs.Identifier
 import moe.kanon.epubby.structs.props.Properties
 import moe.kanon.epubby.structs.props.vocabs.ManifestVocabulary
-import moe.kanon.epubby.utils.Namespaces
 import moe.kanon.epubby.utils.attr
+import moe.kanon.epubby.utils.internal.Namespaces
 import moe.kanon.epubby.utils.internal.logger
 import moe.kanon.epubby.utils.internal.malformed
 import moe.kanon.kommons.collections.asUnmodifiable
@@ -68,6 +68,18 @@ class Manifest private constructor(
     }
 
     /**
+     * Returns the [item][Item] stored under the given [identifier], or throws a [NoSuchElementException] if none is
+     * found.
+     */
+    fun getItem(identifier: Identifier): Item<*> =
+        items[identifier] ?: throw NoSuchElementException("No manifest item found under id <$identifier>")
+
+    /**
+     * Returns the [item][Item] stored under the given [identifier], or `null` if none is found.
+     */
+    fun getItemOrNull(identifier: Identifier): Item<*>? = items[identifier]
+
+    /**
      * Returns `true` if this manifest has an [item][Item] with the given [identifier], `false` otherwise.
      */
     fun hasItem(identifier: Identifier): Boolean = identifier in items
@@ -81,19 +93,7 @@ class Manifest private constructor(
      * Returns `true` if this manifest contains a [local item][Item.Local] that points towards the given [resource],
      * `false` otherwise.
      */
-    fun hasResource(resource: Resource): Boolean = resource.identifier in items
-
-    /**
-     * Returns the [item][Item] stored under the given [identifier], or throws a [NoSuchElementException] if none is
-     * found.
-     */
-    fun getItem(identifier: Identifier): Item<*> =
-        items[identifier] ?: throw NoSuchElementException("No manifest item found under id <$identifier>")
-
-    /**
-     * Returns the [item][Item] stored under the given [identifier], or `null` if none is found.
-     */
-    fun getItemOrNull(identifier: Identifier): Item<*>? = items[identifier]
+    fun hasItemFor(resource: Resource): Boolean = resource.identifier in items
 
     // -- LOCAL ITEMS -- \\
     /**
@@ -109,7 +109,21 @@ class Manifest private constructor(
     fun getLocalItemOrNull(identifier: Identifier): Item.Local? = localItems[identifier]
 
     // -- REMOTE ITEMS -- \\
-    fun addRemoteItem(identifier: Identifier, item: Item.Remote): Nothing = TODO()
+    // we only allow the removal & addition of remote items, as local items should be created through resources rather
+    // than this way
+
+    fun addRemoteItem(item: Item.Remote): Item.Remote {
+        items[item.identifier] = item
+        return item
+    }
+
+    fun removeRemoteItem(identifier: Identifier): Boolean {
+        val result = identifier in remoteItems
+        if (result) {
+            items -= identifier
+        }
+        return result
+    }
 
     /**
      * Returns the [remote item][Item.Remote] stored under the given [identifier], or throws a [NoSuchElementException]
@@ -123,10 +137,10 @@ class Manifest private constructor(
      */
     fun getRemoteItemOrNull(identifier: Identifier): Item.Remote? = remoteItems[identifier]
 
-    // TODO: Check if this namespace is correct
     @JvmSynthetic
-    internal fun toElement(namespace: Namespace = Namespaces.OPF): Element {
-        TODO()
+    internal fun toElement(namespace: Namespace = Namespaces.OPF): Element = Element("manifest", namespace).apply {
+        identifier?.also { setAttribute(it.toAttribute()) }
+        for ((_, item) in items) addContent(item.toElement(book))
     }
 
     override fun iterator(): Iterator<Item<*>> = items.values.iterator().asUnmodifiable()
@@ -142,13 +156,23 @@ class Manifest private constructor(
         abstract var mediaType: MediaType?
         abstract var fallback: String?
         abstract var mediaOverlay: String?
-        // TODO: Remember to not add the 'properties' attribute to the element if this is empty
         abstract val properties: Properties
 
         @JvmSynthetic
-        internal fun toElement(namespace: Namespace = Namespaces.OPF): Element = Element("item", namespace).apply {
-            TODO()
-        }
+        internal fun toElement(book: Book, namespace: Namespace = Namespaces.OPF): Element =
+            Element("item", namespace).apply {
+                setAttribute(identifier.toAttribute())
+                setAttribute(
+                    "href", when (this@Item) {
+                        is Local -> book.packageFile.relativize(href).toString().substringAfter("../")
+                        is Remote -> href.toString()
+                    }
+                )
+                mediaType?.also { setAttribute("media-type", it.toString()) }
+                fallback?.also { setAttribute("fallback", it) }
+                mediaOverlay?.also { setAttribute("media-overlay", it) }
+                if (properties.isNotEmpty()) setAttribute(properties.toAttribute())
+            }
 
         /**
          * Represents a [local-item](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-spec.html#dfn-local-resource).
@@ -194,7 +218,7 @@ class Manifest private constructor(
                 malformed(book.file, documentFile, "the 'manifest' element needs to contain at least one child")
             }
 
-            return@with Manifest(book, getAttributeValue("id")?.let(::Identifier), items)
+            return@with Manifest(book, getAttributeValue("id")?.let { Identifier.of(it) }, items)
         }
 
         private fun getPathFromHref(book: Book, href: String, documentFile: Path): Path =

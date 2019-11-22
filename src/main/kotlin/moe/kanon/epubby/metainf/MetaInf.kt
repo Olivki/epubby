@@ -14,32 +14,34 @@
  * limitations under the License.
  */
 
-@file:Suppress("DataClassPrivateConstructor")
-
 package moe.kanon.epubby.metainf
 
+import moe.kanon.epubby.utils.internal.logger
+import moe.kanon.epubby.utils.internal.malformed
+import moe.kanon.kommons.io.paths.notExists
+import java.io.IOException
 import java.nio.file.Path
 
 /**
  * Represents the [META-INF](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-ocf.html#sec-container-metainf)
  * directory found in the root of an epub container.
  *
- * This class contains references to the [container.xml][Container], [encryption.xml][Encryption],
- * [manifest.xml][Manifest], [metadata.xml][Metadata], [rights.xml][Rights] and [signatures.xml][Signatures] files
- * located inside the `META-INF` directory.
+ * This class contains references to the [container.xml][MetaInfContainer], [encryption.xml][MetaInfEncryption],
+ * [manifest.xml][MetaInfManifest], [metadata.xml][MetaInfMetadata], [rights.xml][MetaInfRights] and
+ * [signatures.xml][MetaInfSignatures] files located inside the `META-INF` directory.
  *
- * Note that *only* [container.xml][epubFile] is REQUIRED to exist in an epub, the others are OPTIONAL.
+ * Note that *only* [container.xml][MetaInfContainer] is REQUIRED to exist in an epub, the others are OPTIONAL.
  *
+ * @property [epub] The epub file that `this` meta-inf belongs to.
  * @property [directory] The path that points to the `META-INF` directory of the epub container.
- * @property [epubFile] TODO
  * @property [encryption] TODO
  * @property [manifest] TODO
  * @property [metadata] TODO
  * @property [rights] TODO
  * @property [signatures] TODO
  */
-data class MetaInf private constructor(
-    val epubFile: Path,
+class MetaInf private constructor(
+    val epub: Path,
     val directory: Path,
     val container: MetaInfContainer,
     val encryption: MetaInfEncryption?,
@@ -48,9 +50,41 @@ data class MetaInf private constructor(
     val rights: MetaInfRights?,
     val signatures: MetaInfSignatures?
 ) {
-    companion object {
-
+    @Throws(IOException::class)
+    fun writeAll() {
+        container.writeToFile()
     }
 
-    override fun toString(): String = "MetaInf[$epubFile]"
+    override fun toString(): String = buildString {
+        append("MetaInf(epub='$epub', directory='$directory', container=$container")
+        encryption?.also { append(", encryption=$it") }
+        manifest?.also { append(", manifest=$it") }
+        metadata?.also { append(", metadata=$it") }
+        rights?.also { append(", rights=$it") }
+        signatures?.also { append(", signatures=$it") }
+        append(")")
+    }
+
+    internal companion object {
+        @JvmSynthetic
+        internal fun fromDirectory(epub: Path, directory: Path, rootFile: Path): MetaInf {
+            val containerFile = directory.resolve("container.xml")
+
+            if (containerFile.notExists) {
+                malformed(epub, directory, "required 'container.xml' is missing from meta-inf directory")
+            }
+
+            val container = MetaInfContainer.fromFile(epub, containerFile, rootFile)
+            logger.info { "Located package-document (OPF) at '${container.packageDocument.path}'" }
+            val encryption = null
+            val manifest = null
+            val metadata = null
+            val rights = null
+            val signatures = null
+
+            return MetaInf(epub, directory, container, encryption, manifest, metadata, rights, signatures).also {
+                logger.debug { "Constructed meta-inf instance <$it>" }
+            }
+        }
+    }
 }

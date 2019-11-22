@@ -20,22 +20,31 @@ import com.google.common.net.MediaType
 import cz.vutbr.web.css.CSSException
 import cz.vutbr.web.css.CSSFactory
 import cz.vutbr.web.css.StyleSheet
+import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.ImmutableSet
 import kotlinx.collections.immutable.persistentHashSetOf
 import kotlinx.collections.immutable.persistentSetOf
 import moe.kanon.epubby.Book
+import moe.kanon.epubby.EpubbyException
 import moe.kanon.epubby.packages.Manifest
+import moe.kanon.epubby.packages.PackageDocument
 import moe.kanon.epubby.structs.Identifier
+import moe.kanon.epubby.structs.props.Properties
 import moe.kanon.epubby.utils.internal.logger
 import moe.kanon.epubby.utils.internal.mediaType
-import moe.kanon.kommons.io.paths.exists
+import moe.kanon.kommons.io.paths.copyTo
+import moe.kanon.kommons.io.paths.createDirectories
+import moe.kanon.kommons.io.paths.extension
 import moe.kanon.kommons.io.paths.name
 import moe.kanon.kommons.io.paths.newInputStream
+import moe.kanon.kommons.io.paths.renameTo
+import moe.kanon.kommons.io.requireFileExistence
 import moe.kanon.kommons.requireThat
 import java.awt.image.BufferedImage
 import java.io.IOException
 import java.nio.file.Path
 import javax.imageio.ImageIO
+import kotlin.properties.Delegates
 
 // TODO: Figure out what to do with Resources and Manifest items. Because they are deeply connected so it might just be
 //       best to only have like a Resource class rather than a Resource class and a Manifest.Item class too?
@@ -77,7 +86,122 @@ sealed class Resource(file: Path, identifier: Identifier, desiredDirectory: Stri
      */
     abstract val mediaTypes: ImmutableSet<MediaType>
 
-    val identifier: Identifier = TODO()
+    /**
+     * Returns a path that's relative to the [OPF file][PackageDocument.file] of the [book].
+     */
+    val relativeFile: Path get() = book.packageDocument.file.relativize(file)
+
+    /**
+     * Returns a string representation of a path that's relative to the parent of the [OPF file][PackageDocument.file] of the
+     * [book].
+     */
+    // TODO: Find a better name?
+    val href: String get() = book.packageDocument.file.parent.relativize(file).toString()
+
+    val relativeHref: String get() = relativeFile.toString()
+
+    /**
+     * The "desired" directory where this resource "ideally" wants to reside.
+     *
+     * This is used for sorting the resource files into more appropriate directories as some EPUB files simply leave
+     * all resource files in the same directory as the [package document][PackageDocument].
+     */
+    // this is 'lazy' as to avoid any issues with calling the abstract value 'book' directly when initializing it
+    open val desiredDirectory: Path by lazy { book.packageRoot.resolve(desiredDirectory) }
+
+    /**
+     * The identifier of the [manifestItem] that this resource represents.
+     *
+     * Setting the value of this property will update the `id` of the `manifest item` across the entire system.
+     */
+    var identifier: Identifier by Delegates.observable(identifier) { _, oldValue, newValue ->
+        if (book.manifest.hasItem(oldValue) && oldValue != newValue) {
+            logger.info { "Changing 'identifier' of resource <$this> from '$oldValue' to '$newValue'" }
+            val newItem = book.manifest.getLocalItem(oldValue).copy(identifier = newValue)
+            book.manifest.items -= oldValue
+            book.manifest.items[newValue] = newItem
+
+            if (this is PageResource) {
+                book.spine.getReferenceOfOrNull(this)?.apply {
+                    item = newItem
+                } ?: logger.warn { "Page-resource <$this> does not have a spine entry" }
+            }
+        }
+    }
+
+    /**
+     * The [manifest item][Manifest.Item] that `this` resource represents.
+     */
+    val manifestItem: Manifest.Item.Local get() = book.manifest.getLocalItem(identifier)
+
+    /**
+     * Returns a list containing all [Element]s that have an `href`/`src` reference to this resource, or an  empty list
+     * if no such elements are found.
+     *
+     * Note that invoking this property may cause serious overhead, as this will traverse *all* the elements in *all*
+     * [pages][Book.pages] of the [book].
+     */
+    val references: ImmutableList<ResourceReference> get() = book.pages.getReferencesOf(this)
+
+    /**
+     * Handles the updating of all page references *(`href`, `src`, etc..)* of this resource.
+     */
+    @JvmSynthetic
+    internal fun updateReferencesTo(file: Path) {
+        // TODO: This
+        for (ref in references) ref.updateReferenceTo(this, file)
+    }
+
+    /**
+     * Handles the updating the of the [manifestItem] that this resource represents.
+     *
+     * This function makes sure that all the appropriate systems get updated/notified accordingly when the manifest
+     * of this resource has been changed in some way.
+     *
+     * This function does *not* allow the [mediaType][Manifest.Item.mediaType] of the `item` to be changed, as that
+     * would require `this` resource to *dynamically* change its entire type, which is beyond the scope of this
+     * framework.
+     */
+    @Suppress("CopyWithoutNamedArguments")
+    @JvmSynthetic
+    internal fun updateManifest(
+        // this is simply here to avoid multiple invocations of 'getLocalItem' for every parameter, it should never be
+        // anything but 'manifestItem'
+        item: Manifest.Item.Local = manifestItem,
+        identifier: Identifier = item.identifier,
+        href: Path = item.href,
+        fallback: String? = item.fallback,
+        mediaOverlay: String? = item.mediaOverlay,
+        properties: Properties = item.properties
+    ) {
+        // TODO: This currently does essentially the same operation twice, maybe bake everything into this function
+        //      to improve performance?
+        val newItem = item.copy(
+            identifier = identifier,
+            href = href,
+            fallback = fallback,
+            mediaOverlay = mediaOverlay,
+            properties = properties
+        )
+
+        // if the given 'identifier' is different than the currently known 'identifier' of this resource, we want to
+        // update all the references properly, which the 'identifier' property is set to do, so we just invoke that
+        if (identifier != this.identifier) {
+            this.identifier = identifier
+        }
+
+        if (href != this.file) {
+            this.file = href
+        }
+
+        book.manifest.items[identifier] = newItem
+
+        if (this is PageResource) {
+            book.spine.getReferenceOfOrNull(this)?.apply {
+                this.item = newItem
+            } ?: logger.warn { "Page-resource <$this> has no spine entry" }
+        }
+    }
 
     /**
      * Invoked when `this` resource is first created by the system.
@@ -91,6 +215,32 @@ sealed class Resource(file: Path, identifier: Identifier, desiredDirectory: Stri
      */
     @Throws(ResourceException::class)
     open fun onDeletion() {
+    }
+
+    /**
+     * Renames the [file] this resource is wrapping around to the given [name].
+     *
+     * Note that this function *only* changes the [simple name][Path.simpleName] of the file, meaning that the
+     * [extension][Path.extension] of it is left as-is. This function is merely intended for *simple* renaming of file
+     * names, for more advanced operations it is recommended to set the `file` property directly.
+     *
+     * @throws [IOException] if an i/o error occurs
+     */
+    @Throws(IOException::class)
+    fun renameTo(name: String) {
+        // TODO: Check if this works properly
+        file = file.renameTo(name + file.extension)
+    }
+
+    /**
+     * Returns whether or not the given [href] is equal to this resources [href][Resource.href]. This function also
+     * takes care of cases where an `href` attribute might contain a fragment-identifier *(`#`)*.
+     */
+    @JvmOverloads
+    fun isHrefEqual(href: String, ignoreCase: Boolean = false): Boolean = when {
+        '#' in href -> href.split('#')[0].equals(this.href, ignoreCase)
+            || href.split('#')[0].equals(this.relativeFile.toString(), ignoreCase)
+        else -> href.equals(this.href, ignoreCase) || href.equals(this.relativeFile.toString(), ignoreCase)
     }
 
     protected fun raiseException(message: String, cause: Throwable? = null): Nothing =
@@ -113,14 +263,15 @@ sealed class Resource(file: Path, identifier: Identifier, desiredDirectory: Stri
     }
 
     companion object {
-        private fun fromMediaType(
+        @JvmSynthetic
+        internal fun fromMediaType(
             mediaType: MediaType,
             file: Path,
             book: Book,
             identifier: Identifier = Identifier.fromFile(file)
         ): Resource {
             requireThat(file.fileSystem == book.fileSystem) { "file should have the same file-system as the given book [book=${book.fileSystem}, file=${file.fileSystem}]" }
-            requireThat(file.exists) { "file should exist: $file" }
+            requireFileExistence(file)
             return when (mediaType) {
                 in TableOfContentsResource.MEDIA_TYPES -> TableOfContentsResource(book, file, identifier)
                 in PageResource.MEDIA_TYPES -> PageResource(book, file, identifier)
@@ -151,26 +302,58 @@ sealed class Resource(file: Path, identifier: Identifier, desiredDirectory: Stri
          * @param [identifier] the unique identifier that the returned [Resource] should be using, this is used for
          * storing the resource inside the [manifest][Manifest] of the [book]
          *
-         * @throws [IllegalArgumentException]
-         * - If the [file-system][Path.getFileSystem] of the given [file] is not the same as the
-         * [file-system][Book.fileSystem] of the given [book].
-         * - If the given [file] points towards a file that [does not exist][Path.notExists]
+         * @throws [IllegalArgumentException] if the [file-system][Path.getFileSystem] of the given [file] is not the same as the
+         * [file-system][Book.fileSystem] of the given [book]
+         * @throws [IOException] if an i/o error occurred
+         * @throws [EpubbyException] if something went wrong with the creation of the resource
          */
         @JvmStatic
         @JvmOverloads
+        @Throws(IOException::class, EpubbyException::class)
         fun fromFile(file: Path, book: Book, identifier: Identifier = Identifier.fromFile(file)): Resource {
             requireThat(file.fileSystem == book.fileSystem) { "file should have the same file-system as the given book [book=${book.fileSystem}, file=${file.fileSystem}]" }
-            requireThat(file.exists) { "file should exist: $file" }
+            requireFileExistence(file)
             val resource = file.mediaType?.let { fromMediaType(it, file, book, identifier) }
-            if (resource == null) {
+            if (file.mediaType == null) {
                 logger.info { "Resource file <$file> does not have a known media-type, marking as a misc-resource.." }
             }
             return resource ?: MiscResource(book, file, identifier)
         }
+
+        /**
+         * Returns a new [Resource] implementation that is appropriate for the [contentType][Path.contentType] of the
+         * given [file], or [MiscResource] if none could be found.
+         *
+         * This function will copy the given [file] to the given [targetDirectory] before it is turned into a resource.
+         *
+         * @param [file] TODO
+         * @param [targetDirectory] the directory in the [book] to copy the [file] to, if it does not exist then it
+         * will be created
+         * @param [book] TODO
+         * @param [identifier] TODO
+         *
+         * @throws [IOException] if an i/o error occurred
+         * @throws [EpubbyException] if something went wrong with the creation of the resource
+         */
+        @JvmStatic
+        @JvmOverloads
+        @Throws(IOException::class, EpubbyException::class)
+        fun fromExternalFile(
+            file: Path,
+            targetDirectory: Path,
+            book: Book,
+            identifier: Identifier = Identifier.fromFile(file)
+        ): Resource {
+            requireFileExistence(file)
+            val directory = book.root.resolve(targetDirectory).createDirectories()
+            logger.debug { "Copying external file '$file' to '$directory' in book <$book>" }
+            val resourceFile = file.copyTo(directory)
+            return fromFile(resourceFile, book, identifier)
+        }
     }
 }
 
-class TableOfContentsResource(override val book: Book, file: Path, identifier: Identifier) :
+class TableOfContentsResource internal constructor(override val book: Book, file: Path, identifier: Identifier) :
     Resource(file, identifier, "/") {
     override val mediaTypes: ImmutableSet<MediaType> get() = MEDIA_TYPES
 
@@ -188,7 +371,7 @@ class TableOfContentsResource(override val book: Book, file: Path, identifier: I
     }
 }
 
-class PageResource(override val book: Book, file: Path, identifier: Identifier) :
+class PageResource internal constructor(override val book: Book, file: Path, identifier: Identifier) :
     Resource(file, identifier, "Text/") {
     override val mediaTypes: ImmutableSet<MediaType> get() = MEDIA_TYPES
 
@@ -199,7 +382,7 @@ class PageResource(override val book: Book, file: Path, identifier: Identifier) 
     }
 }
 
-class StyleSheetResource(override val book: Book, file: Path, identifier: Identifier) :
+class StyleSheetResource internal constructor(override val book: Book, file: Path, identifier: Identifier) :
     Resource(file, identifier, "Styles/") {
     override val mediaTypes: ImmutableSet<MediaType> get() = MEDIA_TYPES
 
@@ -228,7 +411,7 @@ class StyleSheetResource(override val book: Book, file: Path, identifier: Identi
     }
 }
 
-class ImageResource(override val book: Book, file: Path, identifier: Identifier) :
+class ImageResource internal constructor(override val book: Book, file: Path, identifier: Identifier) :
     Resource(file, identifier, "Images/") {
     override val mediaTypes: ImmutableSet<MediaType> get() = MEDIA_TYPES
 
@@ -252,7 +435,7 @@ class ImageResource(override val book: Book, file: Path, identifier: Identifier)
     }
 }
 
-class FontResource(override val book: Book, file: Path, identifier: Identifier) :
+class FontResource internal constructor(override val book: Book, file: Path, identifier: Identifier) :
     Resource(file, identifier, "Fonts/") {
     override val mediaTypes: ImmutableSet<MediaType> get() = MEDIA_TYPES
 
@@ -264,7 +447,7 @@ class FontResource(override val book: Book, file: Path, identifier: Identifier) 
     }
 }
 
-class AudioResource(override val book: Book, file: Path, identifier: Identifier) :
+class AudioResource internal constructor(override val book: Book, file: Path, identifier: Identifier) :
     Resource(file, identifier, "Audio/") {
     override val mediaTypes: ImmutableSet<MediaType> get() = MEDIA_TYPES
 
@@ -275,7 +458,7 @@ class AudioResource(override val book: Book, file: Path, identifier: Identifier)
     }
 }
 
-class ScriptResource(override val book: Book, file: Path, identifier: Identifier) :
+class ScriptResource internal constructor(override val book: Book, file: Path, identifier: Identifier) :
     Resource(file, identifier, "Scripts/") {
     override val mediaTypes: ImmutableSet<MediaType> get() = MEDIA_TYPES
 
@@ -286,7 +469,7 @@ class ScriptResource(override val book: Book, file: Path, identifier: Identifier
     }
 }
 
-class VideoResource(override val book: Book, file: Path, identifier: Identifier) :
+class VideoResource internal constructor(override val book: Book, file: Path, identifier: Identifier) :
     Resource(file, identifier, "Video/") {
     override val mediaTypes: ImmutableSet<MediaType> get() = MEDIA_TYPES
 
@@ -297,7 +480,7 @@ class VideoResource(override val book: Book, file: Path, identifier: Identifier)
     }
 }
 
-class MiscResource(override val book: Book, file: Path, identifier: Identifier) :
+class MiscResource internal constructor(override val book: Book, file: Path, identifier: Identifier) :
     Resource(file, identifier, "Misc/") {
     override val mediaTypes: ImmutableSet<MediaType> = persistentSetOf()
     //override fun toString(): String = "MiscResource(identifier='$identifier', href='$href', book=$book)"

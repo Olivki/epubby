@@ -14,8 +14,16 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.structs
+package moe.kanon.epubby.resources.pages
 
-// TODO: Replace the Version data class with enums?
-enum class TodoVersion(val major: Int, val minor: Int) {
+import moe.kanon.epubby.Book
+import org.jsoup.nodes.Document
+import org.jsoup.nodes.Element
+
+abstract class PageTransformer(val book: Book) {
+    /**
+     * Gets invoked at the start of the [book] saving process, allows this transformer to modify the contents of the
+     * given [page].
+     */
+    abstract fun transformPage(page: Page, document: Document, body: Element)
 }

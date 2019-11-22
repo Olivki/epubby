@@ -16,5 +16,11 @@
 
 package moe.kanon.epubby.metainf
 
+import java.io.IOException
+
 class MetaInfSignatures {
+    @Throws(IOException::class)
+    fun writeToFile() {
+        TODO()
+    }
 }
