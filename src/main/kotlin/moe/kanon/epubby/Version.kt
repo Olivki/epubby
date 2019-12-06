@@ -16,9 +16,8 @@
 
 @file:Suppress("DataClassPrivateConstructor")
 
-package moe.kanon.epubby.structs
+package moe.kanon.epubby
 
-import moe.kanon.epubby.EpubbyException
 import moe.kanon.kommons.requireThat
 
 // TODO: EPUB has actually used a patch version before, with 2.0.1, this system will fail on parsing that version
@@ -26,8 +25,6 @@ import moe.kanon.kommons.requireThat
 // because EPUB format versions do not adhere to semantic versioning (as they do not have a patch version) I've opted
 // to create my own simple version implementation just for EPUB format versions.
 class Version private constructor(val major: Int, val minor: Int) : Comparable<Version> {
-    val isSupported: Boolean by lazy { TODO() }
-
     init {
         requireThat(major >= 0) { "major should be positive" }
         requireThat(minor >= 0) { "minor should be positive" }
@@ -66,16 +63,24 @@ class Version private constructor(val major: Int, val minor: Int) : Comparable<V
     companion object {
         private val KNOWN_VERSIONS = HashMap<String, Version>()
 
+        /**
+         * Represents the [EPUB 2.x](http://www.idpf.org/epub/dir/#epub201) format.
+         */
         @JvmField val EPUB_2_0 = getOrCache(2, 0)
         /**
          * Represents the [EPUB 3.0](http://www.idpf.org/epub/dir/#epub301) format.
-         *
-         * Any version where `n >= 3 && n < 3.0.x` will be sorted into this category.
-         *
-         * Specifications for EPUB 3.0 format can be found [here](http://www.idpf.org/epub/301/spec/epub-publications.html).
          */
         @JvmField val EPUB_3_0 = getOrCache(3, 0)
-        @JvmField val EPUB_3_1 = getOrCache(3, 1)
+        /**
+         * Represents the [EPUB 3.1](http://www.idpf.org/epub/dir/#epub31) format.
+         *
+         * The EPUB 3.1 format is [officially discouraged](http://www.idpf.org/epub/dir/#epub31) from use, and as such
+         * the format is explicitly ***not*** supported by epubby, and it should never be used.
+         */
+        @JvmField val EPUB_3_1 = getOrCache(3, 1) // TODO: Crash if the EPUB version is this lol
+        /**
+         * Represents the [EPUB 3.2](http://www.idpf.org/epub/dir/#epub32) format.
+         */
         @JvmField val EPUB_3_2 = getOrCache(3, 2)
 
         private fun getOrCache(major: Int, minor: Int): Version =
@@ -135,13 +140,21 @@ class Version private constructor(val major: Int, val minor: Int) : Comparable<V
             val major = try {
                 majorString.toInt()
             } catch (e: Exception) {
-                fail(version, "'major' version can't be converted to an integer'", e)
+                fail(
+                    version,
+                    "'major' version can't be converted to an integer'",
+                    e
+                )
             }
 
             val minor = try {
                 minorString.toInt()
             } catch (e: Exception) {
-                fail(version, "'minor' version can't be converted to an integer", e)
+                fail(
+                    version,
+                    "'minor' version can't be converted to an integer",
+                    e
+                )
             }
 
             return fromInteger(major, minor)
@@ -152,7 +165,11 @@ class Version private constructor(val major: Int, val minor: Int) : Comparable<V
         }
 
         private fun fail(version: String, info: String, cause: Throwable? = null): Nothing =
-            throw FaultyVersionException(version, "Given version '$version' $info", cause)
+            throw FaultyVersionException(
+                version,
+                "Given version '$version' $info",
+                cause
+            )
 
         private enum class ParseState { UNINITIALIZED, NUMBER, DOT }
     }

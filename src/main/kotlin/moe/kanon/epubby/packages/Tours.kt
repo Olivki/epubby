@@ -131,7 +131,9 @@ class Tours private constructor(val book: Book, private val tours: MutableMap<Id
                 .asSequence()
                 .map { createTour(element, book.file, documentFile) }
                 .associateByTo(LinkedHashMap()) { it.identifier }
-            return Tours(book, tourElements)
+            return Tours(book, tourElements).also {
+                logger.trace { "Constructed tours instance <$it>" }
+            }
         }
 
         private fun createTour(element: Element, container: Path, current: Path): Tour = with(element) {
@@ -141,13 +143,17 @@ class Tours private constructor(val book: Book, private val tours: MutableMap<Id
             if (sites.isEmpty()) {
                 malformed(container, current, "'tour' elements need to contain at least one 'site' element")
             }
-            return Tour(identifier, title, sites)
+            return Tour(identifier, title, sites).also {
+                logger.trace { "Constructed tours tour instance <$it>" }
+            }
         }
 
         private fun createTourSite(element: Element, container: Path, current: Path): Tour.Site = with(element) {
             val href = attr("href", container, current)
             val title = attr("title", container, current)
-            return Tour.Site(href, title)
+            return Tour.Site(href, title).also {
+                logger.trace { "Constructed tours tour-site instance <$it>" }
+            }
         }
     }
 }

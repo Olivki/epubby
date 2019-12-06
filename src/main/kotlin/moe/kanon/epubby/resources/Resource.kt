@@ -28,13 +28,19 @@ import moe.kanon.epubby.Book
 import moe.kanon.epubby.EpubbyException
 import moe.kanon.epubby.packages.Manifest
 import moe.kanon.epubby.packages.PackageDocument
+import moe.kanon.epubby.packages.Spine
+import moe.kanon.epubby.resources.pages.Page
+import moe.kanon.epubby.resources.pages.contains
 import moe.kanon.epubby.structs.Identifier
 import moe.kanon.epubby.structs.props.Properties
+import moe.kanon.epubby.structs.props.vocabs.ManifestVocabulary
 import moe.kanon.epubby.utils.internal.logger
 import moe.kanon.epubby.utils.internal.mediaType
+import moe.kanon.kommons.collections.emptyEnumSet
 import moe.kanon.kommons.io.paths.copyTo
 import moe.kanon.kommons.io.paths.createDirectories
 import moe.kanon.kommons.io.paths.extension
+import moe.kanon.kommons.io.paths.isSameAs
 import moe.kanon.kommons.io.paths.name
 import moe.kanon.kommons.io.paths.newInputStream
 import moe.kanon.kommons.io.paths.renameTo
@@ -43,6 +49,7 @@ import moe.kanon.kommons.requireThat
 import java.awt.image.BufferedImage
 import java.io.IOException
 import java.nio.file.Path
+import java.util.EnumSet
 import javax.imageio.ImageIO
 import kotlin.properties.Delegates
 
@@ -61,30 +68,41 @@ import kotlin.properties.Delegates
  * @param [desiredDirectory] the [name][Path.simpleName] of the [desiredDirectory]
  */
 sealed class Resource(file: Path, identifier: Identifier, desiredDirectory: String) {
-    abstract val book: Book
-
     /**
-     * The underlying file that `this` resource is created for.
-     *
-     *  TODO: Explain what setting the value of this does
+     * The book that `this` resource belongs to.
      */
-    var file: Path = file
-        @Throws(IOException::class)
-        set(value) {
-            // we need to update the references BEFORE we actually change the file, otherwise it won't be properly
-            // reflected
-            requireThat(value.fileSystem == book.fileSystem) { "can't change the file of a resource to one that is located outside of the book it is tied to" }
-            // TODO
-            //updateReferencesTo(value)
-            field = value
-            //updateManifest(href = value)
-        }
+    abstract val book: Book
 
     /**
      * Returns a set of the supported [media-types](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-spec.html#sec-cmt-supported)
      * of `this` resource.
      */
     abstract val mediaTypes: ImmutableSet<MediaType>
+
+    /**
+     * The underlying file that `this` resource is created for.
+     *
+     *  TODO: Explain what setting the value of this does
+     */
+    // TODO: Leaving this mutable might result in some weird stuff?
+    var file: Path = file
+        @Throws(IOException::class)
+        set(value) {
+            // we need to update the references BEFORE we actually change the file, otherwise it won't be properly
+            // reflected
+            requireThat(value.fileSystem == book.fileSystem) { "can't change the file of a resource to one that is located outside of the book it is tied to" }
+            requireThat(!(file.parent isSameAs book.root)) { "files are not allowed to be moved to the root of the epub" }
+            // TODO
+            updateReferencesTo(value)
+            field = value
+            updateManifest(href = value)
+        }
+
+    /**
+     * Returns the [media-type][MediaType] of the underlying [file] of this resource, or `null` if `file` represents an
+     * unknown `media-type`.
+     */
+    val mediaType: MediaType? get() = file.mediaType
 
     /**
      * Returns a path that's relative to the [OPF file][PackageDocument.file] of the [book].
@@ -99,6 +117,23 @@ sealed class Resource(file: Path, identifier: Identifier, desiredDirectory: Stri
     val href: String get() = book.packageDocument.file.parent.relativize(file).toString()
 
     val relativeHref: String get() = relativeFile.toString()
+
+    /**
+     * The properties specific to `this` resource.
+     *
+     * See [ManifestVocabulary] for the available ones.
+     */
+    // TODO: Change this to a general 'Properties'?
+    val properties: EnumSet<ManifestVocabulary> = emptyEnumSet()
+
+    /**
+     * The `resource` that a reading system should use instead if it can't properly display `this` resource.
+     */
+    var fallback by Delegates.observable<Resource?>(null) { _, oldFallback, newFallback ->
+        if (oldFallback != newFallback) {
+            updateManifest(fallback = newFallback?.identifier?.value)
+        }
+    }
 
     /**
      * The "desired" directory where this resource "ideally" wants to reside.
@@ -124,7 +159,7 @@ sealed class Resource(file: Path, identifier: Identifier, desiredDirectory: Stri
             if (this is PageResource) {
                 book.spine.getReferenceOfOrNull(this)?.apply {
                     item = newItem
-                } ?: logger.warn { "Page-resource <$this> does not have a spine entry" }
+                } ?: logger.debug { "Page-resource <$this> does not have a spine entry" }
             }
         }
     }
@@ -142,66 +177,6 @@ sealed class Resource(file: Path, identifier: Identifier, desiredDirectory: Stri
      * [pages][Book.pages] of the [book].
      */
     val references: ImmutableList<ResourceReference> get() = book.pages.getReferencesOf(this)
-
-    /**
-     * Handles the updating of all page references *(`href`, `src`, etc..)* of this resource.
-     */
-    @JvmSynthetic
-    internal fun updateReferencesTo(file: Path) {
-        // TODO: This
-        for (ref in references) ref.updateReferenceTo(this, file)
-    }
-
-    /**
-     * Handles the updating the of the [manifestItem] that this resource represents.
-     *
-     * This function makes sure that all the appropriate systems get updated/notified accordingly when the manifest
-     * of this resource has been changed in some way.
-     *
-     * This function does *not* allow the [mediaType][Manifest.Item.mediaType] of the `item` to be changed, as that
-     * would require `this` resource to *dynamically* change its entire type, which is beyond the scope of this
-     * framework.
-     */
-    @Suppress("CopyWithoutNamedArguments")
-    @JvmSynthetic
-    internal fun updateManifest(
-        // this is simply here to avoid multiple invocations of 'getLocalItem' for every parameter, it should never be
-        // anything but 'manifestItem'
-        item: Manifest.Item.Local = manifestItem,
-        identifier: Identifier = item.identifier,
-        href: Path = item.href,
-        fallback: String? = item.fallback,
-        mediaOverlay: String? = item.mediaOverlay,
-        properties: Properties = item.properties
-    ) {
-        // TODO: This currently does essentially the same operation twice, maybe bake everything into this function
-        //      to improve performance?
-        val newItem = item.copy(
-            identifier = identifier,
-            href = href,
-            fallback = fallback,
-            mediaOverlay = mediaOverlay,
-            properties = properties
-        )
-
-        // if the given 'identifier' is different than the currently known 'identifier' of this resource, we want to
-        // update all the references properly, which the 'identifier' property is set to do, so we just invoke that
-        if (identifier != this.identifier) {
-            this.identifier = identifier
-        }
-
-        if (href != this.file) {
-            this.file = href
-        }
-
-        book.manifest.items[identifier] = newItem
-
-        if (this is PageResource) {
-            book.spine.getReferenceOfOrNull(this)?.apply {
-                this.item = newItem
-            } ?: logger.warn { "Page-resource <$this> has no spine entry" }
-        }
-    }
 
     /**
      * Invoked when `this` resource is first created by the system.
@@ -246,23 +221,109 @@ sealed class Resource(file: Path, identifier: Identifier, desiredDirectory: Stri
     protected fun raiseException(message: String, cause: Throwable? = null): Nothing =
         throw ResourceException(file, message, cause)
 
+    /**
+     * Handles the updating of all page references *(`href`, `src`, etc..)* of this resource.
+     */
+    @JvmSynthetic
+    internal fun updateReferencesTo(file: Path) {
+        for (ref in references) ref.updateReferenceTo(this, file)
+    }
+
+    @JvmSynthetic
+    internal fun updateItemProperties() {
+        manifestItem.properties.apply {
+            clear()
+            addAll(properties)
+        }
+    }
+
+    /**
+     * Handles the updating the of the [manifestItem] that this resource represents.
+     *
+     * This function makes sure that all the appropriate systems get updated/notified accordingly when the manifest
+     * of this resource has been changed in some way.
+     *
+     * This function does *not* allow the [mediaType][Manifest.Item.mediaType] of the `item` to be changed, as that
+     * would require `this` resource to *dynamically* change its entire type, which is beyond the scope of this
+     * framework.
+     */
+    @JvmSynthetic
+    internal fun updateManifest(
+        // this is simply here to avoid multiple invocations of 'getLocalItem' for every parameter, it should never be
+        // anything but 'manifestItem'
+        item: Manifest.Item.Local = manifestItem,
+        identifier: Identifier = item.identifier,
+        href: Path = item.href,
+        mediaType: MediaType? = item.mediaType,
+        fallback: String? = item.fallback,
+        mediaOverlay: String? = item.mediaOverlay,
+        properties: Properties = item.properties
+    ) {
+        // TODO: This currently does essentially the same operation twice, maybe bake everything into this function
+        //      to improve performance?
+        val newItem = item.copy(
+            identifier = identifier,
+            href = href,
+            mediaType = mediaType,
+            fallback = fallback,
+            mediaOverlay = mediaOverlay,
+            properties = properties
+        )
+
+        // if the given 'identifier' is different than the currently known 'identifier' of this resource, we want to
+        // update all the references properly, which the 'identifier' property is set to do, so we just invoke that
+        if (identifier != this.identifier) {
+            this.identifier = identifier
+        }
+
+        if (href != this.file) {
+            this.file = href
+        }
+
+        // TODO: This should probably work without ending up in an infinite loop, as 'fallback' is an observable and
+        //       will only invoke this function if the 'old' & 'new' value are NOT the same
+        if (fallback != this.fallback?.identifier?.value) {
+            this.fallback = when (fallback) {
+                null -> null
+                else -> book.resources.getResourceOrNull(Identifier.of(fallback))
+            }
+        }
+
+        book.manifest.items[identifier] = newItem
+
+        if (this is PageResource) {
+            book.spine.getReferenceOfOrNull(this)?.apply {
+                this.item = newItem
+            } ?: logger.debug { "Page-resource <$this> has no spine entry" }
+        }
+    }
+
     override fun equals(other: Any?): Boolean = when {
         this === other -> true
         other !is Resource -> false
         book != other.book -> false
-        file != other.file -> false
         mediaTypes != other.mediaTypes -> false
+        file != other.file -> false
+        properties != other.properties -> false
+        identifier != other.identifier -> false
+        fallback != other.fallback -> false
         else -> true
     }
 
     override fun hashCode(): Int {
         var result = book.hashCode()
-        result = 31 * result + file.hashCode()
         result = 31 * result + mediaTypes.hashCode()
+        result = 31 * result + file.hashCode()
+        result = 31 * result + properties.hashCode()
+        result = 31 * result + identifier.hashCode()
+        result = 31 * result + (fallback?.hashCode() ?: 0)
         return result
     }
 
     companion object {
+        private fun match(mediaType: MediaType, mediaTypes: Set<MediaType>): Boolean =
+            mediaTypes.any { it.`is`(mediaType) }
+
         @JvmSynthetic
         internal fun fromMediaType(
             mediaType: MediaType,
@@ -272,22 +333,22 @@ sealed class Resource(file: Path, identifier: Identifier, desiredDirectory: Stri
         ): Resource {
             requireThat(file.fileSystem == book.fileSystem) { "file should have the same file-system as the given book [book=${book.fileSystem}, file=${file.fileSystem}]" }
             requireFileExistence(file)
-            return when (mediaType) {
-                in TableOfContentsResource.MEDIA_TYPES -> TableOfContentsResource(book, file, identifier)
-                in PageResource.MEDIA_TYPES -> PageResource(book, file, identifier)
-                in StyleSheetResource.MEDIA_TYPES -> StyleSheetResource(book, file, identifier)
-                in ImageResource.MEDIA_TYPES -> ImageResource(book, file, identifier)
-                in FontResource.MEDIA_TYPES -> FontResource(book, file, identifier)
-                in AudioResource.MEDIA_TYPES -> AudioResource(book, file, identifier)
-                in ScriptResource.MEDIA_TYPES -> ScriptResource(book, file, identifier)
-                in VideoResource.MEDIA_TYPES -> VideoResource(book, file, identifier)
+            return when {
+                match(mediaType, TableOfContentsResource.MEDIA_TYPES) -> TableOfContentsResource(book, file, identifier)
+                match(mediaType, PageResource.MEDIA_TYPES) -> PageResource(book, file, identifier)
+                match(mediaType, StyleSheetResource.MEDIA_TYPES) -> StyleSheetResource(book, file, identifier)
+                match(mediaType, ImageResource.MEDIA_TYPES) -> ImageResource(book, file, identifier)
+                match(mediaType, FontResource.MEDIA_TYPES) -> FontResource(book, file, identifier)
+                match(mediaType, AudioResource.MEDIA_TYPES) -> AudioResource(book, file, identifier)
+                match(mediaType, ScriptResource.MEDIA_TYPES) -> ScriptResource(book, file, identifier)
+                match(mediaType, VideoResource.MEDIA_TYPES) -> VideoResource(book, file, identifier)
                 else -> {
-                    logger.info { "No resource implementations found for the given media-type <$mediaType>, marking as misc-resource.." }
+                    logger.debug { "No resource implementations found for the given media-type <$mediaType>, marking file <$file> as misc-resource.." }
                     MiscResource(book, file, identifier)
                 }
             }.also {
                 if (it !is MiscResource) {
-                    logger.debug { "Created resource <$it> for media-type <$mediaType>" }
+                    logger.trace { "Created resource <$it> for media-type <$mediaType>" }
                 }
             }
         }
@@ -315,7 +376,7 @@ sealed class Resource(file: Path, identifier: Identifier, desiredDirectory: Stri
             requireFileExistence(file)
             val resource = file.mediaType?.let { fromMediaType(it, file, book, identifier) }
             if (file.mediaType == null) {
-                logger.info { "Resource file <$file> does not have a known media-type, marking as a misc-resource.." }
+                logger.debug { "Resource file <$file> does not have a known media-type, marking as a misc-resource.." }
             }
             return resource ?: MiscResource(book, file, identifier)
         }
@@ -358,13 +419,13 @@ class TableOfContentsResource internal constructor(override val book: Book, file
     override val mediaTypes: ImmutableSet<MediaType> get() = MEDIA_TYPES
 
     // TODO: Change this if it's using a XHTML ToC, or maybe just create both somehow?
-    //override val desiredDirectory: Path by lazy { book.packageDocument.file.parent }
+    override val desiredDirectory: Path by lazy { book.packageDocument.file.parent }
 
-    //override fun toString(): String = "TableOfContentsResource(identifier='$identifier', href='$href', book=$book)"
+    override fun toString(): String = "TableOfContentsResource(identifier='$identifier', href='$href', book=$book)"
 
     internal companion object {
-        // TODO: Make this also recognize the 'nav xhtml document'
-        @JvmField val MEDIA_TYPES: ImmutableSet<MediaType> = persistentHashSetOf(
+        // TODO: Make this also recognize the 'nav xhtml document'?
+        val MEDIA_TYPES: ImmutableSet<MediaType> = persistentHashSetOf(
             MediaType.create("application", "x-dtbncx+xml"),
             MediaType.create("application", "oebps-package+xml")
         )
@@ -375,10 +436,45 @@ class PageResource internal constructor(override val book: Book, file: Path, ide
     Resource(file, identifier, "Text/") {
     override val mediaTypes: ImmutableSet<MediaType> get() = MEDIA_TYPES
 
-    //override fun toString(): String = "PageResource(identifier='$identifier', href='$href', book=$book)"
+    /**
+     * Returns the page tied to `this` page-resource, or throws a [NoSuchElementException] if `this` page-resource has
+     * no page tied to it.
+     */
+    val page: Page get() = book.pages.getPage(this)
+
+    /**
+     * Returns the [page], or creates a new [page][Page], adds it to the [spine][Spine] at the given [index] and
+     * returns it.
+     *
+     * Note that `index` is *not* used if `this` page-resource is already tied to a `page`, as it simply returns `page`
+     * then. Invoking this function will also mean that `this` resource will be added to the [manifest][Manifest] if it
+     * is not already in there, as a `page` can not exist in the `spine` without a `manifest` entry to accompany it.
+     */
+    fun getOrCreatePage(index: Int): Page = when (this) {
+        in book.pages -> page
+        else -> book.pages.addPage(index, Page.fromResource(this))
+    }
+
+    /**
+     * Returns the [page], or creates a new page, adds it to the end of the [spine][Spine] and returns it.
+     *
+     * Note that invoking this function will also mean that `this` resource will be added to the [manifest][Manifest]
+     * if it is not already in there, as a `page` can not exist in the `spine` without a `manifest` entry to accompany
+     * it.
+     */
+    fun getOrCreatePage(): Page = when (this) {
+        in book.pages -> page
+        else -> book.pages.addPage(Page.fromResource(this))
+    }
+
+    override fun onDeletion() {
+        book.pages.removePage(page)
+    }
+
+    override fun toString(): String = "PageResource(identifier='$identifier', href='$href', book=$book)"
 
     internal companion object {
-        @JvmField val MEDIA_TYPES: ImmutableSet<MediaType> = persistentHashSetOf(MediaType.XHTML_UTF_8)
+        val MEDIA_TYPES: ImmutableSet<MediaType> = persistentHashSetOf(MediaType.XHTML_UTF_8)
     }
 }
 
@@ -427,10 +523,10 @@ class ImageResource internal constructor(override val book: Book, file: Path, id
         }
     }
 
-    //override fun toString(): String = "ImageResource(identifier='$identifier', href='$href', book=$book)"
+    override fun toString(): String = "ImageResource(identifier='$identifier', href='$href', book=$book)"
 
     internal companion object {
-        @JvmField val MEDIA_TYPES: ImmutableSet<MediaType> =
+        val MEDIA_TYPES: ImmutableSet<MediaType> =
             persistentHashSetOf(MediaType.GIF, MediaType.JPEG, MediaType.PNG, MediaType.SVG_UTF_8)
     }
 }
@@ -439,10 +535,10 @@ class FontResource internal constructor(override val book: Book, file: Path, ide
     Resource(file, identifier, "Fonts/") {
     override val mediaTypes: ImmutableSet<MediaType> get() = MEDIA_TYPES
 
-    //override fun toString(): String = "FontResource(identifier='$identifier', href='$href', book=$book)"
+    override fun toString(): String = "FontResource(identifier='$identifier', href='$href', book=$book)"
 
     internal companion object {
-        @JvmField val MEDIA_TYPES: ImmutableSet<MediaType> =
+        val MEDIA_TYPES: ImmutableSet<MediaType> =
             persistentHashSetOf(MediaType.create("application", "vnd.ms-opentype"), MediaType.WOFF)
     }
 }
@@ -451,10 +547,10 @@ class AudioResource internal constructor(override val book: Book, file: Path, id
     Resource(file, identifier, "Audio/") {
     override val mediaTypes: ImmutableSet<MediaType> get() = MEDIA_TYPES
 
-    //override fun toString(): String = "AudioResource(identifier='$identifier', href='$href', book=$book)"
+    override fun toString(): String = "AudioResource(identifier='$identifier', href='$href', book=$book)"
 
     internal companion object {
-        @JvmField val MEDIA_TYPES: ImmutableSet<MediaType> = persistentHashSetOf(MediaType.MPEG_AUDIO)
+        val MEDIA_TYPES: ImmutableSet<MediaType> = persistentHashSetOf(MediaType.MPEG_AUDIO)
     }
 }
 
@@ -462,10 +558,10 @@ class ScriptResource internal constructor(override val book: Book, file: Path, i
     Resource(file, identifier, "Scripts/") {
     override val mediaTypes: ImmutableSet<MediaType> get() = MEDIA_TYPES
 
-    //override fun toString(): String = "ScriptResource(identifier='$identifier', href='$href', book=$book)"
+    override fun toString(): String = "ScriptResource(identifier='$identifier', href='$href', book=$book)"
 
     internal companion object {
-        @JvmField val MEDIA_TYPES: ImmutableSet<MediaType> = persistentHashSetOf(MediaType.TEXT_JAVASCRIPT_UTF_8)
+        val MEDIA_TYPES: ImmutableSet<MediaType> = persistentHashSetOf(MediaType.TEXT_JAVASCRIPT_UTF_8)
     }
 }
 
@@ -473,15 +569,16 @@ class VideoResource internal constructor(override val book: Book, file: Path, id
     Resource(file, identifier, "Video/") {
     override val mediaTypes: ImmutableSet<MediaType> get() = MEDIA_TYPES
 
-    //override fun toString(): String = "VideoResource(identifier='$identifier', href='$href', book=$book)"
+    override fun toString(): String = "VideoResource(identifier='$identifier', href='$href', book=$book)"
 
     internal companion object {
-        @JvmField val MEDIA_TYPES: ImmutableSet<MediaType> = persistentHashSetOf(MediaType.MP4_VIDEO)
+        val MEDIA_TYPES: ImmutableSet<MediaType> = persistentHashSetOf(MediaType.MP4_VIDEO)
     }
 }
 
 class MiscResource internal constructor(override val book: Book, file: Path, identifier: Identifier) :
     Resource(file, identifier, "Misc/") {
     override val mediaTypes: ImmutableSet<MediaType> = persistentSetOf()
-    //override fun toString(): String = "MiscResource(identifier='$identifier', href='$href', book=$book)"
+
+    override fun toString(): String = "MiscResource(identifier='$identifier', href='$href', book=$book)"
 }

@@ -16,12 +16,15 @@
 
 package moe.kanon.epubby.resources
 
+import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.ImmutableMap
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toPersistentHashMap
 import moe.kanon.epubby.Book
 import moe.kanon.epubby.EpubbyException
 import moe.kanon.epubby.packages.Manifest
 import moe.kanon.epubby.structs.Identifier
+import moe.kanon.epubby.structs.props.vocabs.ManifestVocabulary
 import moe.kanon.epubby.utils.internal.logger
 import moe.kanon.kommons.collections.asUnmodifiable
 import moe.kanon.kommons.collections.filterValuesIsInstance
@@ -40,6 +43,7 @@ import java.io.IOException
 import java.nio.file.FileVisitResult
 import java.nio.file.Path
 import java.nio.file.attribute.BasicFileAttributes
+import kotlin.reflect.KClass
 
 class Resources internal constructor(val book: Book) : Iterable<Resource> {
     private val resources: MutableMap<Identifier, Resource> = hashMapOf()
@@ -85,12 +89,20 @@ class Resources internal constructor(val book: Book) : Iterable<Resource> {
         val knownResources = localResources
             .filter { it.mediaType != null }
             .filter { it.href.exists }
-            .map { Resource.fromMediaType(it.mediaType!!, it.href, book, it.identifier) }
+            .map {
+                Resource.fromMediaType(it.mediaType!!, it.href, book, it.identifier).apply {
+                    properties.addAll(it.properties.filterIsInstance<ManifestVocabulary>())
+                }
+            }
         val unknownResources = localResources
             .filter { it.mediaType == null }
             .filter { it.href.exists }
             .onEach { logger.warn { "Item <$it> does not have a 'mediaType', will be marked as a 'MiscResource'" } }
-            .map { MiscResource(book, it.href, it.identifier) }
+            .map {
+                MiscResource(book, it.href, it.identifier).apply {
+                    properties.addAll(it.properties.filterIsInstance<ManifestVocabulary>())
+                }
+            }
         val allResources = (knownResources + unknownResources).associateByTo(HashMap()) { it.identifier }
         resources.putAll(allResources)
         logger.info { "Successfully created all book resources from the book manifest." }
@@ -102,13 +114,13 @@ class Resources internal constructor(val book: Book) : Iterable<Resource> {
      * @throws [IOException] if an i/o error occurs
      */
     @Throws(IOException::class)
-    fun organizeResourceFiles() {
+    fun moveToDesiredDirectories() {
         val root = book.packageRoot
         for (resource in this) {
             val file = resource.file
             val desiredDirectory = resource.desiredDirectory.getOrCreateDirectory()
             if (file.parent != desiredDirectory) {
-                logger.debug { "Moving file <${file.name}> from <${file.parent}> to <$desiredDirectory>" }
+                logger.trace { "Moving file <${file.name}> from <${file.parent}> to <$desiredDirectory>" }
                 resource.file = resource.file.moveTo(desiredDirectory, true) // , StandardCopyOption.REPLACE_EXISTING
             }
         }
@@ -116,7 +128,7 @@ class Resources internal constructor(val book: Book) : Iterable<Resource> {
         root.walkFileTree(visitor = object : PathVisitor {
             override fun postVisitDirectory(dir: Path, exc: IOException?): FileVisitResult {
                 if (dir.entries.isEmpty) {
-                    logger.info { "Directory <$dir> is empty, deleting..." }
+                    logger.trace { "Directory <$dir> is empty, deleting..." }
                     dir.delete()
                 }
                 return FileVisitResult.CONTINUE
@@ -134,6 +146,9 @@ class Resources internal constructor(val book: Book) : Iterable<Resource> {
     fun <R : Resource> addResource(resource: R): R {
         requireThat(resource.identifier !in resources) { "there already exists a resource with the identifier '${resource.identifier}'" }
         resources[resource.identifier] = resource
+        if (!book.manifest.hasItemFor(resource)) {
+            book.manifest.addItemForResource(resource, resource.properties)
+        }
         return resource
     }
 
@@ -196,6 +211,7 @@ class Resources internal constructor(val book: Book) : Iterable<Resource> {
      */
     fun hasResource(resource: Resource): Boolean = resources.containsValue(resource)
 
+    // -- UTILS -- \\
     fun visitResources(visitor: ResourceVisitor) {
         for ((_, resource) in resources) {
             when (resource) {
@@ -211,6 +227,33 @@ class Resources internal constructor(val book: Book) : Iterable<Resource> {
             }
         }
     }
+
+    /**
+     * Returns a list of all the directories that the underlying [files][Resource.file] of the `resources` are stored
+     * in. The list is ordered by frequency of directory, with the highest being first, and lowest being last.
+     */
+    // TODO: Does this work?
+    fun <T : Resource> getDirectoriesUsedBy(filter: Class<T>): ImmutableList<Path> {
+        val dirs = resources
+            .values
+            .asSequence()
+            .filterIsInstance(filter)
+            .map { it.file.parent }
+        return dirs
+            .distinct()
+            .map { it to dirs.count { dir -> it == dir } }
+            .sortedByDescending { it.second }
+            .map { it.first }
+            .asIterable()
+            .toImmutableList()
+    }
+
+    /**
+     * Returns a list of all the directories that the underlying [files][Resource.file] of the `resources` are stored
+     * in. The list is ordered by frequency of directory, with the highest being first, and lowest being last.
+     */
+    @JvmSynthetic
+    inline fun <reified T : Resource> getDirectoriesUsedBy(): ImmutableList<Path> = getDirectoriesUsedBy(T::class.java)
 
     override fun iterator(): Iterator<Resource> = resources.values.iterator().asUnmodifiable()
 }

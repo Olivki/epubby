@@ -20,13 +20,23 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import moe.kanon.epubby.Book
 import moe.kanon.epubby.resources.PageResource
+import moe.kanon.epubby.resources.pages.Page
 import moe.kanon.epubby.structs.Identifier
 import moe.kanon.epubby.structs.PageProgressionDirection
+import moe.kanon.epubby.Version
 import moe.kanon.epubby.structs.props.Properties
+import moe.kanon.epubby.utils.attr
 import moe.kanon.epubby.utils.internal.Namespaces
+import moe.kanon.epubby.utils.internal.logger
+import moe.kanon.epubby.utils.internal.malformed
+import moe.kanon.epubby.utils.stringify
 import moe.kanon.kommons.collections.asUnmodifiable
+import moe.kanon.kommons.lang.ParseException
+import moe.kanon.kommons.lang.parse
+import moe.kanon.kommons.requireThat
 import org.jdom2.Element
 import org.jdom2.Namespace
+import org.jdom2.output.Format
 import java.nio.file.Path
 import kotlin.properties.Delegates
 
@@ -37,24 +47,35 @@ class Spine(
     val book: Book,
     var identifier: Identifier?,
     var pageProgressionDirection: PageProgressionDirection?,
-    private var _tableOfContents: Identifier?,
-    private val _references: MutableList<ItemReference>
+    private var tableOfContentsIdentifier: Identifier?,
+    @get:JvmSynthetic internal val _references: MutableList<ItemReference>
 ) : Iterable<Spine.ItemReference> {
     val references: ImmutableList<ItemReference> get() = _references.toImmutableList()
 
-    // TODO: Add functions for modifying the spine
+    /**
+     * The [manifest-item][Manifest.Item] that has been marked as the table-of-contents for the [book].
+     *
+     * Note that the `toc` attribute that this relies on is marked as a **LEGACY** feature as of
+     * [EPUB 3.0][Version.EPUB_3_0], so there is no guarantee that this will return anything.
+     */
+    var tableOfContents: Manifest.Item<*>?
+        get() = tableOfContentsIdentifier?.let { book.manifest.getLocalItemOrNull(it) }
+        set(value) {
+            tableOfContentsIdentifier = value?.identifier
+        }
+
     // -- REFERENCE-AT -- \\
     /**
      * Returns the [itemref][ItemReference] at the given [index].
      *
      * @throws [IndexOutOfBoundsException] if the given [index] is out of range
      */
-    fun getReferenceAt(index: Int): ItemReference = _references[index]
+    fun getReference(index: Int): ItemReference = _references[index]
 
     /**
      * Returns the [itemref][ItemReference] at the given [index], or `null`if `index` is out of range.
      */
-    fun getReferenceAtOrNull(index: Int): ItemReference? = _references.getOrNull(index)
+    fun getReferenceOrNull(index: Int): ItemReference? = _references.getOrNull(index)
 
     // -- REFERENCE-OF -- \\
     /**
@@ -99,10 +120,26 @@ class Spine(
     fun hasReferenceOf(item: Manifest.Item<*>): Boolean = _references.any { it.item == item }
 
     @JvmSynthetic
+    internal fun addReferenceFor(page: Page) {
+        requireThat(page.resource in book.manifest) { "page-resource should be in book manifest" }
+        val itemRef = ItemReference(page.resource.manifestItem)
+        logger.trace { "Created spine item-ref instance <$itemRef> for page <$page>" }
+        _references += itemRef
+    }
+
+    @JvmSynthetic
+    internal fun addReferenceFor(index: Int, page: Page) {
+        requireThat(page.resource in book.manifest) { "page-resource should be in book manifest" }
+        val itemRef = ItemReference(page.resource.manifestItem)
+        logger.trace { "Created spine item-ref instance <$itemRef> for page <$page>" }
+        _references.add(index, itemRef)
+    }
+
+    @JvmSynthetic
     internal fun toElement(namespace: Namespace = Namespaces.OPF): Element = Element("spine", namespace).apply {
         identifier?.also { setAttribute(it.toAttribute()) }
         pageProgressionDirection?.also { setAttribute(it.toAttribute()) }
-        _tableOfContents?.also { setAttribute(it.toAttribute("toc")) }
+        tableOfContentsIdentifier?.also { setAttribute(it.toAttribute("toc")) }
         for (ref in _references) {
             addContent(ref.toElement())
         }
@@ -110,14 +147,22 @@ class Spine(
 
     override fun iterator(): Iterator<ItemReference> = _references.iterator().asUnmodifiable()
 
+    override fun toString(): String = buildString {
+        append("Spine(")
+        identifier?.also { append(", identifier='$it'") }
+        pageProgressionDirection?.also { append(", pageProgressionDirection=$it") }
+        append(")")
+    }
+
     /**
      * Represents the [itemref](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#elemdef-spine-itemref)
      * element.
      *
-     * @property [item] TODO
+     * @property [item] The [manifest item][Manifest.Item] that this spine entry is representing the order of.
      * @property [identifier] TODO
      * @property [properties] TODO
      */
+    // TODO: Change 'item' to Manifest.Item.Local?
     class ItemReference internal constructor(
         var item: Manifest.Item<*>,
         var identifier: Identifier? = null,
@@ -163,11 +208,46 @@ class Spine(
         }
 
         override fun toString(): String =
-            "ItemReference(reference=$item, identifier=$identifier, properties=$properties, isLinear=$isLinear)"
+            "ItemReference(item=$item, identifier=$identifier, properties=$properties, isLinear=$isLinear)"
     }
 
     internal companion object {
         @JvmSynthetic
-        internal fun fromElement(book: Book, element: Element, file: Path): Spine = TODO()
+        internal fun fromElement(book: Book, manifest: Manifest, element: Element, file: Path): Spine = with(element) {
+            val identifier = getAttributeValue("id")?.let { Identifier.of(it) }
+            val pageProgressionDirection =
+                getAttributeValue("page-progression-direction")?.let { PageProgressionDirection.of(it) }
+            val tocIdentifier = getAttributeValue("toc")?.let { Identifier.of(it) }
+            val references = getChildren("itemref", namespace)
+                .mapTo(mutableListOf()) { createReference(manifest, it, book.file, file) }
+                .ifEmpty { malformed(book.file, file, "The book spine should not be empty") }
+            return Spine(book, identifier, pageProgressionDirection, tocIdentifier, references).also {
+                logger.trace { "Constructed spine instance <$it>" }
+            }
+        }
+
+        private fun createReference(manifest: Manifest, element: Element, epub: Path, container: Path): ItemReference {
+            val textual = element.stringify(Format.getCompactFormat())
+            val idRef = element.attr("idref", epub, container).let { Identifier.of(it) }
+            val item = try {
+                manifest.getItem(idRef)
+            } catch (e: NoSuchElementException) {
+                malformed(epub, container, "'itemref' element [$textual] is referencing an unknown manifest item")
+            }
+            val identifier = element.getAttributeValue("id")?.let { Identifier.of(it) }
+            val isLinear = element.getAttributeValue("linear")?.let {
+                try {
+                    Boolean.parse(it)
+                } catch (e: ParseException) {
+                    malformed(epub, container, "'linear' should be 'yes' or 'no' was: $it")
+                }
+            }
+            val properties = element.getAttributeValue("properties")?.let {
+                Properties.parse(ItemReference::class, it)
+            } ?: Properties.empty()
+            return ItemReference(item, identifier, isLinear, properties).also {
+                logger.trace { "Constructed spine item-ref instance <$it>" }
+            }
+        }
     }
 }

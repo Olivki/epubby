@@ -19,6 +19,8 @@ package moe.kanon.epubby.packages
 import moe.kanon.epubby.packages.Guide.Reference
 import moe.kanon.epubby.packages.Guide.Type
 import moe.kanon.epubby.packages.Manifest.Item
+import moe.kanon.epubby.packages.Spine.ItemReference
+import moe.kanon.epubby.resources.PageResource
 import moe.kanon.epubby.resources.Resource
 import moe.kanon.epubby.structs.Identifier
 
@@ -162,5 +164,36 @@ operator fun Manifest.contains(resource: Resource): Boolean = hasItemFor(resourc
 // -- METADATA -- \\
 
 // -- SPINE -- \\
+/**
+ * Returns the [itemref][ItemReference] at the given [index].
+ *
+ * @throws [IndexOutOfBoundsException] if the given [index] is out of range
+ */
+operator fun Spine.get(index: Int): ItemReference = getReference(index)
+
+/**
+ * Returns the first [itemref][ItemReference] that references an [item][ItemReference] that has an
+ * [id][Manifest.Item.identifier] that matches the given [resource], or throws a [NoSuchElementException] if none
+ * is found.
+ */
+operator fun Spine.get(resource: PageResource): ItemReference = getReferenceOf(resource)
+
+/**
+ * Returns the first [itemref][ItemReference] that references the given [item], or throws [NoSuchElementException]
+ * if none is found.
+ */
+operator fun Spine.get(item: Item<*>): ItemReference = getReferenceOf(item)
+
+/**
+ * Returns whether or not this `spine` element contains any [itemref][ItemReference] elements that reference
+ * an [item][Manifest.Item] that has a [id][Manifest.Item.identifier] that matches the given [resource].
+ */
+operator fun Spine.contains(resource: PageResource): Boolean = hasReferenceOf(resource)
+
+/**
+ * Returns whether or not this `spine` element contains any [itemref][ItemReference] elements that reference the
+ * given [item].
+ */
+operator fun Spine.contains(item: Item<*>): Boolean = hasReferenceOf(item)
 
 // -- TOURS -- \\

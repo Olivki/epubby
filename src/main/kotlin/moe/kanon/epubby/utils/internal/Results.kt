@@ -29,11 +29,11 @@ internal fun fail(message: String, cause: Throwable? = null): Nothing = throw Ep
 
 @PublishedApi
 internal fun malformed(epub: Path, message: String, cause: Throwable? = null): Nothing =
-    throw MalformedBookException.withDebug(epub, epub, message, cause)
+    throw MalformedBookException(epub, epub, message, cause)
 
 @PublishedApi
 internal fun malformed(epub: Path, currentFile: Path, message: String, cause: Throwable? = null): Nothing =
-    throw MalformedBookException.withDebug(epub, currentFile, message, cause)
+    throw MalformedBookException(epub, currentFile, message, cause)
 
 @PublishedApi
 internal fun <T> failure(message: String, cause: Throwable?): Try<T> = Failure(EpubbyException(message, cause))

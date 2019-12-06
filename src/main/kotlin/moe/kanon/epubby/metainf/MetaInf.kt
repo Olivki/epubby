@@ -75,7 +75,7 @@ class MetaInf private constructor(
             }
 
             val container = MetaInfContainer.fromFile(epub, containerFile, rootFile)
-            logger.info { "Located package-document (OPF) at '${container.packageDocument.path}'" }
+            logger.debug { "Located package-document (OPF) at '${container.packageDocument.path}'" }
             val encryption = null
             val manifest = null
             val metadata = null
@@ -83,7 +83,7 @@ class MetaInf private constructor(
             val signatures = null
 
             return MetaInf(epub, directory, container, encryption, manifest, metadata, rights, signatures).also {
-                logger.debug { "Constructed meta-inf instance <$it>" }
+                logger.trace { "Constructed meta-inf instance <$it>" }
             }
         }
     }

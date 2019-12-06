@@ -16,6 +16,7 @@
 
 package moe.kanon.epubby.structs.props.vocabs
 
+import moe.kanon.epubby.packages.Spine
 import moe.kanon.epubby.structs.props.BasicPropertyPrefix
 import moe.kanon.epubby.structs.props.Property
 import moe.kanon.epubby.structs.props.PropertyPrefix
@@ -31,14 +32,16 @@ enum class SpineVocabulary(override val reference: String) : Property {
      * Represents the [page-spread-left](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#sec-page-spread-left)
      * entry.
      *
-     * Indicates that the first page of the associated `item` page represents the left-hand side of a two-page spread.
+     * Indicates that the first page of the associated [item][Spine.ItemReference.item] page represents the left-hand
+     * side of a two-page spread.
      */
     PAGE_SPREAD_LEFT("page-spread-left"),
     /**
      * Represents the [page-spread-right](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#sec-page-spread-right)
      * entry.
      *
-     * Indicates that the first page of the associated `item` page represents the right-hand side of a two-page spread.
+     * Indicates that the first page of the associated [item][Spine.ItemReference.item] page represents the right-hand
+     * side of a two-page spread.
      */
     PAGE_SPREAD_RIGHT("page-spread-right");
 

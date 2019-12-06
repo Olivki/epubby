@@ -37,6 +37,7 @@ internal class FileTypeNavigationCenterExtended : FileTypeDetector() {
 /**
  * [Open Publication Format](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#sec-package-doc)
  */
+// magic numbers: 0: PK 0x03 0x04, 30: mimetype, 38: application/epub+zip
 @AutoService(FileTypeDetector::class)
 internal class FileTypePackageDocument : FileTypeDetector() {
     override fun probeContentType(path: Path): String? = when {

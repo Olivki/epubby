@@ -16,8 +16,12 @@
 
 package moe.kanon.epubby.structs.props
 
+import moe.kanon.epubby.Book
+import moe.kanon.epubby.packages.PackageDocument
 import moe.kanon.epubby.structs.props.vocabs.VocabularyMode
 import moe.kanon.epubby.utils.internal.Patterns
+import moe.kanon.kommons.collections.isEmpty
+import moe.kanon.kommons.collections.isNotEmpty
 import moe.kanon.kommons.requireThat
 import org.jdom2.Attribute
 import org.jdom2.Namespace
@@ -27,6 +31,19 @@ import kotlin.reflect.KClass
  * Represents a list of [Property] instances.
  */
 class Properties private constructor(private val delegate: MutableList<Property>) : MutableList<Property> by delegate {
+    /**
+     * Returns a string containing all the [property][Property] instances stored in this `properties`, separated by a
+     * space.
+     *
+     * This form is the way that the `properties` element is displayed in its XML attribute form in the
+     * [OPF][PackageDocument] of a [book][Book].
+     */
+    fun toStringForm(): String = delegate.joinToString(separator = " ") { it.reference }
+
+    @JvmOverloads
+    fun toAttribute(name: String = "properties", namespace: Namespace = Namespace.NO_NAMESPACE): Attribute =
+        Attribute(name, toStringForm(), namespace)
+
     override fun equals(other: Any?): Boolean = when {
         this === other -> true
         other !is Properties -> false
@@ -36,11 +53,7 @@ class Properties private constructor(private val delegate: MutableList<Property>
 
     override fun hashCode(): Int = delegate.hashCode()
 
-    override fun toString(): String = delegate.joinToString(separator = " ")
-
-    @JvmSynthetic
-    internal fun toAttribute(name: String = "properties", namespace: Namespace = Namespace.NO_NAMESPACE): Attribute =
-        Attribute(name, toString(), namespace)
+    override fun toString(): String = delegate.toString()
 
     companion object {
         @JvmStatic
@@ -49,6 +62,12 @@ class Properties private constructor(private val delegate: MutableList<Property>
         @JvmStatic
         fun of(vararg properties: Property): Properties {
             requireThat(properties.isNotEmpty()) { "vararg properties should not be empty" }
+            return Properties(properties.toMutableList())
+        }
+
+        @JvmStatic
+        fun copyOf(properties: Iterable<Property>): Properties {
+            requireThat(properties.isNotEmpty) { "properties should not be empty" }
             return Properties(properties.toMutableList())
         }
 

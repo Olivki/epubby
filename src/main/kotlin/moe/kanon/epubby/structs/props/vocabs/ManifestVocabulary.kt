@@ -16,6 +16,7 @@
 
 package moe.kanon.epubby.structs.props.vocabs
 
+import moe.kanon.epubby.resources.Resource
 import moe.kanon.epubby.structs.props.BasicPropertyPrefix
 import moe.kanon.epubby.structs.props.Property
 import moe.kanon.epubby.structs.props.PropertyPrefix
@@ -28,34 +29,34 @@ import moe.kanon.epubby.utils.internal.findProperty
  */
 enum class ManifestVocabulary(override val reference: String) : Property {
     /**
-     * The `cover-image` property identifies the described Publication Resource as the cover image for the Publication.
+     * The `cover-image` property identifies the described [resource][Resource] as the cover image for the Publication.
      */
     COVER_IMAGE("cover-image"),
     /**
-     * The `mathml` property indicates that the described Publication Resource contains one or more instances of MathML
+     * The `mathml` property indicates that the described [resource][Resource] contains one or more instances of MathML
      * markup.
      */
     MATH_HTML("mahtml"),
     /**
-     * The `nav` property indicates that the described Publication Resource constitutes the EPUB Navigation Document of
+     * The `nav` property indicates that the described [resource][Resource] constitutes the EPUB Navigation Document of
      * the given Rendition.
      */
     NAV("nav"),
     /**
-     * The `remote-resources` property indicates that the described Publication Resource contains one or more internal
-     * references to other Publication Resources that are located outside of the EPUB Container.
+     * The `remote-resources` property indicates that the described [resource][Resource] contains one or more internal
+     * references to other `resources` that are located outside of the EPUB Container.
      *
      * Refer to [Publication Resource Locations](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-spec.html#sec-resource-locations)
      * for more information.
      */
     REMOTE_RESOURCES("remote-resources"),
     /**
-     * The `scripted` property indicates that the described Publication Resource is a Scripted Content Document
+     * The `scripted` property indicates that the described [resource][Resource] is a Scripted Content Document
      * *(i.e., contains scripted content and/or HTML form elements)*.
      */
     SCRIPTED("scripted"),
     /**
-     * The `svg` property indicates that the described Publication Resource embeds one or more instances of SVG markup.
+     * The `svg` property indicates that the described [resource][Resource] embeds one or more instances of SVG markup.
      *
      * This property *MUST* be set when SVG markup is included directly in the resource and *MAY* be set when the SVG
      * is referenced from the resource *(e.g., from an `HTML` img, `object` or `iframe` element)*.

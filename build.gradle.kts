@@ -46,7 +46,7 @@ dependencies {
     implementation(group = "moe.kanon.kommons", name = "kommons.func", version = "1.4.0")
     implementation(group = "moe.kanon.kommons", name = "kommons.reflection", version = "0.5.0")
     implementation(group = "moe.kanon.kommons", name = "kommons.io", version = "1.4.0")
-    implementation(group = "moe.kanon.kommons", name = "kommons.lang", version = "0.4.0")
+    implementation(group = "moe.kanon.kommons", name = "kommons.lang", version = "0.4.1")
     implementation(group = "moe.kanon.kommons", name = "kommons.collections", version = "0.9.0")
 
     // XML

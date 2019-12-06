@@ -19,10 +19,12 @@ package moe.kanon.epubby.structs.props
 import moe.kanon.epubby.metainf.MetaInfContainer
 import moe.kanon.epubby.packages.Manifest
 import moe.kanon.epubby.packages.Metadata
+import moe.kanon.epubby.packages.Spine
 import moe.kanon.epubby.structs.props.vocabs.ManifestVocabulary
 import moe.kanon.epubby.structs.props.vocabs.MetadataLinkRelVocabulary
 import moe.kanon.epubby.structs.props.vocabs.MetadataLinkVocabulary
 import moe.kanon.epubby.structs.props.vocabs.MetadataMetaVocabulary
+import moe.kanon.epubby.structs.props.vocabs.SpineVocabulary
 import moe.kanon.epubby.structs.props.vocabs.VocabularyMode
 import org.jdom2.Attribute
 import org.jdom2.Namespace
@@ -78,6 +80,7 @@ interface Property {
             }
             Metadata.Meta::class -> MetadataMetaVocabulary.fromReference(input) as Property
             MetaInfContainer.Link::class -> MetadataLinkRelVocabulary.fromReference(input) as Property
+            Spine.ItemReference::class -> SpineVocabulary.fromReference(input) as Property
             else -> throw IllegalArgumentException("Caller <$caller> does not have any known vocabularies")
         }
     }

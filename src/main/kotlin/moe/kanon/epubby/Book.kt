@@ -25,7 +25,6 @@ import moe.kanon.epubby.resources.Resource
 import moe.kanon.epubby.resources.Resources
 import moe.kanon.epubby.resources.pages.Pages
 import moe.kanon.epubby.structs.Identifier
-import moe.kanon.epubby.structs.Version
 import moe.kanon.epubby.utils.internal.logger
 import moe.kanon.kommons.io.paths.name
 import moe.kanon.kommons.io.paths.touch
@@ -63,9 +62,11 @@ class Book internal constructor(
     val file: Path,
     val fileSystem: FileSystem,
     val originFile: Path,
-    val root: Path,
-    val version: Version
+    val root: Path
 ) : Closeable {
+    lateinit var version: Version
+        @JvmSynthetic internal set
+
     // TODO: Name? packageDocument is kind of a mouth-full..
     val packageDocument: PackageDocument = PackageDocument.fromBook(this)
 

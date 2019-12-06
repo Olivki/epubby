@@ -51,7 +51,7 @@ open class MalformedBookException(
             cause: Throwable? = null
         ): MalformedBookException {
             val detailedMessage = """
-                |Encountered an error when traversing file "${container.relativize(currentFile)}" in container file "${container.name}"
+                |Encountered an error when traversing file "$currentFile" in container file "${container.name}"
                 |---- Debug Details ----
                 |Container: $container
                 |Current File: $currentFile

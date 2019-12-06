@@ -17,31 +17,32 @@
 package moe.kanon.epubby.resources.pages
 
 import kotlinx.collections.immutable.ImmutableList
-import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.toImmutableList
-import kotlinx.collections.immutable.toImmutableMap
 import moe.kanon.epubby.Book
+import moe.kanon.epubby.packages.Spine
+import moe.kanon.epubby.packages.contains
+import moe.kanon.epubby.packages.get
 import moe.kanon.epubby.resources.PageResource
 import moe.kanon.epubby.resources.Resource
 import moe.kanon.epubby.resources.ResourceReference
 import moe.kanon.epubby.structs.Identifier
 import moe.kanon.epubby.utils.internal.logger
 import moe.kanon.kommons.collections.asUnmodifiable
-import moe.kanon.kommons.collections.getValueOrThrow
 import moe.kanon.kommons.collections.isEmpty
 import org.jsoup.nodes.Attribute
 import org.jsoup.nodes.Element
 
 class Pages internal constructor(val book: Book) : Iterable<Page> {
-    private val pages: MutableMap<Identifier, Page> = LinkedHashMap()
+    private val pages: MutableList<Page> = mutableListOf()
 
     val transformers: PageTransformers = PageTransformers(book)
 
     /**
      * Returns a linked-map containing all the [pages][Page] used by the [book].
      */
-    val entries: ImmutableMap<Identifier, Page> get() = pages.toImmutableMap()
+    val entries: ImmutableList<Page> get() = pages.toImmutableList()
 
+    // TODO: Rework this one because we're changing how pages are being added to the system.
     @JvmSynthetic
     internal fun populateFromSpine() {
         logger.debug { "Populating book pages with entries from the book spine.." }
@@ -55,26 +56,119 @@ class Pages internal constructor(val book: Book) : Iterable<Page> {
                 return@sortedBy ref?.let { book.spine.references.indexOf(it) }
             }
             .filterNotNull()
-            .map(Page.Companion::fromResource)
-            .associateBy { it.resource.identifier }
-        pages.putAll(pageResources)
+            .map { Page.fromResource(it) }
+        pages.addAll(pageResources)
         logger.debug { "Book pages have been successfully populated." }
+    }
+
+    /**
+     * Sorts all the pages registered here by their index in the book [spine][Spine].
+     *
+     * Note that if the [book] has been created via parsing, then all registered pages in here will have already been
+     * sorted by their index in the `spine` upon the creation of the `book`.
+     */
+    fun sortPagesBySpine() {
+        logger.debug { "Sorting pages by their position in the book spine.." }
+        synchronized(pages) {
+            pages.sortBy { page ->
+                val ref = book.spine.getReferenceOfOrNull(page.resource)
+                ref?.let { book.spine.references.indexOf(it) }
+            }
+        }
+        logger.debug { "Page sorting is done." }
     }
 
     // TODO: Add functions for adding pages from strings and the kotlinx.html library, and make sure that those things
     //       also create a new page resource
 
-    /**
-     * Returns the [Page] stored under the given [identifier], or throws a [NoSuchElementException] if none is found.
-     */
-    fun getPage(identifier: Identifier): Page =
-        pages.getValueOrThrow(identifier) { "No page found associated with the identifier '$identifier'" }
+    // TODO: Make sure to document that adding a page to this "repo" will also add that page to the book spine if it is
+    //       not in it, and add it to the resources of the book if it also is not in it
+
+    fun addPage(page: Page): Page {
+        pages += page
+        // we want to add the underlying 'resource' of the given 'page' to the resources of the book, because when a
+        // page gets added here that means it should also create an entry in the book spine, and the book spine
+        // requires a manifest-item, and a manifest-item will be created and added to the manifest when a resource
+        // gets added to the book resources
+        if (page.resource !in book.resources) book.resources.addResource(page.resource)
+        if (page.resource !in book.spine) book.spine.addReferenceFor(page)
+        logger.trace { "Added page <$page> to the spine" }
+        return page
+    }
+
+    fun addPage(index: Int, page: Page): Page {
+        pages.add(index, page)
+        // we want to add the underlying 'resource' of the given 'page' to the resources of the book, because when a
+        // page gets added here that means it should also create an entry in the book spine, and the book spine
+        // requires a manifest-item, and a manifest-item will be created and added to the manifest when a resource
+        // gets added to the book resources
+        if (page.resource !in book.resources) book.resources.addResource(page.resource)
+        if (page.resource !in book.spine) book.spine.addReferenceFor(page)
+        logger.trace { "Added page <$page> to the spine, at index $index" }
+        return page
+    }
+
+    fun removePage(page: Page) {
+        if (page in pages) {
+            pages -= page
+
+            if (page.resource in book.spine) {
+                book.spine._references -= book.spine[page.resource]
+                logger.trace { "Removed <$page> from pages & book spine" }
+            } else {
+                logger.error { "Page <$page> had an entry in 'Pages' but no entry in the book spine, this should NEVER be the case" }
+            }
+        }
+    }
+
+    // this will throw a index-out-of-bounds exception if index is out of bounds
+    fun removePageAt(index: Int) {
+        pages.removeAt(index)
+        // TODO: Is it safe to assume that these will always be at the same index? Might want to do some sanity checks, just in case
+        book.spine._references.removeAt(index)
+        logger.trace { "Removed page at index <$index> from pages and book spine" }
+    }
 
     /**
-     * Returns the [Page] stored under the given [identifier], or `null` if none is found.
+     * Returns the `index` of the given [page], compliant with the [spine][Spine] of the [book], or `-1` if the given
+     * `page` does not have an entry in the `spine` of the `book`.
      */
-    fun getPageOrNull(identifier: Identifier): Page? = pages[identifier]
+    fun indexOf(page: Page): Int = pages.indexOf(page)
 
+    fun getPage(index: Int): Page = pages[index]
+
+    fun getPageOrNull(index: Int): Page? = pages.getOrNull(index)
+
+    /**
+     * Returns the first page that has a [resource][Page.resource] that matches the given [resource], or throws a
+     * [NoSuchElementException] if none is found.
+     */
+    // TODO: Rename to 'getPageFor'?
+    fun getPage(resource: PageResource): Page = getPageOrNull(resource)
+        ?: throw NoSuchElementException("No page found associated with the resource '$resource'")
+
+    /**
+     * Returns the first page that has a [resource][Page.resource] that matches the given [resource], `null` if none is
+     * found.
+     */
+    fun getPageOrNull(resource: PageResource): Page? = pages.firstOrNull { it.resource == resource }
+
+    /**
+     * Returns the first page that has a [resource][Page.resource] with an [identifier][Resource.identifier] that
+     * matches the given [identifier], or throws a [NoSuchElementException] if none is found.
+     */
+    fun getPage(identifier: Identifier): Page = getPageOrNull(identifier)
+        ?: throw NoSuchElementException("No page found associated with the identifier '$identifier'")
+
+    /**
+     * Returns the first page that has a [resource][Page.resource] with an [identifier][Resource.identifier] that
+     * matches the given [identifier], or `null` if none is found.
+     */
+    fun getPageOrNull(identifier: Identifier): Page? = pages.firstOrNull { it.resource.identifier == identifier }
+
+    fun hasPage(resource: PageResource): Boolean = pages.any { it.resource == resource }
+
+    // -- UTILITY FUNCTIONS -- \\
     /**
      * Returns a list containing all [Element]s that have an `href`/`src` reference to the given [resource], or an
      * empty list if no such elements are found.
@@ -88,7 +182,6 @@ class Pages internal constructor(val book: Book) : Iterable<Page> {
         } else attr.value.equals(resource.file.fileName.toString(), true) // should we really be ignoring case here?
 
         return pages
-            .values
             .asSequence()
             .map { it.document.allElements }
             .flatten()
@@ -99,12 +192,11 @@ class Pages internal constructor(val book: Book) : Iterable<Page> {
             .toImmutableList()
     }
 
-    @JvmSynthetic
-    internal fun writeAllPages() {
+    fun writeAllPages() {
         logger.debug { "Saving all page files.." }
-        for ((_, page) in pages) page.writeToFile()
+        for (page in pages) page.writeToFile()
         logger.debug { "Finished saving all page files." }
     }
 
-    override fun iterator(): Iterator<Page> = pages.values.iterator().asUnmodifiable()
+    override fun iterator(): Iterator<Page> = pages.iterator().asUnmodifiable()
 }

@@ -19,6 +19,7 @@ package moe.kanon.epubby.packages
 import moe.kanon.epubby.Book
 import moe.kanon.epubby.structs.Direction
 import moe.kanon.epubby.structs.Identifier
+import moe.kanon.epubby.Version
 import moe.kanon.epubby.utils.attr
 import moe.kanon.epubby.utils.child
 import moe.kanon.epubby.utils.docScope
@@ -184,12 +185,13 @@ class PackageDocument private constructor(
                 val namespace = root.namespace
                 val uniqueId = root.attr("unique-identifier", book.file, file).let { Identifier.of(it) }
                 val attributes = createAttributes(root)
+                book.version = root.attr("version", book.file, file).let { Version.fromString(it) }
                 val metadataElement = root.child("metadata", book.file, file, namespace)
                 val metadata = Metadata.fromElement(book, metadataElement, file)
                 val manifestElement = root.child("manifest", book.file, file, namespace)
                 val manifest = Manifest.fromElement(book, manifestElement, file)
                 val spineElement = root.child("spine", book.file, file, namespace)
-                val spine = Spine.fromElement(book, spineElement, file)
+                val spine = Spine.fromElement(book, manifest, spineElement, file)
                 return PackageDocument(book, file, uniqueId, attributes, metadata, manifest, spine).also {
                     root.getChild("guide", namespace)?.also { element ->
                         it.guide = Guide.fromElement(book, element, file)
@@ -212,7 +214,9 @@ class PackageDocument private constructor(
             val id = getAttributeValue("id")?.let { Identifier.of(it) }
             val prefix = getAttributeValue("prefix")
             val lang = getAttributeValue("lang", Namespace.XML_NAMESPACE).let(Locale::forLanguageTag)
-            return Attributes(dir, id, prefix, lang).also { logger.debug { "Constructed attributes instance <$it>" } }
+            return Attributes(dir, id, prefix, lang).also {
+                logger.trace { "Constructed package-document attributes instance <$it>" }
+            }
         }
     }
 }

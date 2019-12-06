@@ -249,5 +249,5 @@ internal fun Document.toXHTML(): String {
 @PublishedApi
 @JvmSynthetic
 internal inline fun <R> parseHtmlFile(file: Path, scope: (Document) -> R): R = file.newInputStream().use { input ->
-    scope(Jsoup.parse(input, "UTF-8", file.toString()))
+    scope(Jsoup.parse(input, "UTF-8", file.toString()).apply { applyDefaultOutputSettings() })
 }

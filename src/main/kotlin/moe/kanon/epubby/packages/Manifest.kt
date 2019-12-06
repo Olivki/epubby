@@ -37,6 +37,7 @@ import org.jdom2.Element
 import org.jdom2.Namespace
 import java.net.URI
 import java.nio.file.Path
+import java.util.EnumSet
 
 /**
  * Represents the [manifest](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#sec-pkg-manifest)
@@ -54,18 +55,6 @@ class Manifest private constructor(
 
     val remoteItems: ImmutableMap<Identifier, Item.Remote>
         get() = items.filterValuesIsInstance<Identifier, Item.Remote>().toPersistentHashMap()
-
-    /**
-     * Removes all [local items][Item.Local] which has a [href][Item.Local.href] that points towards a
-     * [non-existent][Path.notExists] file.
-     */
-    fun removeFaultyLocalItems() {
-        val faultyItems = localItems.values
-            .asSequence()
-            .filterNot { it.href.exists }
-            .map { it.identifier }
-        items -= faultyItems
-    }
 
     /**
      * Returns the [item][Item] stored under the given [identifier], or throws a [NoSuchElementException] if none is
@@ -137,10 +126,22 @@ class Manifest private constructor(
      */
     fun getRemoteItemOrNull(identifier: Identifier): Item.Remote? = remoteItems[identifier]
 
+    // -- INTERNAL -- \\
     @JvmSynthetic
     internal fun toElement(namespace: Namespace = Namespaces.OPF): Element = Element("manifest", namespace).apply {
         identifier?.also { setAttribute(it.toAttribute()) }
         for ((_, item) in items) addContent(item.toElement(book))
+    }
+
+    @JvmSynthetic
+    internal fun addItemForResource(resource: Resource, props: EnumSet<ManifestVocabulary>) {
+        if (hasItemFor(resource)) {
+            logger.warn { "There already exists an item entry for the given resource <$resource>" }
+        } else {
+            val item = Item.forResource(resource, props)
+            items[item.identifier] = item
+            logger.trace { "Added manifest local-item <$item> for resource <$resource>" }
+        }
     }
 
     override fun iterator(): Iterator<Item<*>> = items.values.iterator().asUnmodifiable()
@@ -153,9 +154,10 @@ class Manifest private constructor(
         // TODO: Documentation
         abstract val identifier: Identifier
         abstract val href: T
-        abstract var mediaType: MediaType?
-        abstract var fallback: String?
-        abstract var mediaOverlay: String?
+        abstract val mediaType: MediaType?
+        // TODO: Add the ability to define these things from the resource class somehow?
+        abstract val fallback: String? // TODO: Change to identifier?
+        abstract val mediaOverlay: String?
         abstract val properties: Properties
 
         @JvmSynthetic
@@ -180,9 +182,9 @@ class Manifest private constructor(
         data class Local internal constructor(
             override val identifier: Identifier,
             override val href: Path,
-            override var mediaType: MediaType? = null,
-            override var fallback: String? = null,
-            override var mediaOverlay: String? = null,
+            override val mediaType: MediaType? = null,
+            override val fallback: String? = null,
+            override val mediaOverlay: String? = null,
             override val properties: Properties = Properties.empty()
         ) : Item<Path>() {
             // TODO: retrieve the resource with the 'identifier' and then make sure to verify that the resources 'file'
@@ -195,12 +197,22 @@ class Manifest private constructor(
          */
         data class Remote internal constructor(
             override val identifier: Identifier,
-            override var href: URI,
-            override var mediaType: MediaType? = null,
-            override var fallback: String? = null,
-            override var mediaOverlay: String? = null,
+            override val href: URI,
+            override val mediaType: MediaType? = null,
+            override val fallback: String? = null,
+            override val mediaOverlay: String? = null,
             override val properties: Properties = Properties.empty()
         ) : Item<URI>()
+
+        internal companion object {
+            @JvmSynthetic
+            internal fun forResource(resource: Resource, props: EnumSet<ManifestVocabulary>): Local = Item.Local(
+                resource.identifier,
+                resource.file,
+                resource.mediaType,
+                properties = Properties.copyOf(props)
+            ).also { logger.trace { "Created manifest local-item instance <$it> for resource <$resource>" } }
+        }
     }
 
     internal companion object {
@@ -211,14 +223,18 @@ class Manifest private constructor(
             val items: MutableMap<Identifier, Item<*>> = getChildren("item", namespace)
                 .asSequence()
                 .map { createItem(it, book, book.file, documentFile) }
-                .onEach { logger.debug { "Constructed item instance <$it>" } }
+                .onEach { logger.trace { "Constructed manifest item instance <$it>" } }
                 .associateByTo(HashMap()) { it.identifier }
 
             if (items.isEmpty()) {
                 malformed(book.file, documentFile, "the 'manifest' element needs to contain at least one child")
             }
 
-            return@with Manifest(book, getAttributeValue("id")?.let { Identifier.of(it) }, items)
+            val identifier = getAttributeValue("id")?.let { Identifier.of(it) }
+
+            return@with Manifest(book, identifier, items).also {
+                logger.trace { "Constructed manifest instance <$it>" }
+            }
         }
 
         private fun getPathFromHref(book: Book, href: String, documentFile: Path): Path =

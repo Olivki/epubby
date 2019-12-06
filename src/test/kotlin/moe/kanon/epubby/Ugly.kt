@@ -18,8 +18,10 @@
 
 package moe.kanon.epubby
 
+import com.google.common.net.MediaType
 import moe.kanon.kommons.io.paths.deleteIfExists
 import moe.kanon.kommons.io.paths.pathOf
+import moe.kanon.kommons.writeOut
 
 const val BASE_IN_PATH = "H:\\Programming\\JVM\\Kotlin\\Data\\epubby\\reader"
 const val BASE_OUT_PATH = "H:\\Programming\\JVM\\Kotlin\\Data\\epubby\\writer"
@@ -32,7 +34,7 @@ fun main() {
     outDirectory.resolve(FILE_NAME).deleteIfExists()
     readBook(inDirectory, outDirectory).use { book ->
         book.pages.transformers.registerInstalled()
-        book.resources.organizeResourceFiles()
+        book.resources.moveToDesiredDirectories()
         book.`save all this shit to the place yo lol`()
         //writeOut("file-system: <${it.fileSystem}>")
     }

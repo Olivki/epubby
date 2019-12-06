@@ -19,11 +19,8 @@
 package moe.kanon.epubby
 
 import moe.kanon.epubby.metainf.MetaInf
-import moe.kanon.epubby.structs.Version
-import moe.kanon.epubby.utils.attr
 import moe.kanon.epubby.utils.internal.logger
 import moe.kanon.epubby.utils.internal.malformed
-import moe.kanon.epubby.utils.parseXmlFile
 import moe.kanon.kommons.io.paths.copyTo
 import moe.kanon.kommons.io.paths.deleteIfExists
 import moe.kanon.kommons.io.paths.exists
@@ -78,10 +75,8 @@ fun readBook(origin: Path, outputDirectory: Path, outputName: String = origin.si
     }
     val root = fileSystem.getPath("/")
     val metaInf = MetaInf.fromDirectory(copy, root.resolve("META-INF"), root)
-    val opfFile = metaInf.container.packageDocument.path
-    val version = parseXmlFile(opfFile) { _, it -> it.attr("version", copy, opfFile).let { Version.fromString(it) } }
 
-    return Book(metaInf, copy, fileSystem, origin, root, version)
+    return Book(metaInf, copy, fileSystem, origin, root)
 }
 
 private fun validateContainer(epub: Path, root: Path) {

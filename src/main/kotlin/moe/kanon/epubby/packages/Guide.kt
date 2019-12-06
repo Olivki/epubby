@@ -17,6 +17,7 @@
 package moe.kanon.epubby.packages
 
 import kotlinx.collections.immutable.ImmutableMap
+import kotlinx.collections.immutable.persistentHashMapOf
 import kotlinx.collections.immutable.toPersistentHashMap
 import moe.kanon.epubby.Book
 import moe.kanon.epubby.packages.Guide.Reference
@@ -26,6 +27,7 @@ import moe.kanon.epubby.utils.internal.Namespaces
 import moe.kanon.epubby.utils.internal.logger
 import moe.kanon.kommons.collections.asUnmodifiable
 import moe.kanon.kommons.collections.getValueOrThrow
+import moe.kanon.kommons.requireThat
 import org.jdom2.Element
 import org.jdom2.Namespace
 import java.nio.file.Path
@@ -140,6 +142,8 @@ class Guide private constructor(val book: Book, private val refs: MutableMap<Str
      */
     @JvmOverloads
     fun addCustomReference(customType: String, href: String, title: String? = null): Reference {
+        // TODO: Might be a bit extreme?
+        requireThat(Type.getOrNull(customType) == null) { "Given custom-type '$customType' matches officially defined type '${Type.getOrNull(customType)}', use that instead." }
         val type = "other.$customType"
         val ref = Reference("other.$customType", href, title)
         refs[type] = ref
@@ -223,8 +227,6 @@ class Guide private constructor(val book: Book, private val refs: MutableMap<Str
     fun hasCustomType(customType: String): Boolean = "other.$customType" in refs
 
     override fun iterator(): Iterator<Reference> = refs.values.iterator().asUnmodifiable()
-
-    override fun toString(): String = "Guide[for='${book.title}']"
 
     /**
      * Implementation of the `reference` element contained inside of the [guide][Guide] of the [book].
@@ -344,14 +346,23 @@ class Guide private constructor(val book: Book, private val refs: MutableMap<Str
         TEXT("text");
 
         companion object {
+            // TODO: Maybe make this a setting? Some people probably don't want this behaviour
+            private val KNOWN_MISMATCHES = persistentHashMapOf("copyright" to COPYRIGHT_PAGE)
+
             /**
-             * Returns the first [Type] that has a [serializedName] that matches the specified [type], or `null` if
+             * Returns the first [Type] that has a [serializedName] that matches the specified [name], or `null` if
              * none is found.
              *
-             * @param [type] the type to match all `guide-types` against
+             * Note that the system has a storage of some known mismatches *(i.e, using `'copyright'` instead of
+             * `'copyright-page'`)* and will automatically fix those.
+             *
+             * @param [name] the type to match all `guide-types` against
              */
             @JvmStatic
-            fun getOrNull(type: String): Type? = values().firstOrNull { it.serializedName == type }
+            fun getOrNull(name: String): Type? {
+                val type = name.toLowerCase()
+                return values().firstOrNull { it.serializedName == type } ?: KNOWN_MISMATCHES[type]
+            }
         }
     }
 
@@ -361,9 +372,10 @@ class Guide private constructor(val book: Book, private val refs: MutableMap<Str
             val refs = getChildren("reference", namespace)
                 .asSequence()
                 .map { createReference(it, book.file, documentFile) }
-                .onEach { logger.debug { "Constructed reference instance <$it>'" } }
                 .associateByTo(hashMapOf()) { it.type }
-            return Guide(book, refs)
+            return Guide(book, refs).also {
+                logger.trace { "Constructed guide instance <$it>" }
+            }
         }
 
         private fun createReference(element: Element, epub: Path, container: Path): Reference {
@@ -378,7 +390,9 @@ class Guide private constructor(val book: Book, private val refs: MutableMap<Str
             }
             val href = element.attr("href", epub, container)
             val title = element.getAttributeValue("title")
-            return Reference(type, href, title)
+            return Reference(type, href, title).also {
+                logger.trace { "Constructed guide reference instance <$it>" }
+            }
         }
     }
 }

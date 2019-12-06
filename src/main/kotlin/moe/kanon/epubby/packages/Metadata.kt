@@ -25,7 +25,7 @@ import moe.kanon.epubby.Book
 import moe.kanon.epubby.structs.Direction
 import moe.kanon.epubby.structs.DublinCore
 import moe.kanon.epubby.structs.Identifier
-import moe.kanon.epubby.structs.Version
+import moe.kanon.epubby.Version
 import moe.kanon.epubby.structs.props.PackagePrefix
 import moe.kanon.epubby.structs.props.Properties
 import moe.kanon.epubby.structs.props.Property
@@ -35,10 +35,12 @@ import moe.kanon.epubby.utils.attr
 import moe.kanon.epubby.utils.internal.Namespaces
 import moe.kanon.epubby.utils.internal.logger
 import moe.kanon.epubby.utils.internal.malformed
+import moe.kanon.epubby.utils.stringify
 import moe.kanon.kommons.checkThat
 import org.jdom2.Attribute
 import org.jdom2.Element
 import org.jdom2.Namespace
+import org.jdom2.output.Format
 import java.nio.charset.Charset
 import java.nio.file.Path
 import java.time.LocalDateTime
@@ -309,7 +311,7 @@ class Metadata private constructor(
         ) : Meta() {
             @JvmSynthetic
             override fun toElement(namespace: Namespace): Element = Element("meta", namespace).apply {
-                setAttribute(property.toAttribute(namespace = namespace))
+                setAttribute(property.toAttribute())
                 identifier?.also { setAttribute("id", it.value) }
                 direction?.also { setAttribute("dir", it.toString()) }
                 refines?.also { setAttribute("refines", it) }
@@ -488,51 +490,61 @@ class Metadata private constructor(
             return@with Metadata(book, identifiers, titles, languages, dublinCoreElements, metaElements, links)
         }
 
-        private fun createMetaOrNull(book: Book, element: Element, container: Path, current: Path): Meta? = when {
-            book.version > Version.EPUB_2_0 -> {
-                when {
-                    // the 'property' attribute is REQUIRED according to the EPUB specification, which means
-                    // that any 'meta' elements that are missing it are NOT valid elements
-                    element.attributes.none { it.name == "property" } -> {
-                        logger.error { "Meta element <$element> is missing the required 'property' attribute, element will be discarded." }
-                        null
-                    }
-                    // "Every meta element MUST express a value that is at least one character in length after
-                    // white space normalization" which means that if the text is blank after being normalized
-                    // it's not a valid 'meta' element
-                    element.textNormalize.isBlank() -> {
-                        logger.error { "Meta element <$element> has no value/text, element will be discarded." }
-                        null
-                    }
-                    else -> {
-                        val value = element.text
-                        val property =
-                            element.attr("property", container, current).let { Property.parse(Meta::class, it) }
-                        val identifier = element.getAttributeValue("id")?.let { Identifier.of(it) }
-                        val direction = element.getAttributeValue("dir")?.let(Direction.Companion::of)
-                        val refines = element.getAttributeValue("refines")
-                        val scheme = element.getAttributeValue("scheme")
-                        val language =
-                            element.getAttributeValue("lang", Namespace.XML_NAMESPACE)?.let(Locale::forLanguageTag)
-                        Meta.Modern(value, property, identifier, direction, refines, scheme, language)
+        private fun createMetaOrNull(book: Book, element: Element, container: Path, current: Path): Meta? {
+            fun faultyElement(reason: String): Meta? {
+                logger.warn { "Discarding a faulty 'meta' element: [${element.stringify(Format.getCompactFormat())}]: $reason." }
+                return null
+            }
+
+            return when {
+                book.version > Version.EPUB_2_0 -> {
+                    when {
+                        // the 'property' attribute is REQUIRED according to the EPUB specification, which means
+                        // that any 'meta' elements that are missing it are NOT valid elements, and should therefore
+                        // be discarded by the system, as we have no way of salvaging a faulty meta element, and we do
+                        // not want to be serializing faulty elements during the writing process
+                        element.attributes.none { it.name == "property" } -> faultyElement("missing required 'property' attribute")
+                        // "Every meta element MUST express a value that is at least one character in length after
+                        // white space normalization" which means that if the text is blank after being normalized
+                        // it's not a valid 'meta' element
+                        element.textNormalize.isBlank() -> faultyElement("value/text is blank")
+                        else -> {
+                            val value = element.text
+                            val property =
+                                element.attr("property", container, current).let { Property.parse(Meta::class, it) }
+                            val identifier = element.getAttributeValue("id")?.let { Identifier.of(it) }
+                            val direction = element.getAttributeValue("dir")?.let(Direction.Companion::of)
+                            val refines = element.getAttributeValue("refines")
+                            val scheme = element.getAttributeValue("scheme")
+                            val language =
+                                element.getAttributeValue("lang", Namespace.XML_NAMESPACE)?.let(Locale::forLanguageTag)
+                            Meta.Modern(value, property, identifier, direction, refines, scheme, language).also {
+                                logger.trace { "Constructed metadata meta instance (3.x) <$it>" }
+                            }
+                        }
                     }
                 }
-            }
-            else -> {
-                val charset = element.getAttributeValue("charset")?.let(Charset::forName)
-                val content = element.getAttributeValue("content")
-                val httpEquiv = element.getAttributeValue("http-equiv")
-                val name = element.getAttributeValue("name")
-                val scheme = element.getAttributeValue("scheme")
-                val globalAttributes = element.attributes.filterNot { it.name in KNOWN_ATTRIBUTES }.toImmutableList()
-                Meta.Legacy.newInstance(charset, content, httpEquiv, name, scheme, globalAttributes)
+                else -> {
+                    val charset = element.getAttributeValue("charset")?.let(Charset::forName)
+                    val content = element.getAttributeValue("content")
+                    val httpEquiv = element.getAttributeValue("http-equiv")
+                    val name = element.getAttributeValue("name")
+                    val scheme = element.getAttributeValue("scheme")
+                    val globalAttributes =
+                        element.attributes.filterNot { it.name in KNOWN_ATTRIBUTES }.toImmutableList()
+                    Meta.Legacy.newInstance(charset, content, httpEquiv, name, scheme, globalAttributes).also {
+                        logger.trace { "Constructed metadata meta instance (2.x) <$it>" }
+                    }
+                }
             }
         }
 
         private fun createIdentifier(element: Element): DublinCore.Identifier {
             val value = element.textNormalize
             val identifier = element.getAttributeValue("id")?.let { Identifier.of(it) }
-            return DublinCore.Identifier(value, identifier)
+            return DublinCore.Identifier(value, identifier).also {
+                logger.trace { "Constructed metadata dublin-core identifier instance <$it>" }
+            }
         }
 
         private fun createTitle(element: Element): DublinCore.Title {
@@ -540,13 +552,17 @@ class Metadata private constructor(
             val identifier = element.getAttributeValue("id")?.let { Identifier.of(it) }
             val direction = element.getAttributeValue("dir")?.let(Direction.Companion::of)
             val language = element.getAttributeValue("lang", Namespace.XML_NAMESPACE)?.let(Locale::forLanguageTag)
-            return DublinCore.Title(value, identifier, direction, language)
+            return DublinCore.Title(value, identifier, direction, language).also {
+                logger.trace { "Constructed metadata dublin-core title instance <$it>" }
+            }
         }
 
         private fun createLanguage(element: Element): DublinCore.Language {
             val value = Locale.forLanguageTag(element.textNormalize)
             val identifier = element.getAttributeValue("id")?.let { Identifier.of(it) }
-            return DublinCore.Language(value, identifier)
+            return DublinCore.Language(value, identifier).also {
+                logger.trace { "Constructed metadata dublin-core language instance <$it>" }
+            }
         }
 
         private fun createDublinCore(element: Element, container: Path, current: Path): DublinCore<*> {
@@ -576,7 +592,9 @@ class Metadata private constructor(
                 .filter { it.namespace == Namespaces.OPF_WITH_PREFIX }
                 .map(Attribute::detach)
             dublinCore._attributes.addAll(attributes)
-            return dublinCore
+            return dublinCore.also {
+                logger.trace { "Constructed metadata dublin-core instance <$it>" }
+            }
         }
 
         private fun createLink(element: Element, container: Path, current: Path): Link = with(element) {
@@ -589,7 +607,9 @@ class Metadata private constructor(
                 Properties.parse(Link::class, it)
             } ?: Properties.empty()
             val refines = getAttributeValue("refines")
-            return@with Link(href, relation, mediaType, identifier, properties, refines)
+            return@with Link(href, relation, mediaType, identifier, properties, refines).also {
+                logger.trace { "Constructed metadata link instance <$it>" }
+            }
         }
     }
 }

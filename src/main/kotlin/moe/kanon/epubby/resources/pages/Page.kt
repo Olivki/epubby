@@ -114,7 +114,7 @@ class Page private constructor(val book: Book, val document: Document, val resou
 
     @Throws(IOException::class)
     fun writeToFile() {
-        logger.debug { "Saving page <$this> to file <$file>" }
+        logger.trace { "Writing contents of this page <$this> to file <$file>" }
         val text = document.outerHtml()
         file.writeString(text)
     }

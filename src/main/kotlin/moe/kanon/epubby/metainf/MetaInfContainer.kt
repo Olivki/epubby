@@ -103,7 +103,7 @@ class MetaInfContainer private constructor(
         @JvmSynthetic
         internal fun toElement(namespace: Namespace): Element = Element("link", namespace).apply {
             setAttribute("href", href.toString())
-            setAttribute("rel", relation.toString())
+            setAttribute(relation.toAttribute(name = "rel"))
             mediaType?.also { setAttribute("mediaType", it.toString()) }
         }
     }
@@ -135,20 +135,26 @@ class MetaInfContainer private constructor(
                     "first root-file <${rootFiles[0]}> points towards a non-existent file <$packageDocument>"
                 )
             }
-            return MetaInfContainer(container, rootFiles, links)
+            return MetaInfContainer(container, rootFiles, links).also {
+                logger.trace { "Constructed meta-inf-container instance <$it>" }
+            }
         }
 
         private fun createRootFile(element: Element, root: Path, epub: Path, document: Path): RootFile {
             val fullPath = element.attr("full-path", epub, document).let(root::resolve)
             val mediaType = element.attr("media-type", epub, document).let(MediaType::parse)
-            return RootFile(fullPath, mediaType).also { logger.debug { "Constructed root-file instance <$it>" } }
+            return RootFile(fullPath, mediaType).also {
+                logger.trace { "Constructed meta-inf root-file instance <$it>" }
+            }
         }
 
         private fun createLink(element: Element, root: Path, epub: Path, document: Path): Link {
             val href = element.attr("href", epub, document).let(root::resolve)
             val relation = element.attr("rel", epub, document).let { Properties.parse(Link::class, it) }
             val mediaType = element.getAttributeValue("mediaType")?.let(MediaType::parse)
-            return Link(href, relation, mediaType).also { logger.debug { "Constructed link instance <$it>" } }
+            return Link(href, relation, mediaType).also {
+                logger.trace { "Constructed meta-inf link instance <$it>" }
+            }
         }
     }
 }

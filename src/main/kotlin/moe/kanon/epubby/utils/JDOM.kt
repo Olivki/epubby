@@ -45,7 +45,7 @@ internal inline fun <R> parseXmlFile(file: Path, scope: (doc: Document, root: El
 
 @PublishedApi
 internal fun Element.attr(name: String, epub: Path, current: Path): String =
-    getAttributeValue(name) ?: throw MalformedBookException.withDebug(
+    getAttributeValue(name) ?: throw MalformedBookException(
         epub,
         current,
         "Element '${this.name}' is missing required attribute '$name'"
