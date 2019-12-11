@@ -14,17 +14,5 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.metainf
+package moe.kanon.epubby.resources.css
 
-import java.nio.file.FileSystem
-
-/**
- * Represents the [metadata.xml](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-ocf.html#sec-container-metainf-metadata.xml)
- * meta-inf file.
- */
-class MetaInfMetadata private constructor() {
-    @JvmSynthetic
-    internal fun writeToFile(fileSystem: FileSystem) {
-        TODO()
-    }
-}

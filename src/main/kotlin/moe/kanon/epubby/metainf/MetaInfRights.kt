@@ -16,11 +16,43 @@
 
 package moe.kanon.epubby.metainf
 
+import moe.kanon.epubby.utils.internal.logger
+import moe.kanon.epubby.utils.parseXmlFile
+import moe.kanon.epubby.utils.writeTo
+import moe.kanon.kommons.io.paths.moveTo
+import org.jdom2.Document
 import java.io.IOException
+import java.nio.file.FileSystem
+import java.nio.file.Path
 
-class MetaInfRights {
-    @Throws(IOException::class)
-    fun writeToFile() {
-        TODO()
+/**
+ * Represents the [rights.xml](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-ocf.html#sec-container-metainf-rights.xml)
+ * meta-inf file.
+ */
+class MetaInfRights private constructor(val file: Path, private val document: Document) {
+    @JvmSynthetic
+    internal fun writeToFile(fileSystem: FileSystem) {
+        document.writeTo(fileSystem.getPath("META-INF", "rights.xml"))
+    }
+
+    override fun toString(): String = "MetaInfRights(file='$file', document=$document)"
+
+    internal companion object {
+        @JvmSynthetic
+        internal fun fromFile(
+            epub: Path,
+            container: Path,
+            directory: Path
+        ): MetaInfRights = parseXmlFile(container) { doc, _ ->
+            // as stated in the EPUB specification for v3.2:
+            // > This version of the OCF specification does not require a specific format for DRM information, but a
+            // future version might.
+            // this means that there's no proper "format" for us to traverse and digest, so we just save the parsed
+            // document so we can properly write it back again when needed. as of epub 3.2 as long as the EPUB file
+            // contains a 'rights.xml' file it means that it is governed by some sort of digital rights. (DRM)
+            MetaInfRights(container, doc).also {
+                logger.trace { "Constructed meta-inf-rights instance <$it>" }
+            }
+        }
     }
 }

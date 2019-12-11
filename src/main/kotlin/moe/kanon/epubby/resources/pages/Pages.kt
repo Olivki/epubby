@@ -31,6 +31,8 @@ import moe.kanon.kommons.collections.asUnmodifiable
 import moe.kanon.kommons.collections.isEmpty
 import org.jsoup.nodes.Attribute
 import org.jsoup.nodes.Element
+import java.nio.file.FileSystem
+import java.nio.file.Path
 
 class Pages internal constructor(val book: Book) : Iterable<Page> {
     private val pages: MutableList<Page> = mutableListOf()
@@ -41,25 +43,6 @@ class Pages internal constructor(val book: Book) : Iterable<Page> {
      * Returns a linked-map containing all the [pages][Page] used by the [book].
      */
     val entries: ImmutableList<Page> get() = pages.toImmutableList()
-
-    // TODO: Rework this one because we're changing how pages are being added to the system.
-    @JvmSynthetic
-    internal fun populateFromSpine() {
-        logger.debug { "Populating book pages with entries from the book spine.." }
-        val pageResources = book
-            .resources
-            .asSequence()
-            .filterIsInstance<PageResource>()
-            .sortedBy { resource ->
-                // there is no guarantee that every 'PageResource' will be referenced in the spine
-                val ref = book.spine.getReferenceOfOrNull(resource)
-                return@sortedBy ref?.let { book.spine.references.indexOf(it) }
-            }
-            .filterNotNull()
-            .map { Page.fromResource(it) }
-        pages.addAll(pageResources)
-        logger.debug { "Book pages have been successfully populated." }
-    }
 
     /**
      * Sorts all the pages registered here by their index in the book [spine][Spine].
@@ -192,11 +175,32 @@ class Pages internal constructor(val book: Book) : Iterable<Page> {
             .toImmutableList()
     }
 
-    fun writeAllPages() {
-        logger.debug { "Saving all page files.." }
-        for (page in pages) page.writeToFile()
-        logger.debug { "Finished saving all page files." }
+    override fun iterator(): Iterator<Page> = pages.iterator().asUnmodifiable()
+
+    @JvmSynthetic
+    internal fun writePagesToFile(fileSystem: FileSystem) {
+        transformers.transformPages()
+        logger.debug { "Starting the writing process of all pages to their respective files.." }
+        for (page in pages) {
+            page.writeToFile(fileSystem)
+        }
     }
 
-    override fun iterator(): Iterator<Page> = pages.iterator().asUnmodifiable()
+    // TODO: Rework this one because we're changing how pages are being added to the system.
+    @JvmSynthetic
+    internal fun populateFromSpine(spine: Spine) {
+        logger.debug { "Populating and sorting page instances for the book from the spine.." }
+        val pageResources = book
+            .resources
+            .asSequence()
+            .filterIsInstance<PageResource>()
+            .sortedBy { resource ->
+                // there is no guarantee that every 'PageResource' will be referenced in the spine
+                val ref = spine.getReferenceOfOrNull(resource)
+                return@sortedBy ref?.let { spine.references.indexOf(it) }
+            }
+            .filterNotNull()
+            .map { Page.fromResource(it) }
+        pages.addAll(pageResources)
+    }
 }

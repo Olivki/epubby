@@ -18,8 +18,10 @@ package moe.kanon.epubby.metainf
 
 import moe.kanon.epubby.utils.internal.logger
 import moe.kanon.epubby.utils.internal.malformed
+import moe.kanon.kommons.io.paths.exists
 import moe.kanon.kommons.io.paths.notExists
 import java.io.IOException
+import java.nio.file.FileSystem
 import java.nio.file.Path
 
 /**
@@ -50,9 +52,14 @@ class MetaInf private constructor(
     val rights: MetaInfRights?,
     val signatures: MetaInfSignatures?
 ) {
-    @Throws(IOException::class)
-    fun writeAll() {
-        container.writeToFile()
+    @JvmSynthetic
+    internal fun writeToFiles(fileSystem: FileSystem) {
+        container.writeToFile(fileSystem)
+        encryption?.also { it.writeToFile(fileSystem) }
+        manifest?.also { it.writeToFile(fileSystem) }
+        metadata?.also { it.writeToFile(fileSystem) }
+        rights?.also { it.writeToFile(fileSystem) }
+        signatures?.also { it.writeToFile(fileSystem) }
     }
 
     override fun toString(): String = buildString {
@@ -79,7 +86,14 @@ class MetaInf private constructor(
             val encryption = null
             val manifest = null
             val metadata = null
-            val rights = null
+
+            val rightsFile = when {
+                rootFile.resolve("rights.xml").exists -> rootFile.resolve("rights.xml")
+                directory.resolve("rights.xml").exists -> directory.resolve("rights.xml")
+                else -> null
+            }
+            val rights = rightsFile?.let { MetaInfRights.fromFile(epub, it, directory) }
+
             val signatures = null
 
             return MetaInf(epub, directory, container, encryption, manifest, metadata, rights, signatures).also {

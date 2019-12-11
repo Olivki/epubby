@@ -55,6 +55,7 @@ dependencies {
     // Apache
     implementation(group = "commons-validator", name = "commons-validator", version = "1.6")
     implementation(group = "org.apache.logging.log4j", name = "log4j-api-kotlin", version = "1.0.0")
+    implementation(group = "org.apache.commons", name = "commons-collections4", version = "4.4")
 
     // css handler
     //implementation(group = "com.helger", name = "ph-css", version = "6.2.0")

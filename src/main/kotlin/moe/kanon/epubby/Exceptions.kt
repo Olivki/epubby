@@ -21,8 +21,15 @@ import java.nio.file.Path
 
 // TODO: Documentation
 
+/**
+ * Thrown to indicate that something went wrong when working with a [Book] instance.
+ */
 open class EpubbyException(message: String? = null, cause: Throwable? = null) : Exception(message, cause)
 
+/**
+ * Thrown to indicate that an error occurred in the [current file][currentFile] when parsing a [file][epub] into a
+ * [Book] instance.
+ */
 open class MalformedBookException(
     val epub: Path,
     val currentFile: Path,

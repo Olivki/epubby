@@ -34,41 +34,6 @@ import org.jdom2.output.XMLOutputter
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
 
-
-// -- INTERNAL -- \\
-@PublishedApi
-internal inline fun <R> parseXmlFile(file: Path, scope: (doc: Document, root: Element) -> R): R =
-    file.newInputStream().use { input ->
-        val doc = SAXBuilder(XMLReaders.NONVALIDATING).build(input)
-        scope(doc, doc.rootElement)
-    }
-
-@PublishedApi
-internal fun Element.attr(name: String, epub: Path, current: Path): String =
-    getAttributeValue(name) ?: throw MalformedBookException(
-        epub,
-        current,
-        "Element '${this.name}' is missing required attribute '$name'"
-    )
-
-@PublishedApi
-internal fun Element.child(
-    name: String,
-    epub: Path,
-    current: Path,
-    namespace: Namespace = this.namespace
-): Element = getChild(name, namespace) ?: throw MalformedBookException.withDebug(
-    epub,
-    current,
-    "Element '${this.name}' is missing required child element '$name'"
-)
-
-@PublishedApi
-internal inline fun Document.docScope(block: Element.() -> Unit): Document = this.apply { rootElement.apply(block) }
-
-@PublishedApi
-internal inline fun <R> Document.scope(block: Element.() -> R): R = with(this) { rootElement.run(block) }
-
 // -- PUBLIC -- \\
 /**
  * Returns the first child with the given [name] and [namespace], or [None] if none is found.
@@ -110,7 +75,7 @@ fun Document.writeTo(directory: Path, fileName: String, format: Format = Format.
  * @param [format] the [Format] that should be used when writing this document to the file
  */
 fun Document.writeTo(file: Path, format: Format = Format.getPrettyFormat()): Path = file.also {
-    it.newOutputStream(StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING).use { out ->
+    it.newOutputStream().use { out ->
         XMLOutputter(format).output(this, out)
     }
 }
@@ -118,3 +83,47 @@ fun Document.writeTo(file: Path, format: Format = Format.getPrettyFormat()): Pat
 fun Document.stringify(format: Format = Format.getPrettyFormat()): String = XMLOutputter(format).outputString(this)
 
 fun Element.stringify(format: Format = Format.getPrettyFormat()): String = XMLOutputter(format).outputString(this)
+
+// -- INTERNAL -- \\
+@PublishedApi
+@JvmSynthetic
+internal inline fun <R> parseXmlFile(file: Path, scope: (doc: Document, root: Element) -> R): R =
+    file.newInputStream().use { input ->
+        val doc = SAXBuilder(XMLReaders.NONVALIDATING).build(input)
+        scope(doc, doc.rootElement)
+    }
+
+@PublishedApi
+@JvmSynthetic
+internal fun Element.attr(name: String, epub: Path, current: Path): String =
+    getAttributeValue(name) ?: throw MalformedBookException(
+        epub,
+        current,
+        "Element '${this.name}' is missing required attribute '$name'"
+    )
+
+@PublishedApi
+@JvmSynthetic
+internal fun Element.child(
+    name: String,
+    epub: Path,
+    current: Path,
+    namespace: Namespace = this.namespace
+): Element = getChild(name, namespace) ?: throw MalformedBookException.withDebug(
+    epub,
+    current,
+    "Element '${this.name}' is missing required child element '$name'"
+)
+
+@PublishedApi
+@JvmSynthetic
+internal inline fun Document.docScope(block: Element.() -> Unit): Document = this.apply { rootElement.apply(block) }
+
+@PublishedApi
+@JvmSynthetic
+internal inline fun <R> Document.scope(block: Element.() -> R): R = with(this) { rootElement.run(block) }
+
+@PublishedApi
+@JvmSynthetic
+internal fun Element.toCompactString(): String = XMLOutputter(Format.getCompactFormat()).outputString(this)
+

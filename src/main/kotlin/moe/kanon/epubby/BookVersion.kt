@@ -24,13 +24,13 @@ import moe.kanon.kommons.requireThat
 //       Look into changing how this is done?
 // because EPUB format versions do not adhere to semantic versioning (as they do not have a patch version) I've opted
 // to create my own simple version implementation just for EPUB format versions.
-class Version private constructor(val major: Int, val minor: Int) : Comparable<Version> {
+class BookVersion private constructor(val major: Int, val minor: Int) : Comparable<BookVersion> {
     init {
         requireThat(major >= 0) { "major should be positive" }
         requireThat(minor >= 0) { "minor should be positive" }
     }
 
-    override fun compareTo(other: Version): Int = when {
+    override fun compareTo(other: BookVersion): Int = when {
         major > other.major -> 1
         major < other.major -> -1
         minor > other.minor -> 1
@@ -40,7 +40,7 @@ class Version private constructor(val major: Int, val minor: Int) : Comparable<V
 
     override fun equals(other: Any?): Boolean = when {
         this === other -> true
-        other !is Version -> false
+        other !is BookVersion -> false
         major != other.major -> false
         minor != other.minor -> false
         else -> true
@@ -61,7 +61,7 @@ class Version private constructor(val major: Int, val minor: Int) : Comparable<V
         EpubbyException("Epubby does not know how to handle version '$version' of the EPUB format")
 
     companion object {
-        private val KNOWN_VERSIONS = HashMap<String, Version>()
+        private val KNOWN_VERSIONS = HashMap<String, BookVersion>()
 
         /**
          * Represents the [EPUB 2.x](http://www.idpf.org/epub/dir/#epub201) format.
@@ -83,15 +83,15 @@ class Version private constructor(val major: Int, val minor: Int) : Comparable<V
          */
         @JvmField val EPUB_3_2 = getOrCache(3, 2)
 
-        private fun getOrCache(major: Int, minor: Int): Version =
-            KNOWN_VERSIONS.getOrPut("$major.$minor") { Version(major, minor) }
+        private fun getOrCache(major: Int, minor: Int): BookVersion =
+            KNOWN_VERSIONS.getOrPut("$major.$minor") { BookVersion(major, minor) }
 
         @JvmSynthetic
-        internal fun fromInteger(major: Int, minor: Int): Version =
+        internal fun fromInteger(major: Int, minor: Int): BookVersion =
             KNOWN_VERSIONS["$major.$minor"] ?: throw UnsupportedVersionException("$major.$minor")
 
         @JvmSynthetic
-        internal fun fromString(version: String): Version {
+        internal fun fromString(version: String): BookVersion {
             validateThat(version, version.isNotBlank()) { "can't be blank / empty" }
             validateThat(version, version.first().isDigit()) { "needs to start with a digit" }
             validateThat(version, '.' in version) { "needs to contain exactly one '.' character" }

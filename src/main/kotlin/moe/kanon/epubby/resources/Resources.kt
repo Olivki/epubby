@@ -23,27 +23,25 @@ import kotlinx.collections.immutable.toPersistentHashMap
 import moe.kanon.epubby.Book
 import moe.kanon.epubby.EpubbyException
 import moe.kanon.epubby.packages.Manifest
+import moe.kanon.epubby.readBookCopy
 import moe.kanon.epubby.structs.Identifier
 import moe.kanon.epubby.structs.props.vocabs.ManifestVocabulary
 import moe.kanon.epubby.utils.internal.logger
 import moe.kanon.kommons.collections.asUnmodifiable
 import moe.kanon.kommons.collections.filterValuesIsInstance
 import moe.kanon.kommons.collections.getValueOrThrow
-import moe.kanon.kommons.collections.isEmpty
-import moe.kanon.kommons.io.paths.PathVisitor
+import moe.kanon.kommons.func.Option
+import moe.kanon.kommons.func.firstOrNone
+import moe.kanon.kommons.func.getValueOrNone
 import moe.kanon.kommons.io.paths.delete
-import moe.kanon.kommons.io.paths.entries
 import moe.kanon.kommons.io.paths.exists
 import moe.kanon.kommons.io.paths.getOrCreateDirectory
 import moe.kanon.kommons.io.paths.moveTo
 import moe.kanon.kommons.io.paths.name
-import moe.kanon.kommons.io.paths.walkFileTree
 import moe.kanon.kommons.requireThat
 import java.io.IOException
-import java.nio.file.FileVisitResult
+import java.nio.file.CopyOption
 import java.nio.file.Path
-import java.nio.file.attribute.BasicFileAttributes
-import kotlin.reflect.KClass
 
 class Resources internal constructor(val book: Book) : Iterable<Resource> {
     private val resources: MutableMap<Identifier, Resource> = hashMapOf()
@@ -53,97 +51,66 @@ class Resources internal constructor(val book: Book) : Iterable<Resource> {
      */
     val entries: ImmutableMap<Identifier, Resource> get() = resources.toPersistentHashMap()
 
-    // TODO: Documentation
+    /**
+     * Returns a map of all the [ncx-resources][NcxResource] that the book has, mapped like `identifier::resource`.
+     *
+     * A well-formed EPUB file should *at most* contain `1` `ncx-resource`.
+     */
+    val ncxResources: ImmutableMap<Identifier, NcxResource>
+        get() = resources.filterValuesIsInstance<Identifier, NcxResource>().toPersistentHashMap()
 
-    val tableOfContentResources: ImmutableMap<Identifier, TableOfContentsResource>
-        get() = resources.filterValuesIsInstance<Identifier, TableOfContentsResource>().toPersistentHashMap()
-
+    /**
+     * Returns a map of all the [page-resources][PageResource] that the book has, mapped like `identifier::resource`.
+     */
     val pageResources: ImmutableMap<Identifier, PageResource>
         get() = resources.filterValuesIsInstance<Identifier, PageResource>().toPersistentHashMap()
 
+    /**
+     * Returns a map of all the [stylesheet-resources][StyleSheetResource] that the book has, mapped like
+     * `identifier::resource`.
+     */
     val styleSheetResources: ImmutableMap<Identifier, StyleSheetResource>
         get() = resources.filterValuesIsInstance<Identifier, StyleSheetResource>().toPersistentHashMap()
 
+    /**
+     * Returns a map of all the [image-resources][ImageResource] that the book has, mapped like `identifier::resource`.
+     */
     val imageResources: ImmutableMap<Identifier, ImageResource>
         get() = resources.filterValuesIsInstance<Identifier, ImageResource>().toPersistentHashMap()
 
+    /**
+     * Returns a map of all the [font-resources][FontResource] that the book has, mapped like `identifier::resource`.
+     */
     val fontResources: ImmutableMap<Identifier, FontResource>
         get() = resources.filterValuesIsInstance<Identifier, FontResource>().toPersistentHashMap()
 
+    /**
+     * Returns a map of all the [audio-resources][AudioResource] that the book has, mapped like `identifier::resource`.
+     */
     val audioResources: ImmutableMap<Identifier, AudioResource>
         get() = resources.filterValuesIsInstance<Identifier, AudioResource>().toPersistentHashMap()
 
+    /**
+     * Returns a map of all the [script-resources][ScriptResource] that the book has, mapped like
+     * `identifier::resource`.
+     */
     val scriptResources: ImmutableMap<Identifier, ScriptResource>
         get() = resources.filterValuesIsInstance<Identifier, ScriptResource>().toPersistentHashMap()
 
+    /**
+     * Returns a map of all the [video-resources][VideoResource] that the book has, mapped like `identifier::resource`.
+     */
     val videoResources: ImmutableMap<Identifier, VideoResource>
         get() = resources.filterValuesIsInstance<Identifier, VideoResource>().toPersistentHashMap()
 
+    /**
+     * Returns a map of all the [misc-resources][MiscResource] that the book has, mapped like `identifier::resource`.
+     */
     val miscResources: ImmutableMap<Identifier, MiscResource>
         get() = resources.filterValuesIsInstance<Identifier, MiscResource>().toPersistentHashMap()
 
-    @JvmSynthetic
-    internal fun populateFromManifest() {
-        logger.info { "Creating book resources from book manifest.." }
-        val localResources = book.manifest.localItems.values.asSequence()
-        val knownResources = localResources
-            .filter { it.mediaType != null }
-            .filter { it.href.exists }
-            .map {
-                Resource.fromMediaType(it.mediaType!!, it.href, book, it.identifier).apply {
-                    properties.addAll(it.properties.filterIsInstance<ManifestVocabulary>())
-                }
-            }
-        val unknownResources = localResources
-            .filter { it.mediaType == null }
-            .filter { it.href.exists }
-            .onEach { logger.warn { "Item <$it> does not have a 'mediaType', will be marked as a 'MiscResource'" } }
-            .map {
-                MiscResource(book, it.href, it.identifier).apply {
-                    properties.addAll(it.properties.filterIsInstance<ManifestVocabulary>())
-                }
-            }
-        val allResources = (knownResources + unknownResources).associateByTo(HashMap()) { it.identifier }
-        resources.putAll(allResources)
-        logger.info { "Successfully created all book resources from the book manifest." }
-    }
-
-    /**
-     * Attempts to move all resources in this repository to their [desired directories][Resource.desiredDirectory].
-     *
-     * @throws [IOException] if an i/o error occurs
-     */
-    @Throws(IOException::class)
-    fun moveToDesiredDirectories() {
-        val root = book.packageRoot
-        for (resource in this) {
-            val file = resource.file
-            val desiredDirectory = resource.desiredDirectory.getOrCreateDirectory()
-            if (file.parent != desiredDirectory) {
-                logger.trace { "Moving file <${file.name}> from <${file.parent}> to <$desiredDirectory>" }
-                resource.file = resource.file.moveTo(desiredDirectory, true) // , StandardCopyOption.REPLACE_EXISTING
-            }
-        }
-        // walk the file tree and delete any empty directories that are left after we've moved the resource files around
-        root.walkFileTree(visitor = object : PathVisitor {
-            override fun postVisitDirectory(dir: Path, exc: IOException?): FileVisitResult {
-                if (dir.entries.isEmpty) {
-                    logger.trace { "Directory <$dir> is empty, deleting..." }
-                    dir.delete()
-                }
-                return FileVisitResult.CONTINUE
-            }
-
-            override fun visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult = FileVisitResult.CONTINUE
-
-            override fun visitFileFailed(file: Path, exc: IOException): FileVisitResult = FileVisitResult.CONTINUE
-
-            override fun preVisitDirectory(dir: Path, attrs: BasicFileAttributes): FileVisitResult =
-                FileVisitResult.CONTINUE
-        })
-    }
-
     fun <R : Resource> addResource(resource: R): R {
+        // TODO: Is this too extreme?
         requireThat(resource.identifier !in resources) { "there already exists a resource with the identifier '${resource.identifier}'" }
         resources[resource.identifier] = resource
         if (!book.manifest.hasItemFor(resource)) {
@@ -180,10 +147,13 @@ class Resources internal constructor(val book: Book) : Iterable<Resource> {
         identifier: Identifier = Identifier.fromFile(file)
     ): Resource = addResource(Resource.fromExternalFile(file, targetDirectory, book, identifier))
 
+    // TODO: Document that removing a resource will also *delete* it, or maybe make this optional behaviour?
+
     fun removeResource(identifier: Identifier): Boolean {
         val resource = resources[identifier]
         resources -= identifier
         resource?.onDeletion()
+        resource?.file?.delete()
         return resource != null
     }
 
@@ -192,6 +162,7 @@ class Resources internal constructor(val book: Book) : Iterable<Resource> {
         resources -= resource.identifier
         if (result) {
             resource.onDeletion()
+            resource.file.delete()
         }
         return result
     }
@@ -199,7 +170,16 @@ class Resources internal constructor(val book: Book) : Iterable<Resource> {
     fun getResource(identifier: Identifier): Resource =
         resources.getValueOrThrow(identifier) { "No resource found with the identifier '$identifier'" }
 
+    fun getResourceOrNone(identifier: Identifier): Option<Resource> = resources.getValueOrNone(identifier)
+
     fun getResourceOrNull(identifier: Identifier): Resource? = resources[identifier]
+
+    fun getResourceByFile(file: Path): Resource =
+        getResourceByFileOrNull(file) ?: throw NoSuchElementException("No resource found with the file '$file'")
+
+    fun getResourceByFileOrNone(file: Path): Option<Resource> = resources.values.firstOrNone { it.file == file }
+
+    fun getResourceByFileOrNull(file: Path): Resource? = resources.values.firstOrNull { it.file == file }
 
     /**
      * Returns `true` if there exists a resource with the given [identifier], `false` otherwise.
@@ -215,7 +195,7 @@ class Resources internal constructor(val book: Book) : Iterable<Resource> {
     fun visitResources(visitor: ResourceVisitor) {
         for ((_, resource) in resources) {
             when (resource) {
-                is TableOfContentsResource -> visitor.onTableOfContents(resource)
+                is NcxResource -> visitor.onTableOfContents(resource)
                 is PageResource -> visitor.onPage(resource)
                 is StyleSheetResource -> visitor.onStyleSheet(resource)
                 is ImageResource -> visitor.onImage(resource)
@@ -224,6 +204,33 @@ class Resources internal constructor(val book: Book) : Iterable<Resource> {
                 is ScriptResource -> visitor.onScript(resource)
                 is VideoResource -> visitor.onVideo(resource)
                 is MiscResource -> visitor.onMisc(resource)
+            }
+        }
+    }
+
+    /**
+     * Attempts to move all resources in this repository to their [desired directories][Resource.desiredDirectory].
+     *
+     * **NOTE:** This function will *directly* modify the [Book.file] of the [book], meaning that if one is not using
+     * a backed-up/copied version of the original file, then this will directly modify the source EPUB file. This
+     * behaviour may not be what one wants, and if that is the case, make sure that you are working with a copy of the
+     * original file, and not the actual original. If the `book` was created by [readBookCopy] or by building your own
+     * `Book` instance then there should be no worries.
+     *
+     * @param [options] TODO
+     *
+     * @throws [IOException] if an i/o error occurs
+     */
+    @JvmOverloads
+    @Throws(IOException::class)
+    fun moveToDesiredDirectories(vararg options: CopyOption = arrayOf()) {
+        for (resource in this) {
+            val file = resource.file
+            val desiredDirectory = resource.desiredDirectory.getOrCreateDirectory()
+            if (file.parent != desiredDirectory) {
+                logger.trace { "Moving file <${file.name}> from <${file.parent}> to <$desiredDirectory>" }
+                resource.file =
+                    resource.file.moveTo(desiredDirectory, true, *options) // , StandardCopyOption.REPLACE_EXISTING
             }
         }
     }
@@ -256,4 +263,37 @@ class Resources internal constructor(val book: Book) : Iterable<Resource> {
     inline fun <reified T : Resource> getDirectoriesUsedBy(): ImmutableList<Path> = getDirectoriesUsedBy(T::class.java)
 
     override fun iterator(): Iterator<Resource> = resources.values.iterator().asUnmodifiable()
+
+    // -- INTERNAL -- \\
+    @JvmSynthetic
+    internal fun populateFromManifest(manifest: Manifest) {
+        logger.debug { "Creating resource instances for the book from the manifest.." }
+        val localResources = manifest.localItems.values.asSequence()
+        val knownResources = localResources
+            .filter { it.mediaType != null }
+            .filter { it.href.exists }
+            .map {
+                Resource.fromMediaType(it.mediaType!!, it.href, book, it.identifier).apply {
+                    properties.addAll(it.properties.filterIsInstance<ManifestVocabulary>())
+                }
+            }
+        val unknownResources = localResources
+            .filter { it.mediaType == null }
+            .filter { it.href.exists }
+            .onEach { logger.warn { "Item <$it> does not have a 'mediaType', will be marked as a 'MiscResource'" } }
+            .map {
+                MiscResource(book, it.href, it.identifier).apply {
+                    properties.addAll(it.properties.filterIsInstance<ManifestVocabulary>())
+                }
+            }
+        val allResources = (knownResources + unknownResources).associateByTo(HashMap()) { it.identifier }
+        resources.putAll(allResources)
+    }
+
+    @JvmSynthetic
+    internal fun updateResourceIdentifier(resource: Resource, oldIdentifier: Identifier, newIdentifier: Identifier) {
+        book.manifest.updateManifestItemIdentifier(oldIdentifier, newIdentifier)
+        resources -= oldIdentifier
+        resources[newIdentifier] = resource
+    }
 }

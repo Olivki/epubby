@@ -16,11 +16,12 @@
 
 @file:Suppress("DataClassPrivateConstructor")
 
-package moe.kanon.epubby.structs
+package moe.kanon.epubby.structs.dublincore
 
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import moe.kanon.epubby.Book
+import moe.kanon.epubby.structs.Direction
 import moe.kanon.epubby.utils.internal.Namespaces
 import org.jdom2.Attribute
 import org.jdom2.Element
@@ -29,6 +30,10 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import moe.kanon.epubby.structs.Identifier as EpubbyIdentifier
+
+// TODO: Move the "attributes" stuff to a wrapper class inside of metadata instead of having them here?
+// TODO: Change these more into "value" classes and remove stuff like identifier and all of 'LocalizedDublinCore'
+//       this would synergize with the above point too, as those things would be moved to the wrapper class instead?
 
 /**
  * Represents an abstract implementation of a [dublin core element](http://www.dublincore.org/specifications/dublin-core/dces/).
@@ -60,7 +65,7 @@ sealed class DublinCore<T>(val label: String) {
     internal fun toElement(namespace: Namespace = Namespaces.DUBLIN_CORE): Element =
         Element(label.toLowerCase(), namespace).apply {
             identifier?.also { setAttribute("id", it.value) }
-            if (this is FullElement) {
+            if (this is DublinCoreFull) {
                 direction?.also { setAttribute("dir", it.toString()) }
                 language?.also { setAttribute("lang", it.toLanguageTag(), Namespace.XML_NAMESPACE) }
             }
@@ -83,17 +88,17 @@ sealed class DublinCore<T>(val label: String) {
     fun removeAttribute(name: String): Boolean =
         _attributes.find { it.name == name }?.let { _attributes.remove(it) } ?: false
 
-    interface FullElement {
-        var direction: Direction?
-        var language: Locale?
-    }
-
     private fun appendExtraAttributes(target: Element) {
         if (_attributes.isNotEmpty()) {
             for (attr in _attributes) {
                 target.setAttribute(attr)
             }
         }
+    }
+
+    interface DublinCoreFull {
+        var direction: Direction?
+        var language: Locale?
     }
 
     /**
@@ -104,10 +109,10 @@ sealed class DublinCore<T>(val label: String) {
      */
     data class Contributor @JvmOverloads constructor(
         override var value: String,
-        override val identifier: EpubbyIdentifier? = null,
+        override val identifier: moe.kanon.epubby.structs.Identifier? = null,
         override var direction: Direction? = null,
         override var language: Locale? = null
-    ) : DublinCore<String>("Contributor"), FullElement {
+    ) : DublinCore<String>("Contributor"), DublinCoreFull {
         override fun stringify(): String = value
     }
 
@@ -127,7 +132,8 @@ sealed class DublinCore<T>(val label: String) {
         override val identifier: EpubbyIdentifier? = null,
         override var direction: Direction? = null,
         override var language: Locale? = null
-    ) : DublinCore<String>("Coverage"), FullElement {
+    ) : DublinCore<String>("Coverage"),
+        DublinCoreFull {
         override fun stringify(): String = value
     }
 
@@ -145,7 +151,8 @@ sealed class DublinCore<T>(val label: String) {
         override val identifier: EpubbyIdentifier? = null,
         override var direction: Direction? = null,
         override var language: Locale? = null
-    ) : DublinCore<String>("Creator"), FullElement {
+    ) : DublinCore<String>("Creator"),
+        DublinCoreFull {
         override fun stringify(): String = value
     }
 
@@ -182,7 +189,8 @@ sealed class DublinCore<T>(val label: String) {
         override val identifier: EpubbyIdentifier? = null,
         override var direction: Direction? = null,
         override var language: Locale? = null
-    ) : DublinCore<String>("Description"), FullElement {
+    ) : DublinCore<String>("Description"),
+        DublinCoreFull {
         override fun stringify(): String = value
     }
 
@@ -235,7 +243,8 @@ sealed class DublinCore<T>(val label: String) {
         override val identifier: EpubbyIdentifier? = null,
         override var direction: Direction? = null,
         override var language: Locale? = null
-    ) : DublinCore<String>("Publisher"), FullElement {
+    ) : DublinCore<String>("Publisher"),
+        DublinCoreFull {
         override fun stringify(): String = value
     }
 
@@ -250,7 +259,8 @@ sealed class DublinCore<T>(val label: String) {
         override val identifier: EpubbyIdentifier? = null,
         override var direction: Direction? = null,
         override var language: Locale? = null
-    ) : DublinCore<String>("Relation"), FullElement {
+    ) : DublinCore<String>("Relation"),
+        DublinCoreFull {
         override fun stringify(): String = value
     }
 
@@ -265,7 +275,8 @@ sealed class DublinCore<T>(val label: String) {
         override val identifier: EpubbyIdentifier? = null,
         override var direction: Direction? = null,
         override var language: Locale? = null
-    ) : DublinCore<String>("Rights"), FullElement {
+    ) : DublinCore<String>("Rights"),
+        DublinCoreFull {
         override fun stringify(): String = value
     }
 
@@ -293,7 +304,8 @@ sealed class DublinCore<T>(val label: String) {
         override val identifier: EpubbyIdentifier? = null,
         override var direction: Direction? = null,
         override var language: Locale? = null
-    ) : DublinCore<String>("Subject"), FullElement {
+    ) : DublinCore<String>("Subject"),
+        DublinCoreFull {
         override fun stringify(): String = value
     }
 
@@ -305,7 +317,8 @@ sealed class DublinCore<T>(val label: String) {
         override val identifier: EpubbyIdentifier? = null,
         override var direction: Direction? = null,
         override var language: Locale? = null
-    ) : DublinCore<String>("Title"), FullElement {
+    ) : DublinCore<String>("Title"),
+        DublinCoreFull {
         override fun stringify(): String = value
     }
 

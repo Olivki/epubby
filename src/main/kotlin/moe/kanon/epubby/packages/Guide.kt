@@ -17,24 +17,25 @@
 package moe.kanon.epubby.packages
 
 import kotlinx.collections.immutable.ImmutableMap
-import kotlinx.collections.immutable.persistentHashMapOf
 import kotlinx.collections.immutable.toPersistentHashMap
 import moe.kanon.epubby.Book
 import moe.kanon.epubby.packages.Guide.Reference
+import moe.kanon.epubby.resources.PageResource
+import moe.kanon.epubby.resources.Resource
 import moe.kanon.epubby.resources.pages.Page
 import moe.kanon.epubby.utils.attr
 import moe.kanon.epubby.utils.internal.Namespaces
+import moe.kanon.epubby.utils.internal.getBookPathFromHref
 import moe.kanon.epubby.utils.internal.logger
-import moe.kanon.kommons.collections.asUnmodifiable
+import moe.kanon.epubby.utils.internal.malformed
+import moe.kanon.kommons.checkThat
 import moe.kanon.kommons.collections.getValueOrThrow
 import moe.kanon.kommons.requireThat
+import org.apache.commons.collections4.map.CaseInsensitiveMap
 import org.jdom2.Element
 import org.jdom2.Namespace
 import java.nio.file.Path
 
-// TODO: Clean up the class documentation
-// TODO: Store the values in a case insensitive map? Or just hit the custom types up with 'toLowerCase' ?
-// TODO: Make two separate classes for Reference and CustomReference? Maybe add a CustomType too?
 /**
  * Represents the [guide](http://www.idpf.org/epub/20/spec/OPF_2.0.1_draft.htm#Section2.6) element.
  *
@@ -43,7 +44,7 @@ import java.nio.file.Path
  * [Reading Systems](http://www.idpf.org/epub/31/spec/epub-spec.html#gloss-epub-reading-system) to provide convenient
  * access to them.
  *
- * Each [reference][Reference] must have a [href][Reference.href] referring to an [OPS Content Document][PageResource]
+ * Each [reference][Reference] must have a [href][Reference.reference] referring to an [OPS Content Document][PageResource]
  * included in the [manifest][PackageManifest], and which may include a fragment identifier as defined in section 4.1 of
  * [RFC 2396](http://www.ietf.org/rfc/rfc2396.txt). `Reading Systems` may use the bounds of the referenced element to
  * determine the scope of the reference. If a fragment identifier is not used, the scope is considered to be the entire
@@ -56,33 +57,57 @@ import java.nio.file.Path
  *
  * @property [book] The [Book] instance that this `guide` is bound to.
  */
-class Guide private constructor(val book: Book, private val refs: MutableMap<String, Reference>) :
-    Iterable<Reference> {
-    val references: ImmutableMap<Type, Reference>
-        get() = refs
+class Guide private constructor(val book: Book, private val _references: CaseInsensitiveMap<String, Reference>) {
+    // TODO: Clean up the class documentation
+    // TODO: Make two separate classes for Reference and CustomReference? Maybe add a CustomType too?
+    // TODO: Add functions for stuff like "addCoverPage" and what have you for ease of use.
+
+    /**
+     * Returns a map of all the [references][Reference] of `this` guide whose [type][Reference.type] is a known
+     * [type][Type].
+     *
+     * There is no guarantee that the returned map will contain any entries.
+     */
+    val knownReferences: ImmutableMap<Type, Reference>
+        get() = _references
             .filterValues { !it.isCustomType }
             .mapKeys { (_, ref) -> ref.guideType!! }
             .toPersistentHashMap()
 
+    /**
+     * Returns a map of all the [references][Reference] of `this` guide whose [type][Reference.type] is custom.
+     *
+     * Note that all custom-types will be prefixed with `"other."`.
+     *
+     * There is no guarantee that the returned map will contain any entries.
+     */
     val customReferences: ImmutableMap<String, Reference>
-        get() = refs.filterValues { it.isCustomType }.toPersistentHashMap()
+        get() = _references.filterValues { it.isCustomType }.toPersistentHashMap()
+
+    /**
+     * Returns a map of all the [references][Reference] of `this` guide.
+     *
+     * There is no guarantee that the returned map will contain any entries.
+     */
+    val references: ImmutableMap<String, Reference>
+        get() = _references.toPersistentHashMap()
 
     // -- NORMAL REFERENCES -- \\
     /**
-     * Adds a new [reference][Reference] instance based on the given [type], [href] and [title] to this guide.
+     * Adds a new [reference][Reference] instance based on the given [type], [reference] and [title] to this guide.
      *
      * Note that if a `reference` already exists under the given [type], then it will be overridden.
      *
      * @param [type] the `type` to store the element under
-     * @param [href] the [Resource] to inherit the [href][Resource.href] of
+     * @param [reference] the [Resource] to inherit the [href][Resource.href] of
      * @param [title] the *(optional)* title
      *
      * @return the newly created `reference` element
      */
     @JvmOverloads
-    fun addReference(type: Type, href: String, title: String? = null): Reference {
-        val ref = Reference(type.serializedName, href, title)
-        refs[type.serializedName] = ref
+    fun addReference(type: Type, reference: PageResource, title: String? = null): Reference {
+        val ref = Reference(type.attributeName, reference, title)
+        _references[type.attributeName] = ref
         logger.debug { "Added the reference <$ref> to this guide <$this>" }
         return ref
     }
@@ -93,9 +118,9 @@ class Guide private constructor(val book: Book, private val refs: MutableMap<Str
      * @param [type] the `type` to remove
      */
     fun removeReference(type: Type) {
-        if (type.serializedName in refs) {
-            val ref = refs[type.serializedName]
-            refs -= type.serializedName
+        if (type.attributeName in _references) {
+            val ref = _references[type.attributeName]
+            _references -= type.attributeName
             logger.debug { "Removed the reference <$ref> from this guide <$this>" }
         }
     }
@@ -105,21 +130,85 @@ class Guide private constructor(val book: Book, private val refs: MutableMap<Str
      * is found.
      */
     fun getReference(type: Type): Reference =
-        refs.getValueOrThrow(type.serializedName) { "No reference found with the given type '$type'" }
+        _references.getValueOrThrow(type.attributeName) { "No reference found with the given type '$type'" }
 
     /**
      * Returns the [reference][Reference] stored under the given [type], or `null` if none is found.
      */
-    fun getReferenceOrNull(type: Type): Reference? = refs[type.serializedName]
+    fun getReferenceOrNull(type: Type): Reference? = _references[type.attributeName]
 
     /**
      * Returns `true` if this guide has a reference with the given [type], `false` otherwise.
      */
-    fun hasType(type: Type): Boolean = type.serializedName in refs
+    fun hasType(type: Type): Boolean = type.attributeName in _references
+
+    // convenience
+    // TODO: Documentation
+    @JvmOverloads
+    fun setCoverPage(page: PageResource, title: String? = "Cover Image"): Reference =
+        addReference(Type.COVER, page, title)
+
+    @JvmOverloads
+    fun setTitlePage(page: PageResource, title: String? = "Title Page"): Reference =
+        addReference(Type.TITLE_PAGE, page, title)
+
+    @JvmOverloads
+    fun setTableOfContentsPage(page: PageResource, title: String? = "Table of Contents"): Reference =
+        addReference(Type.TABLE_OF_CONTENTS, page, title)
+
+    @JvmOverloads
+    fun setIndexPage(page: PageResource, title: String? = "Index"): Reference = addReference(Type.INDEX, page, title)
+
+    @JvmOverloads
+    fun setGlossaryPage(page: PageResource, title: String? = "Glossary"): Reference =
+        addReference(Type.GLOSSARY, page, title)
+
+    @JvmOverloads
+    fun setBibliographyPage(page: PageResource, title: String? = "Bibliography"): Reference =
+        addReference(Type.BIBLIOGRAPHY, page, title)
+
+    @JvmOverloads
+    fun setColophonPage(page: PageResource, title: String? = "Colophon"): Reference =
+        addReference(Type.COLOPHON, page, title)
+
+    @JvmOverloads
+    fun setCopyrightPage(page: PageResource, title: String? = "Copyright Page"): Reference =
+        addReference(Type.COPYRIGHT_PAGE, page, title)
+
+    @JvmOverloads
+    fun setDedicationPage(page: PageResource, title: String? = "Dedication"): Reference =
+        addReference(Type.DEDICATION, page, title)
+
+    @JvmOverloads
+    fun setEpigraphPage(page: PageResource, title: String? = "Epigraph"): Reference =
+        addReference(Type.EPIGRAPH, page, title)
+
+    @JvmOverloads
+    fun setForewordPage(page: PageResource, title: String? = "Foreword"): Reference =
+        addReference(Type.FOREWORD, page, title)
+
+    @JvmOverloads
+    fun setListOfIllustrationsPage(page: PageResource, title: String? = "List of Illustrations"): Reference =
+        addReference(Type.LIST_OF_ILLUSTRATIONS, page, title)
+
+    @JvmOverloads
+    fun setListOfTablesPage(page: PageResource, title: String? = "List of Tables"): Reference =
+        addReference(Type.LIST_OF_TABLES, page, title)
+
+    @JvmOverloads
+    fun setNotesPage(page: PageResource, title: String? = "Notes"): Reference = addReference(Type.NOTES, page, title)
+
+    @JvmOverloads
+    fun setPrefacePage(page: PageResource, title: String? = "Preface"): Reference =
+        addReference(Type.PREFACE, page, title)
+
+    @JvmOverloads
+    fun setTextPage(page: PageResource, title: String? = "Begin Reading"): Reference =
+        addReference(Type.TEXT, page, title)
 
     // -- CUSTOM REFERENCES -- \\
     /**
-     * Adds a new [reference][Reference] instance based on the given [customType], [href] and [title] to this guide.
+     * Adds a new [reference][Reference] instance based on the given [customType], [reference] and [title] to this guide.
      *
      * Note that if a `reference` already exists under the given [customType], then it will be overridden.
      *
@@ -134,19 +223,24 @@ class Guide private constructor(val book: Book, private val refs: MutableMap<Str
      * `reference` under the key `"tn"`, instead it will store the `reference` under the key `"other.tn"`. This
      * behaviour is consistent across all functions that accept a `customType`.
      *
+     * Note that as guide references are *case-insensitive* the casing of the given [customType] does not matter when
+     * attempting to return it from [getCustomReference] or removing it via [removeCustomReference].
+     *
      * @param [customType] the custom type string
-     * @param [href] the [Resource] to inherit the [href][Resource.href] of
+     * @param [reference] the [Resource] to inherit the [href][Resource.href] of TODO: This part
      * @param [title] the *(optional)* title attribute
      *
-     * @return the newly created `reference` element
+     * @throws [IllegalArgumentException] if the given [customType] matches an already known [type][Type]
+     *
+     * @return the newly created `reference` instance
      */
     @JvmOverloads
-    fun addCustomReference(customType: String, href: String, title: String? = null): Reference {
+    fun addCustomReference(customType: String, reference: PageResource, title: String? = null): Reference {
         // TODO: Might be a bit extreme?
-        requireThat(Type.getOrNull(customType) == null) { "Given custom-type '$customType' matches officially defined type '${Type.getOrNull(customType)}', use that instead." }
+        requireThat(!(Type.isKnownType(customType))) { "expected custom-type '$customType' to be original, but it matches an officially defined type" }
         val type = "other.$customType"
-        val ref = Reference("other.$customType", href, title)
-        refs[type] = ref
+        val ref = Reference("other.$customType", reference, title)
+        _references[type] = ref
         logger.debug { "Added the custom reference <$ref> to this guide <$this>" }
         return ref
     }
@@ -165,13 +259,17 @@ class Guide private constructor(val book: Book, private val refs: MutableMap<Str
      * under the key `"tn"`, instead it removes a `reference` stored under the key `"other.tn"`. This behaviour is
      * consistent across all functions that accept a `customType`.
      *
+     * Note that as guide references are *case-insensitive* the casing of the given [customType] does not matter,
+     * meaning that invoking this function with `customType` as `"deStROyeR"` will remove the same `reference` as if
+     * invoking it with `customType` as `"destroyer"` or any other casing variation of the same string.
+     *
      * @param [customType] the custom type string
      */
     fun removeCustomReference(customType: String) {
         val type = "other.$customType"
-        if (type in refs) {
-            val ref = refs[type]
-            refs -= type
+        if (type in _references) {
+            val ref = _references[type]
+            _references -= type
             logger.debug { "Removed the custom reference <$ref> from this guide <$this>" }
         }
     }
@@ -190,9 +288,13 @@ class Guide private constructor(val book: Book, private val refs: MutableMap<Str
      * This means that if this function is invoked with `("tn")` the system does *not* look for a `reference` stored
      * under the key `"tn"`, instead it looks for a `reference` stored under the key `"other.tn"`. This behaviour is
      * consistent across all functions that accept a `customType`.
+     *
+     * Note that as guide references are *case-insensitive* the casing given to this function does not matter, meaning
+     * that invoking this function with `"deStROyeR"` will return the same result as if invoking it with `"destroyer"`
+     * or any other casing variation of the same string.
      */
     fun getCustomReference(customType: String): Reference =
-        refs.getValueOrThrow(customType) { "No reference found with the given custom type 'other.$customType'" }
+        _references.getValueOrThrow(customType) { "No reference found with the given custom type 'other.$customType'" }
 
     /**
      * Returns the [reference][Reference] stored under the given [customType], or `null` if none is found.
@@ -207,8 +309,12 @@ class Guide private constructor(val book: Book, private val refs: MutableMap<Str
      * This means that if this function is invoked with `("tn")` the system does *not* look for a `reference` stored
      * under the key `"tn"`, instead it looks for a `reference` stored under the key `"other.tn"`. This behaviour is
      * consistent across all functions that accept a `customType`.
+     *
+     * Note that as guide references are *case-insensitive* the casing given to this function does not matter, meaning
+     * that invoking this function with `"deStROyeR"` will return the same result as if invoking it with `"destroyer"`
+     * or any other casing variation of the same string.
      */
-    fun getCustomReferenceOrNull(customType: String): Reference? = refs["other.$customType"]
+    fun getCustomReferenceOrNull(customType: String): Reference? = _references["other.$customType"]
 
     /**
      * Returns `true` if this guide has a reference with the given [customType], `false` otherwise.
@@ -223,10 +329,21 @@ class Guide private constructor(val book: Book, private val refs: MutableMap<Str
      * This means that if this function is invoked with `("tn")` the system does *not* look for a `reference` stored
      * under the key `"tn"`, instead it looks for a `reference` stored under the key `"other.tn"`. This behaviour is
      * consistent across all functions that accept a `customType`.
+     *
+     * Note that as guide references are *case-insensitive* the casing given to this function does not matter, meaning
+     * that invoking this function with `"deStROyeR"` will return the same result as if invoking it with `"destroyer"`
+     * or any other casing variation of the same string.
      */
-    fun hasCustomType(customType: String): Boolean = "other.$customType" in refs
+    fun hasCustomType(customType: String): Boolean = "other.$customType" in _references
 
-    override fun iterator(): Iterator<Reference> = refs.values.iterator().asUnmodifiable()
+    override fun toString(): String = "Guide(references=$_references)"
+
+    @JvmSynthetic
+    internal fun toElement(namespace: Namespace = Namespaces.OPF): Element = Element("guide", namespace).apply {
+        for ((_, ref) in _references) {
+            addContent(ref.toElement())
+        }
+    }
 
     /**
      * Implementation of the `reference` element contained inside of the [guide][Guide] of the [book].
@@ -236,15 +353,17 @@ class Guide private constructor(val book: Book, private val refs: MutableMap<Str
      * when none of the predefined types are applicable; their names **must** begin with the string `"other."`. The
      * value for the `type` property is case-sensitive.
      *
-     * @property [parent] The parent [PackageGuide] of `this` reference.
      * @property [type] The `type` of `this` reference.
-     * @property [resource] The [PageResource] that `this` reference is pointing towards.
-     * @property [href] The [href][PageResource.file] of the [resource] that `this` reference is pointing towards.
+     * @property [reference] The [href][PageResource.file] of the [resource] that `this` reference is pointing towards.
      * @property [title] The title that a `Reading System` would use to display `this` reference.
      *
      * The `title` property is *not* required for a reference to be valid.
      */
-    data class Reference internal constructor(val type: String, var href: String, var title: String? = null) {
+    data class Reference internal constructor(
+        val type: String,
+        var reference: PageResource,
+        var title: String? = null
+    ) {
         /**
          * Returns the [Type] tied to the specified [type] of this `reference`, or `null` if the [type] of `this` ref
          * is custom.
@@ -257,25 +376,27 @@ class Guide private constructor(val book: Book, private val refs: MutableMap<Str
         val isCustomType: Boolean get() = guideType == null
 
         @JvmSynthetic
-        internal fun toElement(namespace: Namespace = Namespaces.OPF): Element = Element("reference", namespace).apply {
-            setAttribute("type", type)
-            setAttribute("href", href)
-            title?.also { setAttribute("title", it) }
-        }
+        internal fun toElement(namespace: Namespace = Namespaces.OPF): Element =
+            Element("reference", namespace).apply {
+                setAttribute("type", type)
+                // book.packageFile.relativize(href).toString().substringAfter("../")
+                setAttribute("href", reference.relativeHref.substringAfter("../"))
+                title?.also { setAttribute("title", it) }
+            }
 
         override fun toString(): String = when (title) {
-            null -> "Reference(type='$type', href='$href', isCustomType=$isCustomType)"
-            else -> "Reference(type='$type', href='$href', title='$title', isCustomType=$isCustomType)"
+            null -> "Reference(type='$type', reference='$reference', isCustomType=$isCustomType)"
+            else -> "Reference(type='$type', reference='$reference', title='$title', isCustomType=$isCustomType)"
         }
     }
 
     /**
-     * Implementation of the "list of `type` values" declared in the
+     * Represents the list of `type` values declared in the
      * [guide](http://www.idpf.org/epub/20/spec/OPF_2.0.1_draft.htm#Section2.6) specification
      *
-     * @property [serializedName] The name used in the actual serialized form of `this` type.
+     * @property [attributeName] The name used in the actual serialized form of `this` type.
      */
-    enum class Type(val serializedName: String) {
+    enum class Type(val attributeName: String) {
         /**
          * A [page][Page] containing the book cover(s), jacket information, etc..
          */
@@ -346,42 +467,46 @@ class Guide private constructor(val book: Book, private val refs: MutableMap<Str
         TEXT("text");
 
         companion object {
-            // TODO: Maybe make this a setting? Some people probably don't want this behaviour
-            private val KNOWN_MISMATCHES = persistentHashMapOf("copyright" to COPYRIGHT_PAGE)
+            // TODO: Make a setting for automatically replacing some commonly found faulty names with their actual
+            //       representations?
+
+            // these functions all use equalsIgnoreCase because guide references are case-insensitive according to the
+            // EPUB specification.
 
             /**
-             * Returns the first [Type] that has a [serializedName] that matches the specified [name], or `null` if
-             * none is found.
-             *
-             * Note that the system has a storage of some known mismatches *(i.e, using `'copyright'` instead of
-             * `'copyright-page'`)* and will automatically fix those.
-             *
-             * @param [name] the type to match all `guide-types` against
+             * Returns `true` if the given [type] represents an officially known type, otherwise `false`.
              */
             @JvmStatic
-            fun getOrNull(name: String): Type? {
-                val type = name.toLowerCase()
-                return values().firstOrNull { it.serializedName == type } ?: KNOWN_MISMATCHES[type]
-            }
+            fun isKnownType(type: String): Boolean = values().any { it.attributeName.equals(type, ignoreCase = true) }
+
+            /**
+             * Returns the first [Type] that has a [attributeName] that matches the specified [type], or `null` if
+             * none is found.
+             *
+             * @param [type] the type to match all `guide-types` against
+             */
+            @JvmStatic
+            fun getOrNull(type: String): Type? =
+                values().firstOrNull { it.attributeName.equals(type, ignoreCase = true) }
         }
     }
 
     internal companion object {
         @JvmSynthetic
-        internal fun fromElement(book: Book, element: Element, documentFile: Path): Guide = with(element) {
+        internal fun fromElement(book: Book, element: Element, file: Path): Guide = with(element) {
             val refs = getChildren("reference", namespace)
                 .asSequence()
-                .map { createReference(it, book.file, documentFile) }
-                .associateByTo(hashMapOf()) { it.type }
+                .map { createReference(book, it, book.file, file) }
+                .associateByTo(CaseInsensitiveMap()) { it.type }
             return Guide(book, refs).also {
-                logger.trace { "Constructed guide instance <$it>" }
+                logger.trace { "Constructed guide instance <$it> from file '$file'" }
             }
         }
 
-        private fun createReference(element: Element, epub: Path, container: Path): Reference {
+        private fun createReference(book: Book, element: Element, epub: Path, container: Path): Reference {
             val type = element.attr("type", epub, container).let {
                 when {
-                    Type.getOrNull(it) == null && !(it.startsWith("other.", true)) -> {
+                    !(Type.isKnownType(it)) && !(it.startsWith("other.", true)) -> {
                         logger.warn { "Reference type '$it' is not a known type and is missing the 'other.' prefix required for custom types. It will be stored as 'other.$it'" }
                         "other.$it"
                     }
@@ -390,7 +515,14 @@ class Guide private constructor(val book: Book, private val refs: MutableMap<Str
             }
             val href = element.attr("href", epub, container)
             val title = element.getAttributeValue("title")
-            return Reference(type, href, title).also {
+            val hrefFile = getBookPathFromHref(book, href, container)
+            val reference = book.resources.getResourceByFileOrNull(hrefFile) ?: malformed(
+                book.file,
+                container,
+                "'href' attribute points to a non-existent resource file: '$hrefFile'"
+            )
+            checkThat(reference is PageResource) { "resource returned by the hrefFile <$hrefFile> should point towards a page-resource" }
+            return Reference(type, reference, title).also {
                 logger.trace { "Constructed guide reference instance <$it>" }
             }
         }

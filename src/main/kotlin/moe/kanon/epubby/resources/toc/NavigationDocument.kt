@@ -17,7 +17,7 @@
 package moe.kanon.epubby.resources.toc
 
 import moe.kanon.epubby.Book
-import moe.kanon.epubby.Version
+import moe.kanon.epubby.BookVersion
 import moe.kanon.epubby.utils.parseHtmlFile
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
@@ -25,7 +25,7 @@ import java.nio.file.Path
 
 /**
  * Represents the [navigation document](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#sec-package-nav)
- * introduced in [EPUB 3.0][Version.EPUB_3_0].
+ * introduced in [EPUB 3.0][BookVersion.EPUB_3_0].
  */
 internal class NavigationDocument private constructor(
     val book: Book,

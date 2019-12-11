@@ -27,13 +27,9 @@ import java.nio.file.Path
 import java.util.WeakHashMap
 
 /**
- * Represents the `id` attribute.
- *
- * TODO: Some sort of verification of the validity of `value` as an identifier?
+ * Represents an identifier value used through-out a [Book] instance.
  */
 class Identifier private constructor(val value: String) {
-    fun findResourceOrNull(book: Book): Resource? = TODO()
-
     @JvmSynthetic
     internal fun toAttribute(name: String = "id", namespace: Namespace = Namespace.NO_NAMESPACE): Attribute =
         Attribute(name, value, namespace)
@@ -53,13 +49,11 @@ class Identifier private constructor(val value: String) {
     override fun toString(): String = value
 
     companion object {
-        private val KNOWN_IDENTIFIERS = WeakHashMap<String, Identifier>()
-
+        /**
+         * Returns a new identifier where the `value` is the given [value].
+         */
         @JvmStatic
-        fun of(value: String): Identifier = KNOWN_IDENTIFIERS.getOrPut(value) { Identifier(value) }
-
-        @JvmStatic
-        fun isKnown(identifier: String): Boolean = identifier in KNOWN_IDENTIFIERS
+        fun of(value: String): Identifier = Identifier(value)
 
         /**
          * Returns a new identifier where the [name][Path.name] of the given [file] is used as the value.

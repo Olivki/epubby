@@ -16,11 +16,15 @@
 
 package moe.kanon.epubby.metainf
 
-import java.io.IOException
+import java.nio.file.FileSystem
 
-class MetaInfEncryption {
-    @Throws(IOException::class)
-    fun writeToFile() {
+/**
+ * Represents the [encryption.xml](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-ocf.html#sec-container-metainf-encryption.xml)
+ * meta-inf file.
+ */
+class MetaInfEncryption private constructor() {
+    @JvmSynthetic
+    internal fun writeToFile(fileSystem: FileSystem) {
         TODO()
     }
 }

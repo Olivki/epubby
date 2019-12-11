@@ -30,6 +30,7 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import java.io.IOException
+import java.nio.file.FileSystem
 import java.nio.file.Path
 
 class Page private constructor(val book: Book, val document: Document, val resource: PageResource) {
@@ -112,11 +113,10 @@ class Page private constructor(val book: Book, val document: Document, val resou
 
     fun hasStyleSheet(styleSheet: StyleSheetResource): Boolean = styleSheet in styleSheets
 
-    @Throws(IOException::class)
-    fun writeToFile() {
-        logger.trace { "Writing contents of this page <$this> to file <$file>" }
-        val text = document.outerHtml()
-        file.writeString(text)
+    @JvmSynthetic
+    internal fun writeToFile(fileSystem: FileSystem) {
+        logger.trace { "Writing contents of page <$this> to file <$file>.." }
+        fileSystem.getPath(file.toString()).writeString(document.outerHtml())
     }
 
     @JvmSynthetic

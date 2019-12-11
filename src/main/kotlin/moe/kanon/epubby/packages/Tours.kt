@@ -126,13 +126,13 @@ class Tours private constructor(val book: Book, private val tours: MutableMap<Id
     companion object {
         // -- PARSING -- \\
         @JvmSynthetic
-        internal fun fromElement(book: Book, element: Element, documentFile: Path): Tours = with(element) {
+        internal fun fromElement(book: Book, element: Element, file: Path): Tours = with(element) {
             val tourElements = getChildren("tour", namespace)
                 .asSequence()
-                .map { createTour(element, book.file, documentFile) }
+                .map { createTour(element, book.file, file) }
                 .associateByTo(LinkedHashMap()) { it.identifier }
             return Tours(book, tourElements).also {
-                logger.trace { "Constructed tours instance <$it>" }
+                logger.trace { "Constructed tours instance <$it> from file '$file'" }
             }
         }
 

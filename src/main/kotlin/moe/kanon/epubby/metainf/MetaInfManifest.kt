@@ -17,10 +17,15 @@
 package moe.kanon.epubby.metainf
 
 import java.io.IOException
+import java.nio.file.FileSystem
 
-class MetaInfManifest {
-    @Throws(IOException::class)
-    fun writeToFile() {
+/**
+ * Represents the [manifest.xml](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-ocf.html#sec-container-metainf-manifest.xml)
+ * meta-inf file.
+ */
+class MetaInfManifest private constructor() {
+    @JvmSynthetic
+    internal fun writeToFile(fileSystem: FileSystem) {
         TODO()
     }
 }

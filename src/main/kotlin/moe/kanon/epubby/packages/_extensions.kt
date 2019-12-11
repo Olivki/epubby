@@ -30,16 +30,16 @@ import moe.kanon.epubby.structs.Identifier
 
 // -- GUIDE -- \\
 /**
- * Adds a new [reference][Reference] instance based on the given [type], [href] and [title] to this guide.
+ * Adds a new [reference][Reference] instance based on the given [type], [reference] and [title] to this guide.
  *
  * Note that if a `reference` already exists under the given [type], then it will be overridden.
  *
  * @param [type] the `type` to store the element under
- * @param [href] the [Resource] to inherit the [href][Resource.href] of
+ * @param [reference] the [Resource] to inherit the [href][Resource.href] of
  * @param [title] the *(optional)* title
  */
-operator fun Guide.set(type: Type, href: String) {
-    addReference(type, href)
+operator fun Guide.set(type: Type, reference: PageResource) {
+    addReference(type, reference)
 }
 
 /**
@@ -79,10 +79,10 @@ operator fun Guide.contains(type: Type): Boolean = hasType(type)
  * behaviour is consistent across all functions that accept a `customType`.
  *
  * @param [customType] the custom type string
- * @param [href] the [Resource] to inherit the [href][Resource.href] of
+ * @param [reference] the [Resource] to inherit the [href][Resource.href] of
  */
-operator fun Guide.set(customType: String, href: String) {
-    addCustomReference(customType, href)
+operator fun Guide.set(customType: String, reference: PageResource) {
+    addCustomReference(customType, reference)
 }
 
 /**

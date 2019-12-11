@@ -34,6 +34,8 @@ import org.jdom2.Document
 import org.jdom2.Element
 import org.jdom2.Namespace
 import java.io.IOException
+import java.nio.file.FileSystem
+import java.nio.file.FileSystems
 import java.nio.file.Path
 
 /**
@@ -66,25 +68,25 @@ class MetaInfContainer private constructor(
      */
     val packageDocument: RootFile get() = _rootFiles[0]
 
-    @Throws(IOException::class)
-    fun writeToFile() {
-        toDocument().writeTo(file)
+    @JvmSynthetic
+    internal fun writeToFile(fileSystem: FileSystem) {
+        toDocument().writeTo(fileSystem.getPath(file.toString()))
     }
 
     @JvmSynthetic
     internal fun toDocument(): Document = Document(Element("container", Namespaces.META_INF_CONTAINER)).docScope {
-        addContent(Element("rootfiles", namespace)).apply {
+        addContent(Element("rootfiles", namespace).also {
             for (rootFile in _rootFiles) {
-                addContent(rootFile.toElement(namespace))
+                it.addContent(rootFile.toElement(namespace))
             }
-        }
+        })
 
         if (_links.isNotEmpty()) {
-            addContent(Element("links", namespace)).apply {
+            addContent(Element("links", namespace).also {
                 for (link in _links) {
-                    addContent(link.toElement(namespace))
+                    it.addContent(link.toElement(namespace))
                 }
-            }
+            })
         }
     }
 

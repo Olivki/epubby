@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-@file:JvmName("BookFactory")
+@file:JvmName("BookReader")
 
 package moe.kanon.epubby
 
@@ -22,6 +22,7 @@ import moe.kanon.epubby.metainf.MetaInf
 import moe.kanon.epubby.utils.internal.logger
 import moe.kanon.epubby.utils.internal.malformed
 import moe.kanon.kommons.io.paths.copyTo
+import moe.kanon.kommons.io.paths.createTmpDirectory
 import moe.kanon.kommons.io.paths.deleteIfExists
 import moe.kanon.kommons.io.paths.exists
 import moe.kanon.kommons.io.paths.isDirectory
@@ -29,45 +30,73 @@ import moe.kanon.kommons.io.paths.isRegularFile
 import moe.kanon.kommons.io.paths.name
 import moe.kanon.kommons.io.paths.notExists
 import moe.kanon.kommons.io.paths.readString
-import moe.kanon.kommons.io.paths.simpleName
 import java.io.IOException
 import java.nio.charset.StandardCharsets
 import java.nio.file.FileSystems
 import java.nio.file.Path
 
-// TODO: See if I can make it so that the Book instance/some BookWriter thing can handle the actual writing of the book
-//       because the way it's done right now is quite ugly and not the best.
 /**
- * Returns a new [Book] instance based on the given [origin].
+ * TODO
  *
- * This function attempts to parse the `origin` file, and *will* fail if the given file is *not* a valid EPUB.
+ * @param [epubFile] the file to read and parse into a [Book] instance, this needs to be a EPUB file or this function
+ * will throw a [MalformedBookException]
  *
- * Note that the `Book` instance will *not* be working on the given `origin` file, but rather on a file created using
- * the given [outputName] located in the given [outputDirectory]. To access the `origin` file from the book instance,
- * use the [originFile][Book.originFile] property.
- *
- * @param [origin] TODO
- * @param [outputDirectory] the directory where the parsed book should be saved when [Book.save] is invoked
- * @param [outputName] the [simple name][Path.simpleName] of the resulting book.
- * @param [settings] TODO
- *
- * @throws [EpubbyException] if something went wrong when parsing the [origin] file
  * @throws [IOException] if an i/o error occurred
+ * @throws [EpubbyException] if something went wrong when parsing the [epubFile] file
  */
 @JvmOverloads
-@JvmName("fromFile")
-@Throws(EpubbyException::class, IOException::class)
-fun readBook(origin: Path, outputDirectory: Path, outputName: String = origin.simpleName): Book {
-    logger.info { "Reading file '${origin.name}' as an EPUB container" }
+@JvmName("read")
+@Throws(IOException::class, EpubbyException::class)
+fun readBook(epubFile: Path, settings: BookSettings = BookSettings.DEFAULT): Book {
+    logger.info { "Reading file '$epubFile' as an EPUB container.." }
 
-    val copy = origin.copyTo(outputDirectory.resolve("$outputName.epub"))
     val fileSystem = try {
-        FileSystems.newFileSystem(copy, null).also { validateContainer(origin, it.getPath("/")) }
+        FileSystems.newFileSystem(epubFile, null).also { validateContainer(epubFile, it.getPath("/")) }
     } catch (e: IOException) {
-        // something went wrong when trying to create the new file-system, so we want to delete the copy we made
-        // and inform about it
+        // something went wrong when trying to create the new file-system, so we want to rethrow a the exception
+        // wrapped in an epubby-exception, this is to notify the user that *we* know that this happened
+        malformed(epubFile, "Could not create a file-system for '${epubFile.name}'", e)
+    } catch (e: EpubbyException) {
+        // the validation failed, so we want to just delete the copy we made and re-throw the exception
+        throw e
+    }
+    val root = fileSystem.getPath("/")
+    val metaInf = MetaInf.fromDirectory(epubFile, root.resolve("META-INF"), root)
+
+    return Book(metaInf, epubFile, fileSystem, root, settings)
+}
+
+/**
+ * TODO
+ *
+ * This function copies the given [epubFile] to the given [copyDirectory], the returned [Book] instance then works on
+ * the copied file and not the original.
+ *
+ * @param [epubFile] the file to read and parse into a [Book] instance, this needs to be a EPUB file or this function
+ * will throw a [MalformedBookException]
+ *
+ * @throws [IOException] if an i/o error occurred
+ * @throws [EpubbyException] if something went wrong when parsing the [epubFile] file
+ */
+@JvmOverloads
+@JvmName("readCopy")
+@Throws(IOException::class, EpubbyException::class)
+fun readBookCopy(
+    epubFile: Path,
+    settings: BookSettings = BookSettings.DEFAULT,
+    copyDirectory: Path = createTmpDirectory("epubby")
+): Book {
+    logger.info { "Copying file '$epubFile' to directory '$copyDirectory'.." }
+    val copy = epubFile.copyTo(copyDirectory, keepName = true)
+    copy.toFile().deleteOnExit()
+    logger.info { "Reading file '$copy' as an EPUB container.." }
+    val fileSystem = try {
+        FileSystems.newFileSystem(copy, null).also { validateContainer(epubFile, it.getPath("/")) }
+    } catch (e: IOException) {
+        // something went wrong when trying to create the new file-system, so we want to rethrow a the exception
+        // wrapped in an epubby-exception, this is to notify the user that *we* know that this happened
         copy.deleteIfExists()
-        malformed(origin, "Could not create a file-system for '${origin.name}'", e)
+        malformed(epubFile, "Could not create a file-system for '${epubFile.name}'", e)
     } catch (e: EpubbyException) {
         // the validation failed, so we want to just delete the copy we made and re-throw the exception
         copy.deleteIfExists()
@@ -76,9 +105,10 @@ fun readBook(origin: Path, outputDirectory: Path, outputName: String = origin.si
     val root = fileSystem.getPath("/")
     val metaInf = MetaInf.fromDirectory(copy, root.resolve("META-INF"), root)
 
-    return Book(metaInf, copy, fileSystem, origin, root)
+    return Book(metaInf, copy, fileSystem, root, settings)
 }
 
+// validates that the required parts of an EPUB is available in the epub file
 private fun validateContainer(epub: Path, root: Path) {
     val metaInf = root.resolve("META-INF")
     val mimeType = root.resolve("mimetype")

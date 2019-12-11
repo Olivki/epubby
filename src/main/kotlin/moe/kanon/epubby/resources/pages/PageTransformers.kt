@@ -32,14 +32,17 @@ class PageTransformers internal constructor(val book: Book) : Iterable<PageTrans
     /**
      * Invokes [transformPage] on all the [pages][Book.pages] of the [book].
      */
-    fun transformAllPages() {
-        for (page in book.pages) transformPage(page)
+    fun transformPages() {
+        logger.debug { "Starting the transformation process for all registered page transformers.." }
+        for (page in book.pages) {
+            transformPage(page)
+        }
     }
 
     fun transformPage(page: Page) {
-        if (transformers.isNotEmpty()) {
-            logger.debug { "Invoking transformers on page <$page>" }
-            transformers.forEach { it.transformPage(page, page.document, page.body) }
+        for (transformer in transformers) {
+            logger.trace { "Transforming page <$page> with transformer <$transformer>.." }
+            transformer.transformPage(page, page.document, page.body)
         }
     }
 

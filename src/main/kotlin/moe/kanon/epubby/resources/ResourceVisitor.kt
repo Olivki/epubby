@@ -18,7 +18,7 @@ package moe.kanon.epubby.resources
 
 interface ResourceVisitor {
     @JvmDefault
-    fun onTableOfContents(resource: TableOfContentsResource) {}
+    fun onTableOfContents(resource: NcxResource) {}
 
     @JvmDefault
     fun onPage(resource: PageResource) {}

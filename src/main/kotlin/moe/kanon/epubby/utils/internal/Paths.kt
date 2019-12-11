@@ -17,7 +17,13 @@
 package moe.kanon.epubby.utils.internal
 
 import com.google.common.net.MediaType
+import moe.kanon.epubby.Book
 import moe.kanon.kommons.io.paths.contentType
 import java.nio.file.Path
 
+@get:JvmSynthetic
 internal val Path.mediaType: MediaType? get() = this.contentType?.let(MediaType::parse)
+
+@JvmSynthetic
+internal fun getBookPathFromHref(book: Book, href: String, documentFile: Path): Path =
+    book.getPath(href).let { if (it.isAbsolute) it else documentFile.parent.resolve(it) }

@@ -19,7 +19,7 @@ package moe.kanon.epubby.packages
 import moe.kanon.epubby.Book
 import moe.kanon.epubby.structs.Direction
 import moe.kanon.epubby.structs.Identifier
-import moe.kanon.epubby.Version
+import moe.kanon.epubby.BookVersion
 import moe.kanon.epubby.utils.attr
 import moe.kanon.epubby.utils.child
 import moe.kanon.epubby.utils.docScope
@@ -34,6 +34,7 @@ import org.jdom2.Document
 import org.jdom2.Element
 import org.jdom2.Namespace
 import java.io.IOException
+import java.nio.file.FileSystem
 import java.nio.file.Path
 import java.util.Locale
 import kotlin.properties.Delegates
@@ -45,17 +46,6 @@ import kotlin.properties.Delegates
  *
  * @property [book] The [Book] instance that `this` package-document is tied to.
  * @property [file] The underlying package document file that this class is wrapped around.
- * @property [direction] Specifies the base text direction of the content and attribute values of the carrying element
- * and its descendants.
- *
- * Inherent directionality specified using unicode takes precedence over this property.
- * @property [identifier] The identifier of `this` package-document.
- *
- * This *MUST* be unique within the document scope.
- * @property [prefix] Defines additional prefix mappings not reserved by the epub specification.
- *
- * [Read more](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#sec-prefix-attr)
- * @property [language] Specifies the language used in all the sub-elements of this package-document.
  * @property [uniqueIdentifier] Should be an `IDREF` that identifies the `dc:identifier` element.
  * @property [version] This specifies which epub specification the [book] was made to follow.
  * @property [metadata] TODO
@@ -124,6 +114,8 @@ class PackageDocument private constructor(
      */
     var tours: Tours by KDelegates.writeOnce()
 
+    // TODO: Replace these with something that doesn't use reflection as to improve performance?
+
     /**
      * Returns `true` if `this` package-document has a [guide][Guide], `false` otherwise.
      */
@@ -144,9 +136,9 @@ class PackageDocument private constructor(
      */
     fun hasTours(): Boolean = this::tours.isWriteOnceSet
 
-    @Throws(IOException::class)
-    fun writeToFile() {
-        toDocument().writeTo(file)
+    @JvmSynthetic
+    internal fun writeToFile(fileSystem: FileSystem) {
+        toDocument().writeTo(fileSystem.getPath(file.toString()))
     }
 
     @JvmSynthetic
@@ -158,10 +150,27 @@ class PackageDocument private constructor(
         addContent(metadata.toElement())
         addContent(manifest.toElement())
         addContent(spine.toElement())
-        // TODO: The other elements
+        if (hasTours()) addContent(tours.toElement())
+        if (hasGuide()) addContent(guide.toElement())
+        // TODO: Bindings and Collections
     }
 
     // TODO: Maybe do it a different way, or keep it like this to separate the serialization more from the public api?
+    /**
+     * Contains all the extra attributes that may be declared on the package document header.
+     *
+     * @property [direction] Specifies the base text direction of the content and attribute values of the carrying
+     * element and its descendants.
+     *
+     * Inherent directionality specified using unicode takes precedence over this property.
+     * @property [identifier] The identifier of `this` package-document.
+     *
+     * This *MUST* be unique within the document scope.
+     * @property [prefix] Defines additional prefix mappings not reserved by the epub specification.
+     *
+     * [Read more](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#sec-prefix-attr)
+     * @property [language] Specifies the language used in all the sub-elements of this package-document.
+     */
     data class Attributes internal constructor(
         var direction: Direction?,
         var identifier: Identifier?,
@@ -185,13 +194,15 @@ class PackageDocument private constructor(
                 val namespace = root.namespace
                 val uniqueId = root.attr("unique-identifier", book.file, file).let { Identifier.of(it) }
                 val attributes = createAttributes(root)
-                book.version = root.attr("version", book.file, file).let { Version.fromString(it) }
+                book.version = root.attr("version", book.file, file).let { BookVersion.fromString(it) }
                 val metadataElement = root.child("metadata", book.file, file, namespace)
                 val metadata = Metadata.fromElement(book, metadataElement, file)
                 val manifestElement = root.child("manifest", book.file, file, namespace)
                 val manifest = Manifest.fromElement(book, manifestElement, file)
+                book.resources.populateFromManifest(manifest)
                 val spineElement = root.child("spine", book.file, file, namespace)
                 val spine = Spine.fromElement(book, manifest, spineElement, file)
+                book.pages.populateFromSpine(spine)
                 return PackageDocument(book, file, uniqueId, attributes, metadata, manifest, spine).also {
                     root.getChild("guide", namespace)?.also { element ->
                         it.guide = Guide.fromElement(book, element, file)

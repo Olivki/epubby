@@ -22,32 +22,87 @@ import moe.kanon.epubby.Book
 import moe.kanon.epubby.resources.PageResource
 import moe.kanon.kommons.collections.asUnmodifiable
 
+
 class TableOfContents private constructor(val book: Book, val _entries: MutableList<Entry>) {
-    data class Entry internal constructor(
+    // TODO: Functions for deep-removal of all entries that point towards a specific entry and the like
+    // TODO: Functions for retrieving the deepest child(?)
+    class Entry private constructor(
         val parent: Entry?,
         val title: String,
         val resource: PageResource?,
         val fragmentIdentifier: String?,
-        private val _children: MutableList<Entry> = ArrayList()
+        private val entries: MutableList<Entry> = ArrayList()
     ) : Iterable<Entry> {
-        /**
-         * Returns a list of all the children `this` entry has, or an empty list if `this` entry has no children.
-         */
-        val children: ImmutableList<Entry> get() = _children.toImmutableList()
+        val children: ImmutableList<Entry> get() = entries.toImmutableList()
+
+        // TODO: This?
+        //val detached: Entry
+        //    @JvmName("detached") get() = if (parent != null) copy(parent = null) else this
+
+        @JvmOverloads
+        fun addChild(title: String, resource: PageResource? = null, fragmentIdentifier: String? = null): Entry {
+            val entry = Entry(this, title, resource, fragmentIdentifier)
+            entries.add(entry)
+            return entry
+        }
+
+        @JvmOverloads
+        fun removeChild(title: String, ignoreCase: Boolean = false): Boolean =
+            entries.firstOrNull { it.title.equals(title, ignoreCase) }?.let(entries::remove) ?: false
+
+        @JvmOverloads
+        fun removeChildren(title: String, ignoreCase: Boolean = false): Boolean =
+            entries.removeIf { it.title.equals(title, ignoreCase) }
+
+        fun removeChildren(resource: PageResource): Boolean = entries.removeIf { it.resource == resource }
+
+        fun removeChildren(children: Iterable<Entry>): Boolean = entries.removeAll(children)
 
         /**
-         * Returns a new instance of `this` entry without its [parent], or `this` if `this` entry has no parent.
+         * Returns a list of all the children of `this` entry that have a [title][Entry.title] that matches the given
+         * [title], or an empty-list if none are found.
          */
-        val detached: Entry
-            @JvmName("detached") get() = if (parent != null) copy(parent = null) else this
+        @JvmOverloads
+        fun getChildrenByTitle(title: String, ignoreCase: Boolean = false): ImmutableList<Entry> =
+            entries.filter { it.title.equals(title, ignoreCase) }.toImmutableList()
 
-        operator fun contains(title: String): Boolean = _children.any { it.title == title }
+        /**
+         * Returns a list of all the children of `this` entry that have a [resource][Entry.resource] that matches the
+         * given [resource], or an empty-list if none are found.
+         */
+        fun getChildrenByResource(resource: PageResource): ImmutableList<Entry> =
+            entries.filter { it.resource == resource }.toImmutableList()
 
-        operator fun contains(resource: PageResource): Boolean = _children.any { it.resource == resource }
+        @JvmName("hasChildWithTitle")
+        operator fun contains(title: String): Boolean = entries.any { it.title == title }
 
-        operator fun contains(entry: Entry): Boolean = entry in _children
+        @JvmName("hasChildFor")
+        operator fun contains(resource: PageResource): Boolean = entries.any { it.resource == resource }
 
-        override fun iterator(): Iterator<Entry> = _children.iterator().asUnmodifiable()
+        @JvmName("isChild")
+        operator fun contains(entry: Entry): Boolean = entry in entries
+
+        override fun iterator(): Iterator<Entry> = entries.iterator().asUnmodifiable()
+
+        override fun equals(other: Any?): Boolean = when {
+            this === other -> true
+            other !is Entry -> false
+            parent != other.parent -> false
+            title != other.title -> false
+            resource != other.resource -> false
+            fragmentIdentifier != other.fragmentIdentifier -> false
+            entries != other.entries -> false
+            else -> true
+        }
+
+        override fun hashCode(): Int {
+            var result = parent?.hashCode() ?: 0
+            result = 31 * result + title.hashCode()
+            result = 31 * result + (resource?.hashCode() ?: 0)
+            result = 31 * result + (fragmentIdentifier?.hashCode() ?: 0)
+            result = 31 * result + entries.hashCode()
+            return result
+        }
 
         override fun toString(): String = "Entry[TODO]"
     }

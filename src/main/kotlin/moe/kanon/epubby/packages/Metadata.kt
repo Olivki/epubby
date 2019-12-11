@@ -22,10 +22,10 @@ import kotlinx.collections.immutable.persistentHashSetOf
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import moe.kanon.epubby.Book
+import moe.kanon.epubby.BookVersion
 import moe.kanon.epubby.structs.Direction
-import moe.kanon.epubby.structs.DublinCore
 import moe.kanon.epubby.structs.Identifier
-import moe.kanon.epubby.Version
+import moe.kanon.epubby.structs.dublincore.DublinCore
 import moe.kanon.epubby.structs.props.PackagePrefix
 import moe.kanon.epubby.structs.props.Properties
 import moe.kanon.epubby.structs.props.Property
@@ -96,7 +96,7 @@ class Metadata private constructor(
     fun removeIdentifier(id: String): Boolean {
         // there needs to always be AT LEAST one identifier element, so we can't allow any removal operations if there's
         // only one identifier element available
-        checkThat(_identifiers.size > 1) { "(identifiers.size <= 1)" }
+        checkThat(_identifiers.size > 1, "(identifiers.size <= 1)")
         return _identifiers.find { it.value == id }?.let { _identifiers.remove(it) } ?: false
     }
 
@@ -230,13 +230,16 @@ class Metadata private constructor(
     // -- OTHER -- \\
     // TODO: Add functions for working with the other collections
     /**
-     * Updates the `last-modified` date of the [book] this `metadata` element is tied to.
+     * Updates the `last-modified` date of the [book] to the [current date][LocalDateTime.now].
+     *
+     * If no `last-modified` metadata element can be found, then one will be created, otherwise this will replace the
+     * first found instance of the `last-modified` element.
      */
     fun updateLastModified() {
         val lastModified = LocalDateTime.now()
-        logger.info { "Updating last-modified date to <$lastModified>" }
+        logger.debug { "Updating last-modified date of book <$book> to '$lastModified'.." }
 
-        if (book.version < Version.EPUB_3_0) {
+        if (book.version < BookVersion.EPUB_3_0) {
             fun predicate(dc: DublinCore<*>) = dc._attributes.any { it.name == "event" && it.value == "modification" }
             val element = DublinCore.Date.of(lastModified).apply {
                 addAttribute(Attribute("event", "modification", Namespaces.DUBLIN_CORE))
@@ -260,7 +263,7 @@ class Metadata private constructor(
     internal fun toElement(namespace: Namespace = Namespaces.OPF): Element = Element("metadata", namespace).apply {
         addNamespaceDeclaration(Namespaces.DUBLIN_CORE)
 
-        if (book.version < Version.EPUB_3_0) {
+        if (book.version < BookVersion.EPUB_3_0) {
             addNamespaceDeclaration(Namespaces.OPF_WITH_PREFIX)
         }
 
@@ -460,6 +463,66 @@ class Metadata private constructor(
         }
     }
 
+    // TODO: Make the class use this wrapper rather than the direct 'DublinCore' so we can remove useless crud from the
+    //       'dublinCore' class
+    internal sealed class DCWrapper(val book: Book) {
+        abstract val value: DublinCore<*>
+        abstract val identifier: Identifier?
+
+        // for EPUB 2.0 compliance, as the 'meta' element wasn't defined back then, so 'opf:property' attributes were used,
+        // which means we need to catch them and then just throw them back onto the element during 'toElement' invocation
+        @get:JvmSynthetic
+        internal var _attributes: MutableList<Attribute> = ArrayList()
+
+        class Basic(book: Book, override val value: DublinCore<*>, override val identifier: Identifier?) :
+            DCWrapper(book) {
+            override fun toString(): String = "Basic(value=$value, identifier=$identifier)"
+
+            override fun equals(other: Any?): Boolean = when {
+                this === other -> true
+                other !is Basic -> false
+                value != other.value -> false
+                identifier != other.identifier -> false
+                else -> true
+            }
+
+            override fun hashCode(): Int {
+                var result = value.hashCode()
+                result = 31 * result + (identifier?.hashCode() ?: 0)
+                return result
+            }
+        }
+
+        class Localized(
+            book: Book,
+            override val value: DublinCore<*>,
+            override val identifier: Identifier?,
+            val direction: Direction?,
+            val locale: Locale?
+        ) : DCWrapper(book) {
+            override fun toString(): String =
+                "Localized(value=$value, identifier=$identifier, direction=$direction, locale=$locale)"
+
+            override fun equals(other: Any?): Boolean = when {
+                this === other -> true
+                other !is Localized -> false
+                value != other.value -> false
+                identifier != other.identifier -> false
+                direction != other.direction -> false
+                locale != other.locale -> false
+                else -> true
+            }
+
+            override fun hashCode(): Int {
+                var result = value.hashCode()
+                result = 31 * result + (identifier?.hashCode() ?: 0)
+                result = 31 * result + (direction?.hashCode() ?: 0)
+                result = 31 * result + (locale?.hashCode() ?: 0)
+                return result
+            }
+        }
+    }
+
     internal companion object {
         private val KNOWN_NAMES = persistentHashSetOf("identifier", "title", "language")
         private val KNOWN_ATTRIBUTES = persistentHashSetOf("charset", "content", "http-equiv", "name", "scheme")
@@ -487,7 +550,9 @@ class Metadata private constructor(
                 // program just because of a faulty meta-element
                 .filterNotNullTo(ArrayList())
             val links = getChildren("link", namespace).mapTo(ArrayList()) { createLink(it, book.file, file) }
-            return@with Metadata(book, identifiers, titles, languages, dublinCoreElements, metaElements, links)
+            return@with Metadata(book, identifiers, titles, languages, dublinCoreElements, metaElements, links).also {
+                logger.trace { "Constructed metadata instance <$it> from file '$file'" }
+            }
         }
 
         private fun createMetaOrNull(book: Book, element: Element, container: Path, current: Path): Meta? {
@@ -497,7 +562,7 @@ class Metadata private constructor(
             }
 
             return when {
-                book.version > Version.EPUB_2_0 -> {
+                book.version > BookVersion.EPUB_2_0 -> {
                     when {
                         // the 'property' attribute is REQUIRED according to the EPUB specification, which means
                         // that any 'meta' elements that are missing it are NOT valid elements, and should therefore

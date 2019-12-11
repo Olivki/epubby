@@ -26,12 +26,12 @@ import moe.kanon.epubby.structs.props.Properties
 import moe.kanon.epubby.structs.props.vocabs.ManifestVocabulary
 import moe.kanon.epubby.utils.attr
 import moe.kanon.epubby.utils.internal.Namespaces
+import moe.kanon.epubby.utils.internal.getBookPathFromHref
 import moe.kanon.epubby.utils.internal.logger
 import moe.kanon.epubby.utils.internal.malformed
 import moe.kanon.kommons.collections.asUnmodifiable
 import moe.kanon.kommons.collections.filterValuesIsInstance
 import moe.kanon.kommons.collections.getValueOrThrow
-import moe.kanon.kommons.io.paths.exists
 import org.apache.commons.validator.routines.UrlValidator
 import org.jdom2.Element
 import org.jdom2.Namespace
@@ -126,6 +126,8 @@ class Manifest private constructor(
      */
     fun getRemoteItemOrNull(identifier: Identifier): Item.Remote? = remoteItems[identifier]
 
+    override fun iterator(): Iterator<Item<*>> = items.values.iterator().asUnmodifiable()
+
     // -- INTERNAL -- \\
     @JvmSynthetic
     internal fun toElement(namespace: Namespace = Namespaces.OPF): Element = Element("manifest", namespace).apply {
@@ -144,7 +146,14 @@ class Manifest private constructor(
         }
     }
 
-    override fun iterator(): Iterator<Item<*>> = items.values.iterator().asUnmodifiable()
+    @JvmSynthetic
+    internal fun updateManifestItemIdentifier(oldIdentifier: Identifier, newIdentifier: Identifier) {
+        val oldItem = getLocalItem(oldIdentifier)
+        logger.trace { "Updating identifier of local item <$oldItem> to '$newIdentifier'" }
+        val newItem = oldItem.copy(identifier = newIdentifier)
+        items -= oldIdentifier
+        items[newIdentifier] = newItem
+    }
 
     /**
      * Represents the [item](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#sec-item-elem)
@@ -186,11 +195,7 @@ class Manifest private constructor(
             override val fallback: String? = null,
             override val mediaOverlay: String? = null,
             override val properties: Properties = Properties.empty()
-        ) : Item<Path>() {
-            // TODO: retrieve the resource with the 'identifier' and then make sure to verify that the resources 'file'
-            //       points towards the same path as the 'href' of this local-item
-            fun getResource(book: Book): Resource = TODO()
-        }
+        ) : Item<Path>()
 
         /**
          * Represents a [remote-item](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-spec.html#dfn-remote-resource).
@@ -219,26 +224,23 @@ class Manifest private constructor(
         @JvmField val URL_VALIDATOR = UrlValidator()
 
         @JvmSynthetic
-        internal fun fromElement(book: Book, element: Element, documentFile: Path): Manifest = with(element) {
+        internal fun fromElement(book: Book, element: Element, file: Path): Manifest = with(element) {
             val items: MutableMap<Identifier, Item<*>> = getChildren("item", namespace)
                 .asSequence()
-                .map { createItem(it, book, book.file, documentFile) }
+                .map { createItem(it, book, book.file, file) }
                 .onEach { logger.trace { "Constructed manifest item instance <$it>" } }
                 .associateByTo(HashMap()) { it.identifier }
 
             if (items.isEmpty()) {
-                malformed(book.file, documentFile, "the 'manifest' element needs to contain at least one child")
+                malformed(book.file, file, "the 'manifest' element needs to contain at least one child")
             }
 
             val identifier = getAttributeValue("id")?.let { Identifier.of(it) }
 
             return@with Manifest(book, identifier, items).also {
-                logger.trace { "Constructed manifest instance <$it>" }
+                logger.trace { "Constructed manifest instance <$it> from file '$file'" }
             }
         }
-
-        private fun getPathFromHref(book: Book, href: String, documentFile: Path): Path =
-            book.getPath(href).let { if (it.isAbsolute) it else documentFile.parent.resolve(it) }
 
         private fun createItem(element: Element, book: Book, container: Path, current: Path): Item<*> = with(element) {
             val id = Identifier.fromElement(this, container, current)
@@ -272,14 +274,14 @@ class Manifest private constructor(
                 if (ManifestVocabulary.REMOTE_RESOURCES in properties) {
                     Item.Remote(id, URI.create(href), mediaType, fallback, mediaOverlay, properties)
                 } else {
-                    Item.Local(id, getPathFromHref(book, href, current), mediaType, fallback, mediaOverlay, properties)
+                    Item.Local(id, getBookPathFromHref(book, href, current), mediaType, fallback, mediaOverlay, properties)
                 }
             } else {
                 if (URL_VALIDATOR.isValid(href)) {
                     logger.warn { "Encountered invalid 'item' element, 'href' is a URL, but it does not have a 'properties' attribute: $element" }
                     Item.Remote(id, URI.create(href), mediaType, fallback, mediaOverlay, properties)
                 } else {
-                    Item.Local(id, getPathFromHref(book, href, current), mediaType, fallback, mediaOverlay, properties)
+                    Item.Local(id, getBookPathFromHref(book, href, current), mediaType, fallback, mediaOverlay, properties)
                 }
             }
         }

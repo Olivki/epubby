@@ -18,24 +18,30 @@
 
 package moe.kanon.epubby
 
-import com.google.common.net.MediaType
 import moe.kanon.kommons.io.paths.deleteIfExists
 import moe.kanon.kommons.io.paths.pathOf
-import moe.kanon.kommons.writeOut
+import java.nio.file.Path
 
-const val BASE_IN_PATH = "H:\\Programming\\JVM\\Kotlin\\Data\\epubby\\reader"
-const val BASE_OUT_PATH = "H:\\Programming\\JVM\\Kotlin\\Data\\epubby\\writer"
-const val FILE_NAME = "test_1.epub"
+const val FILE_NAME = "Spice and Wolf - Volume 19.epub"
 const val DIR = "!EPUB3"
 
+val input: Path = pathOf("H:", "Programming", "JVM", "Kotlin", "Data", "epubby", "reader")
+    .resolve(DIR)
+    .resolve(FILE_NAME)
+val output: Path = pathOf("H:", "Programming", "JVM", "Kotlin", "Data", "epubby", "writer")
+    .resolve(DIR)
+    .resolve(FILE_NAME)
+val writer = BookWriter()
+
 fun main() {
-    val inDirectory = pathOf(BASE_IN_PATH, DIR, FILE_NAME)
-    val outDirectory = pathOf(BASE_OUT_PATH, DIR)
-    outDirectory.resolve(FILE_NAME).deleteIfExists()
-    readBook(inDirectory, outDirectory).use { book ->
+    output.deleteIfExists()
+
+    val book = readBookCopy(input)
+
+    book.use {
         book.pages.transformers.registerInstalled()
         book.resources.moveToDesiredDirectories()
-        book.`save all this shit to the place yo lol`()
-        //writeOut("file-system: <${it.fileSystem}>")
     }
+
+    writer.writeToFile(book, output)
 }

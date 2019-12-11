@@ -107,14 +107,14 @@ sealed class Resource(file: Path, identifier: Identifier, desiredDirectory: Stri
     /**
      * Returns a path that's relative to the [OPF file][PackageDocument.file] of the [book].
      */
-    val relativeFile: Path get() = book.packageDocument.file.relativize(file)
+    val relativeFile: Path get() = book.packageFile.relativize(file)
 
     /**
      * Returns a string representation of a path that's relative to the parent of the [OPF file][PackageDocument.file] of the
      * [book].
      */
     // TODO: Find a better name?
-    val href: String get() = book.packageDocument.file.parent.relativize(file).toString()
+    val href: String get() = book.packageFile.parent.relativize(file).toString()
 
     val relativeHref: String get() = relativeFile.toString()
 
@@ -149,17 +149,14 @@ sealed class Resource(file: Path, identifier: Identifier, desiredDirectory: Stri
      *
      * Setting the value of this property will update the `id` of the `manifest item` across the entire system.
      */
-    var identifier: Identifier by Delegates.observable(identifier) { _, oldValue, newValue ->
-        if (book.manifest.hasItem(oldValue) && oldValue != newValue) {
-            logger.info { "Changing 'identifier' of resource <$this> from '$oldValue' to '$newValue'" }
-            val newItem = book.manifest.getLocalItem(oldValue).copy(identifier = newValue)
-            book.manifest.items -= oldValue
-            book.manifest.items[newValue] = newItem
+    var identifier: Identifier by Delegates.observable(identifier) { _, oldIdentifier, newIdentifier ->
+        if (book.manifest.hasItem(oldIdentifier) && oldIdentifier != newIdentifier) {
+            logger.debug { "Changing 'identifier' of resource <$this> from '$oldIdentifier' to '$newIdentifier'" }
+
+            book.resources.updateResourceIdentifier(this, oldIdentifier, newIdentifier)
 
             if (this is PageResource) {
-                book.spine.getReferenceOfOrNull(this)?.apply {
-                    item = newItem
-                } ?: logger.debug { "Page-resource <$this> does not have a spine entry" }
+                book.spine.updateReferenceItemFor(this, book.manifest.getLocalItem(newIdentifier))
             }
         }
     }
@@ -242,10 +239,6 @@ sealed class Resource(file: Path, identifier: Identifier, desiredDirectory: Stri
      *
      * This function makes sure that all the appropriate systems get updated/notified accordingly when the manifest
      * of this resource has been changed in some way.
-     *
-     * This function does *not* allow the [mediaType][Manifest.Item.mediaType] of the `item` to be changed, as that
-     * would require `this` resource to *dynamically* change its entire type, which is beyond the scope of this
-     * framework.
      */
     @JvmSynthetic
     internal fun updateManifest(
@@ -291,11 +284,7 @@ sealed class Resource(file: Path, identifier: Identifier, desiredDirectory: Stri
 
         book.manifest.items[identifier] = newItem
 
-        if (this is PageResource) {
-            book.spine.getReferenceOfOrNull(this)?.apply {
-                this.item = newItem
-            } ?: logger.debug { "Page-resource <$this> has no spine entry" }
-        }
+        if (this is PageResource) book.spine.updateReferenceItemFor(this, newItem)
     }
 
     override fun equals(other: Any?): Boolean = when {
@@ -321,9 +310,6 @@ sealed class Resource(file: Path, identifier: Identifier, desiredDirectory: Stri
     }
 
     companion object {
-        private fun match(mediaType: MediaType, mediaTypes: Set<MediaType>): Boolean =
-            mediaTypes.any { it.`is`(mediaType) }
-
         @JvmSynthetic
         internal fun fromMediaType(
             mediaType: MediaType,
@@ -333,15 +319,15 @@ sealed class Resource(file: Path, identifier: Identifier, desiredDirectory: Stri
         ): Resource {
             requireThat(file.fileSystem == book.fileSystem) { "file should have the same file-system as the given book [book=${book.fileSystem}, file=${file.fileSystem}]" }
             requireFileExistence(file)
-            return when {
-                match(mediaType, TableOfContentsResource.MEDIA_TYPES) -> TableOfContentsResource(book, file, identifier)
-                match(mediaType, PageResource.MEDIA_TYPES) -> PageResource(book, file, identifier)
-                match(mediaType, StyleSheetResource.MEDIA_TYPES) -> StyleSheetResource(book, file, identifier)
-                match(mediaType, ImageResource.MEDIA_TYPES) -> ImageResource(book, file, identifier)
-                match(mediaType, FontResource.MEDIA_TYPES) -> FontResource(book, file, identifier)
-                match(mediaType, AudioResource.MEDIA_TYPES) -> AudioResource(book, file, identifier)
-                match(mediaType, ScriptResource.MEDIA_TYPES) -> ScriptResource(book, file, identifier)
-                match(mediaType, VideoResource.MEDIA_TYPES) -> VideoResource(book, file, identifier)
+            return when (mediaType) {
+                in NcxResource.MEDIA_TYPES -> NcxResource(book, file, identifier)
+                in PageResource.MEDIA_TYPES -> PageResource(book, file, identifier)
+                in StyleSheetResource.MEDIA_TYPES -> StyleSheetResource(book, file, identifier)
+                in ImageResource.MEDIA_TYPES -> ImageResource(book, file, identifier)
+                in FontResource.MEDIA_TYPES -> FontResource(book, file, identifier)
+                in AudioResource.MEDIA_TYPES -> AudioResource(book, file, identifier)
+                in ScriptResource.MEDIA_TYPES -> ScriptResource(book, file, identifier)
+                in VideoResource.MEDIA_TYPES -> VideoResource(book, file, identifier)
                 else -> {
                     logger.debug { "No resource implementations found for the given media-type <$mediaType>, marking file <$file> as misc-resource.." }
                     MiscResource(book, file, identifier)
@@ -414,18 +400,16 @@ sealed class Resource(file: Path, identifier: Identifier, desiredDirectory: Stri
     }
 }
 
-class TableOfContentsResource internal constructor(override val book: Book, file: Path, identifier: Identifier) :
+class NcxResource internal constructor(override val book: Book, file: Path, identifier: Identifier) :
     Resource(file, identifier, "/") {
     override val mediaTypes: ImmutableSet<MediaType> get() = MEDIA_TYPES
 
-    // TODO: Change this if it's using a XHTML ToC, or maybe just create both somehow?
     override val desiredDirectory: Path by lazy { book.packageDocument.file.parent }
 
     override fun toString(): String = "TableOfContentsResource(identifier='$identifier', href='$href', book=$book)"
 
     internal companion object {
-        // TODO: Make this also recognize the 'nav xhtml document'?
-        val MEDIA_TYPES: ImmutableSet<MediaType> = persistentHashSetOf(
+        @JvmField internal val MEDIA_TYPES: ImmutableSet<MediaType> = persistentHashSetOf(
             MediaType.create("application", "x-dtbncx+xml"),
             MediaType.create("application", "oebps-package+xml")
         )
@@ -435,6 +419,10 @@ class TableOfContentsResource internal constructor(override val book: Book, file
 class PageResource internal constructor(override val book: Book, file: Path, identifier: Identifier) :
     Resource(file, identifier, "Text/") {
     override val mediaTypes: ImmutableSet<MediaType> get() = MEDIA_TYPES
+
+    // TODO: See if one can make this return true even if the book is 2.x but the page is a a generated ToC based on
+    //       the NCX file?
+    val isNavigationDocument: Boolean get() = TODO()
 
     /**
      * Returns the page tied to `this` page-resource, or throws a [NoSuchElementException] if `this` page-resource has
@@ -474,7 +462,10 @@ class PageResource internal constructor(override val book: Book, file: Path, ide
     override fun toString(): String = "PageResource(identifier='$identifier', href='$href', book=$book)"
 
     internal companion object {
-        val MEDIA_TYPES: ImmutableSet<MediaType> = persistentHashSetOf(MediaType.XHTML_UTF_8)
+        @JvmField internal val MEDIA_TYPES: ImmutableSet<MediaType> = persistentHashSetOf(
+            MediaType.create("application", "xhtml+xml"),
+            MediaType.XHTML_UTF_8
+        )
     }
 }
 
@@ -503,7 +494,10 @@ class StyleSheetResource internal constructor(override val book: Book, file: Pat
     //override fun toString(): String = "StyleSheetResource(identifier='$identifier', href='$href', book=$book)"
 
     internal companion object {
-        @JvmField val MEDIA_TYPES: ImmutableSet<MediaType> = persistentHashSetOf(MediaType.CSS_UTF_8)
+        @JvmField internal val MEDIA_TYPES: ImmutableSet<MediaType> = persistentHashSetOf(
+            MediaType.create("text", "css"),
+            MediaType.CSS_UTF_8
+        )
     }
 }
 
@@ -526,8 +520,13 @@ class ImageResource internal constructor(override val book: Book, file: Path, id
     override fun toString(): String = "ImageResource(identifier='$identifier', href='$href', book=$book)"
 
     internal companion object {
-        val MEDIA_TYPES: ImmutableSet<MediaType> =
-            persistentHashSetOf(MediaType.GIF, MediaType.JPEG, MediaType.PNG, MediaType.SVG_UTF_8)
+        @JvmField internal val MEDIA_TYPES: ImmutableSet<MediaType> = persistentHashSetOf(
+            MediaType.GIF,
+            MediaType.JPEG,
+            MediaType.PNG,
+            MediaType.create("image", "svg+xml"),
+            MediaType.SVG_UTF_8
+        )
     }
 }
 
@@ -538,7 +537,7 @@ class FontResource internal constructor(override val book: Book, file: Path, ide
     override fun toString(): String = "FontResource(identifier='$identifier', href='$href', book=$book)"
 
     internal companion object {
-        val MEDIA_TYPES: ImmutableSet<MediaType> =
+        @JvmField internal val MEDIA_TYPES: ImmutableSet<MediaType> =
             persistentHashSetOf(MediaType.create("application", "vnd.ms-opentype"), MediaType.WOFF)
     }
 }
@@ -550,7 +549,7 @@ class AudioResource internal constructor(override val book: Book, file: Path, id
     override fun toString(): String = "AudioResource(identifier='$identifier', href='$href', book=$book)"
 
     internal companion object {
-        val MEDIA_TYPES: ImmutableSet<MediaType> = persistentHashSetOf(MediaType.MPEG_AUDIO)
+        @JvmField internal val MEDIA_TYPES: ImmutableSet<MediaType> = persistentHashSetOf(MediaType.MPEG_AUDIO)
     }
 }
 
@@ -561,7 +560,10 @@ class ScriptResource internal constructor(override val book: Book, file: Path, i
     override fun toString(): String = "ScriptResource(identifier='$identifier', href='$href', book=$book)"
 
     internal companion object {
-        val MEDIA_TYPES: ImmutableSet<MediaType> = persistentHashSetOf(MediaType.TEXT_JAVASCRIPT_UTF_8)
+        @JvmField internal val MEDIA_TYPES: ImmutableSet<MediaType> = persistentHashSetOf(
+            MediaType.create("text", "javascript"),
+            MediaType.TEXT_JAVASCRIPT_UTF_8
+        )
     }
 }
 
@@ -572,7 +574,7 @@ class VideoResource internal constructor(override val book: Book, file: Path, id
     override fun toString(): String = "VideoResource(identifier='$identifier', href='$href', book=$book)"
 
     internal companion object {
-        val MEDIA_TYPES: ImmutableSet<MediaType> = persistentHashSetOf(MediaType.MP4_VIDEO)
+        @JvmField internal val MEDIA_TYPES: ImmutableSet<MediaType> = persistentHashSetOf(MediaType.MP4_VIDEO)
     }
 }
 

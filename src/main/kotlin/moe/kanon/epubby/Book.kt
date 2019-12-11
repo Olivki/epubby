@@ -21,19 +21,35 @@ import moe.kanon.epubby.packages.Manifest
 import moe.kanon.epubby.packages.Metadata
 import moe.kanon.epubby.packages.PackageDocument
 import moe.kanon.epubby.packages.Spine
-import moe.kanon.epubby.resources.Resource
 import moe.kanon.epubby.resources.Resources
+import moe.kanon.epubby.resources.pages.PageTransformer
 import moe.kanon.epubby.resources.pages.Pages
-import moe.kanon.epubby.structs.Identifier
 import moe.kanon.epubby.utils.internal.logger
+import moe.kanon.epubby.utils.internal.malformed
+import moe.kanon.kommons.io.paths.copyTo
+import moe.kanon.kommons.io.paths.deleteIfExists
 import moe.kanon.kommons.io.paths.name
 import moe.kanon.kommons.io.paths.touch
 import java.io.Closeable
+import java.io.IOException
 import java.net.URI
 import java.nio.file.FileSystem
+import java.nio.file.FileSystems
 import java.nio.file.Path
+import java.nio.file.StandardCopyOption
 import java.nio.file.spi.FileSystemProvider
 import java.util.Locale
+
+// TODO: Make it so that all inner classes of package classes have an instance of the 'Book' they're tied to?
+// TODO: Change most of the current 'models' from being 'data' classes as the 'copy' function is not needed for the
+//       majority of them, as a lot of them have mutable parts
+// TODO: Port over the 'MediaType' class from Guava? Or use more parts of guava, because right now it's a somewhat
+//       heavy dependency just to use the 'MediaType' class. Problem right now is that 'MediaType' is somewhat deeply
+//       coupled with other guava classes.
+// TODO: Add alternate functions that accept a 'String' instead of a 'Identifier' to make it less verbose to work with
+//       the api/framework?
+// TODO: Add DTD (or whatever they're called) for validating the EPUB XML files?
+// TODO: Add 'OrNone' functions along with the 'OrNull' functions
 
 /**
  * Represents the container that makes up an [EPUB](...).
@@ -41,31 +57,28 @@ import java.util.Locale
  * @property [version] The version of `this` book.
  * @property [file] The epub file that `this` book is wrapped around.
  *
- * Any changes made to `this` book will be reflected in the actual file.
- *
- * Note that if `this` book was made from parsing an already existing epub, then this will be pointing towards the
- * *copy* of that file. If you want to access the original file, use [originFile].
  * @property [fileSystem] A zip [file-system][FileSystem] built around the given [file].
  *
- * This `file-system` is used throughout the system to ensure that we're only working with files that actually exist
- * inside of the epub file, and not outside.
- * @property [originFile] The original file that `this` book is wrapped around.
+ * When `this` book is [closed][close] so is this underlying file-system.
  *
- * This will point to different files depending on how `this` instance was created;
- * - If `this` was created from parsing *([Book.read])* an already existing epub file, then this will point to that
- * file, while [file] will be pointing towards the *copy* that was made of that file.
- * - If `this` was created from scratch, *([Book.create])* then this will be pointing towards the same file as [file],
- * as no copy is made when creating a new epub from scratch.
+ * Note that for any changes made to any files in this file-system to be reflected, this file-system needs to be
+ * closed. It is *NOT* recommended to manually close the file-system, as that could cause issues, but instead the
+ * [close] function in `this` book should be invoked.
+ * @property [root] The root of the [fileSystem] of the EPUB file.
  */
 class Book internal constructor(
     val metaInf: MetaInf,
     val file: Path,
     val fileSystem: FileSystem,
-    val originFile: Path,
-    val root: Path
+    val root: Path,
+    var settings: BookSettings
 ) : Closeable {
-    lateinit var version: Version
+    lateinit var version: BookVersion
         @JvmSynthetic internal set
+
+    val resources: Resources = Resources(this)
+
+    val pages: Pages = Pages(this)
 
     // TODO: Name? packageDocument is kind of a mouth-full..
     val packageDocument: PackageDocument = PackageDocument.fromBook(this)
@@ -100,19 +113,11 @@ class Book internal constructor(
             metadata.language.value = value
         }
 
-    val resources: Resources = Resources(this)
+    /*fun getResource(identifier: Identifier): Resource = resources.getResource(identifier)
 
-    val pages: Pages = Pages(this)
+    fun getResourceOrNull(identifier: Identifier): Resource? = resources.getResourceOrNull(identifier)*/
 
-    init {
-        resources.populateFromManifest()
-        pages.populateFromSpine()
-    }
-
-    fun getResource(identifier: Identifier): Resource = resources.getResource(identifier)
-
-    fun getResourceOrNull(identifier: Identifier): Resource? = resources.getResourceOrNull(identifier)
-
+    // TODO: Remove these? (The 'getPath' functions)
     /**
      * Constructs and returns a new `path` based on the given [path], the returned `path` is tied to the [fileSystem]
      * of `this` book.
@@ -148,20 +153,14 @@ class Book internal constructor(
      */
     fun getPath(first: String, vararg more: String): Path = fileSystem.getPath(first, *more)
 
-    fun `save all this shit to the place yo lol`() {
-        logger.info { "Saving book <$this> to file '${file.name}'" }
-        pages.transformers.transformAllPages()
-        packageDocument.writeToFile()
-        pages.writeAllPages()
-        file.touch()
-        logger.info { "The book has been successfully saved." }
-    }
-
     /**
      * Closes the [fileSystem] of `this` book, and any other streams that are currently in use.
      *
-     * After this function has been invoked no more operations should be done on `this` book instance, as it can no
-     * longer be modified once its `fileSystem` has been closed.
+     * After this function has been invoked no more operations should be done on `this` book instance, as there is no
+     * guarantee that any operations will work/will work as intended.
+     *
+     * If [BookSettings.deleteFileOnClose] is set to `true` then the [file] will also be deleted once this function is
+     * invoked.
      *
      * To ensure that `this` book gets closed at a logical time, `try-with-resources` can be used;
      *
@@ -179,10 +178,14 @@ class Book internal constructor(
      *      ...
      *  }
      * ```
+     *
+     * @throws [IOException] if an i/o error occurs
      */
+    @Throws(IOException::class)
     override fun close() {
+        logger.info { "Closing the file-system of book <$this>.." }
         fileSystem.close()
     }
 
-    override fun toString(): String = "Book(version='$version', title='$title', language='$language', file='$file')"
+    override fun toString(): String = "Book(title='$title', language='${language.displayLanguage}', version='$version')"
 }
