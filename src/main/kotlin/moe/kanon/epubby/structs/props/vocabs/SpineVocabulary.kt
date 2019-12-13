@@ -17,10 +17,10 @@
 package moe.kanon.epubby.structs.props.vocabs
 
 import moe.kanon.epubby.packages.Spine
-import moe.kanon.epubby.structs.props.BasicPropertyPrefix
+import moe.kanon.epubby.structs.prefixes.Prefix
 import moe.kanon.epubby.structs.props.Property
-import moe.kanon.epubby.structs.props.PropertyPrefix
 import moe.kanon.epubby.utils.internal.findProperty
+import moe.kanon.epubby.utils.internal.findPropertyOrNull
 
 /**
  * Represents the [spine properties vocabulary](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#app-itemref-properties-vocab).
@@ -29,28 +29,23 @@ import moe.kanon.epubby.utils.internal.findProperty
  */
 enum class SpineVocabulary(override val reference: String) : Property {
     /**
-     * Represents the [page-spread-left](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#sec-page-spread-left)
-     * entry.
-     *
-     * Indicates that the first page of the associated [item][Spine.ItemReference.item] page represents the left-hand
+     * Indicates that the first page of the associated [item][Spine.ItemReference.item] represents the left-hand
      * side of a two-page spread.
      */
     PAGE_SPREAD_LEFT("page-spread-left"),
     /**
-     * Represents the [page-spread-right](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#sec-page-spread-right)
-     * entry.
-     *
-     * Indicates that the first page of the associated [item][Spine.ItemReference.item] page represents the right-hand
+     * Indicates that the first page of the associated [item][Spine.ItemReference.item] represents the right-hand
      * side of a two-page spread.
      */
     PAGE_SPREAD_RIGHT("page-spread-right");
 
-    // TODO: Update documentation with reference to our implementations
-
-    override val prefix: PropertyPrefix = BasicPropertyPrefix(null, "http://idpf.org/epub/vocab/package/itemref/#")
+    override val prefix: Prefix = Prefix.forVocabulary("http://idpf.org/epub/vocab/package/itemref/#")
 
     companion object {
         @JvmStatic
         fun fromReference(reference: String): SpineVocabulary = findProperty(reference)
+
+        @JvmStatic
+        fun fromReferenceOrNull(reference: String): SpineVocabulary? = findPropertyOrNull(reference)
     }
 }

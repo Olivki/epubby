@@ -22,10 +22,8 @@ import moe.kanon.epubby.BookWriter.Options.FIX_FILE_HIERARCHY
 import moe.kanon.epubby.utils.internal.logger
 import moe.kanon.epubby.utils.internal.malformed
 import moe.kanon.kommons.checkThat
-import moe.kanon.kommons.collections.enumSetOf
 import moe.kanon.kommons.collections.isEmpty
 import moe.kanon.kommons.io.paths.PathVisitor
-import moe.kanon.kommons.io.paths.cleanDirectory
 import moe.kanon.kommons.io.paths.copyTo
 import moe.kanon.kommons.io.paths.delete
 import moe.kanon.kommons.io.paths.deleteIfExists
@@ -42,13 +40,8 @@ import java.nio.file.FileVisitResult
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import java.nio.file.attribute.BasicFileAttributes
-import java.util.EnumSet
 
 class BookWriter @JvmOverloads constructor(
-    private val options: EnumSet<Options> = enumSetOf(
-        DELETE_EMPTY_RESOURCE_DIRECTORIES,
-        FIX_FILE_HIERARCHY
-    )
 ) {
     // TODO: Add a function for writing a book to an output stream maybe?
 
@@ -74,6 +67,7 @@ class BookWriter @JvmOverloads constructor(
     @Throws(IOException::class, EpubbyException::class)
     fun writeToFile(book: Book, file: Path) {
         checkThat(isClosed(book)) { "file-system of 'book' should be closed before writing it to a new file" }
+        BookValidator(book).validate()
         logger.info { "Copying contents of book file '${book.file.name}' to file '$file'.." }
         book.file.copyTo(file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES)
 
@@ -81,7 +75,7 @@ class BookWriter @JvmOverloads constructor(
         try {
             FileSystems.newFileSystem(file, null).use {
                 logger.info { "Writing contents of book <$this> to file '$file'.." }
-                book.metadata.updateLastModified()
+                book.metadata.setLastModifiedDate()
                 book.metaInf.writeToFiles(it)
                 book.packageDocument.writeToFile(it)
                 book.pages.writePagesToFile(it)
@@ -112,7 +106,7 @@ class BookWriter @JvmOverloads constructor(
      * Options that when enabled will change how the written EPUB will end up.
      *
      * Note that the operations these settings perform are invoked according to their ordinal position, meaning that
-     * [MOVE_RESOURCES_TO_DESIRED_DIRECTORIES] will be invoked first, and [FIX_FILE_HIERARCHY] will be invoked
+     * [DELETE_EMPTY_RESOURCE_DIRECTORIES] will be invoked first, and [FIX_FILE_HIERARCHY] will be invoked
      * last.
      */
     enum class Options {

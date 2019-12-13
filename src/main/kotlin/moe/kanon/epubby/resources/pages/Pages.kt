@@ -32,7 +32,6 @@ import moe.kanon.kommons.collections.isEmpty
 import org.jsoup.nodes.Attribute
 import org.jsoup.nodes.Element
 import java.nio.file.FileSystem
-import java.nio.file.Path
 
 class Pages internal constructor(val book: Book) : Iterable<Page> {
     private val pages: MutableList<Page> = mutableListOf()
@@ -69,26 +68,39 @@ class Pages internal constructor(val book: Book) : Iterable<Page> {
 
     fun addPage(page: Page): Page {
         pages += page
-        // we want to add the underlying 'resource' of the given 'page' to the resources of the book, because when a
-        // page gets added here that means it should also create an entry in the book spine, and the book spine
-        // requires a manifest-item, and a manifest-item will be created and added to the manifest when a resource
-        // gets added to the book resources
-        if (page.resource !in book.resources) book.resources.addResource(page.resource)
-        if (page.resource !in book.spine) book.spine.addReferenceFor(page)
+        addToResources(page)
+        if (page.resource !in book.spine) book.spine.addReferenceOf(page)
         logger.trace { "Added page <$page> to the spine" }
         return page
     }
 
+    // TODO: 'addPageAt' & 'setPageAt'?
+
     fun addPage(index: Int, page: Page): Page {
         pages.add(index, page)
-        // we want to add the underlying 'resource' of the given 'page' to the resources of the book, because when a
-        // page gets added here that means it should also create an entry in the book spine, and the book spine
-        // requires a manifest-item, and a manifest-item will be created and added to the manifest when a resource
-        // gets added to the book resources
-        if (page.resource !in book.resources) book.resources.addResource(page.resource)
-        if (page.resource !in book.spine) book.spine.addReferenceFor(page)
+        addToResources(page)
+        if (page.resource !in book.spine) book.spine.addReferenceOf(index, page)
         logger.trace { "Added page <$page> to the spine, at index $index" }
         return page
+    }
+
+    fun setPage(index: Int, page: Page): Page {
+        pages[index] = page
+        addToResources(page)
+        if (page.resource !in book.spine) book.spine.addReferenceOf(page)
+        logger.trace { "Set page at <$index> to <$page>" }
+        return page
+    }
+
+    /*
+     * Adds the underlying `resource` of the given `page` to the resources of the book if it is not already in it.
+     *
+     * This is because when we add a new page to this "repository" we also need to add it the spine of the book, and
+     * spine entries require a manifest-item to actually reference, meaning that we need to make sure that the `page`
+     * is properly registered as a resource as that is what handles the creation of manifest-items.
+     */
+    private fun addToResources(page: Page) {
+        if (page.resource !in book.resources) book.resources.addResource(page.resource)
     }
 
     fun removePage(page: Page) {
@@ -99,7 +111,8 @@ class Pages internal constructor(val book: Book) : Iterable<Page> {
                 book.spine._references -= book.spine[page.resource]
                 logger.trace { "Removed <$page> from pages & book spine" }
             } else {
-                logger.error { "Page <$page> had an entry in 'Pages' but no entry in the book spine, this should NEVER be the case" }
+                // TODO: maybe throw an exception if this happens instead?
+                logger.error { "Page <$page> is stored in the page \"repository\" of the book, but not in the book spine. This is most likely the sign of a corrupt system." }
             }
         }
     }
@@ -118,36 +131,36 @@ class Pages internal constructor(val book: Book) : Iterable<Page> {
      */
     fun indexOf(page: Page): Int = pages.indexOf(page)
 
-    fun getPage(index: Int): Page = pages[index]
+    fun getPageAt(index: Int): Page = pages[index]
 
-    fun getPageOrNull(index: Int): Page? = pages.getOrNull(index)
+    fun getPageAtOrNull(index: Int): Page? = pages.getOrNull(index)
 
     /**
      * Returns the first page that has a [resource][Page.resource] that matches the given [resource], or throws a
      * [NoSuchElementException] if none is found.
      */
     // TODO: Rename to 'getPageFor'?
-    fun getPage(resource: PageResource): Page = getPageOrNull(resource)
+    fun getPageByResource(resource: PageResource): Page = getPageByResourceOrNull(resource)
         ?: throw NoSuchElementException("No page found associated with the resource '$resource'")
 
     /**
      * Returns the first page that has a [resource][Page.resource] that matches the given [resource], `null` if none is
      * found.
      */
-    fun getPageOrNull(resource: PageResource): Page? = pages.firstOrNull { it.resource == resource }
+    fun getPageByResourceOrNull(resource: PageResource): Page? = pages.firstOrNull { it.resource == resource }
 
     /**
      * Returns the first page that has a [resource][Page.resource] with an [identifier][Resource.identifier] that
      * matches the given [identifier], or throws a [NoSuchElementException] if none is found.
      */
-    fun getPage(identifier: Identifier): Page = getPageOrNull(identifier)
+    fun getPageByIdentifier(identifier: Identifier): Page = getPageByIdentifierOrNull(identifier)
         ?: throw NoSuchElementException("No page found associated with the identifier '$identifier'")
 
     /**
      * Returns the first page that has a [resource][Page.resource] with an [identifier][Resource.identifier] that
      * matches the given [identifier], or `null` if none is found.
      */
-    fun getPageOrNull(identifier: Identifier): Page? = pages.firstOrNull { it.resource.identifier == identifier }
+    fun getPageByIdentifierOrNull(identifier: Identifier): Page? = pages.firstOrNull { it.resource.identifier == identifier }
 
     fun hasPage(resource: PageResource): Boolean = pages.any { it.resource == resource }
 
@@ -177,6 +190,7 @@ class Pages internal constructor(val book: Book) : Iterable<Page> {
 
     override fun iterator(): Iterator<Page> = pages.iterator().asUnmodifiable()
 
+    // -- INTERNAL -- \\
     @JvmSynthetic
     internal fun writePagesToFile(fileSystem: FileSystem) {
         transformers.transformPages()

@@ -64,13 +64,15 @@ class BookVersion private constructor(val major: Int, val minor: Int) : Comparab
         private val KNOWN_VERSIONS = HashMap<String, BookVersion>()
 
         /**
-         * Represents the [EPUB 2.x](http://www.idpf.org/epub/dir/#epub201) format.
+         * Represents the [EPUB 2.0](http://www.idpf.org/epub/dir/#epub201) format.
          */
         @JvmField val EPUB_2_0 = getOrCache(2, 0)
+
         /**
          * Represents the [EPUB 3.0](http://www.idpf.org/epub/dir/#epub301) format.
          */
         @JvmField val EPUB_3_0 = getOrCache(3, 0)
+
         /**
          * Represents the [EPUB 3.1](http://www.idpf.org/epub/dir/#epub31) format.
          *
@@ -78,6 +80,7 @@ class BookVersion private constructor(val major: Int, val minor: Int) : Comparab
          * the format is explicitly ***not*** supported by epubby, and it should never be used.
          */
         @JvmField val EPUB_3_1 = getOrCache(3, 1) // TODO: Crash if the EPUB version is this lol
+
         /**
          * Represents the [EPUB 3.2](http://www.idpf.org/epub/dir/#epub32) format.
          */
@@ -91,7 +94,7 @@ class BookVersion private constructor(val major: Int, val minor: Int) : Comparab
             KNOWN_VERSIONS["$major.$minor"] ?: throw UnsupportedVersionException("$major.$minor")
 
         @JvmSynthetic
-        internal fun fromString(version: String): BookVersion {
+        internal fun parse(version: String): BookVersion {
             validateThat(version, version.isNotBlank()) { "can't be blank / empty" }
             validateThat(version, version.first().isDigit()) { "needs to start with a digit" }
             validateThat(version, '.' in version) { "needs to contain exactly one '.' character" }

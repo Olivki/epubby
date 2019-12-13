@@ -18,6 +18,11 @@ package moe.kanon.epubby.utils.internal
 
 import moe.kanon.epubby.structs.props.Property
 
+@JvmSynthetic
 internal inline fun <reified E> findProperty(ref: String): E
     where E : Enum<E>, E : Property = enumValues<E>().firstOrNull { it.reference == ref }
     ?: throw NoSuchElementException("No vocabulary entry found with the given reference '$ref'")
+
+@JvmSynthetic
+internal inline fun <reified E> findPropertyOrNull(ref: String): E?
+    where E : Enum<E>, E : Property = enumValues<E>().firstOrNull { it.reference == ref }

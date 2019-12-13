@@ -158,6 +158,10 @@ class Manifest private constructor(
     /**
      * Represents the [item](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#sec-item-elem)
      * element.
+     *
+     * This may be a [local][Item.Local] or [remote][Item.Remote] item.
+     *
+     * @see [Resource]
      */
     sealed class Item<out T> {
         // TODO: Documentation
@@ -165,7 +169,7 @@ class Manifest private constructor(
         abstract val href: T
         abstract val mediaType: MediaType?
         // TODO: Add the ability to define these things from the resource class somehow?
-        abstract val fallback: String? // TODO: Change to identifier?
+        abstract val fallback: Identifier? // TODO: Change to identifier?
         abstract val mediaOverlay: String?
         abstract val properties: Properties
 
@@ -180,7 +184,7 @@ class Manifest private constructor(
                     }
                 )
                 mediaType?.also { setAttribute("media-type", it.toString()) }
-                fallback?.also { setAttribute("fallback", it) }
+                fallback?.also { setAttribute(it.toAttribute("fallback")) }
                 mediaOverlay?.also { setAttribute("media-overlay", it) }
                 if (properties.isNotEmpty()) setAttribute(properties.toAttribute())
             }
@@ -192,7 +196,7 @@ class Manifest private constructor(
             override val identifier: Identifier,
             override val href: Path,
             override val mediaType: MediaType? = null,
-            override val fallback: String? = null,
+            override val fallback: Identifier? = null,
             override val mediaOverlay: String? = null,
             override val properties: Properties = Properties.empty()
         ) : Item<Path>()
@@ -204,7 +208,7 @@ class Manifest private constructor(
             override val identifier: Identifier,
             override val href: URI,
             override val mediaType: MediaType? = null,
-            override val fallback: String? = null,
+            override val fallback: Identifier? = null,
             override val mediaOverlay: String? = null,
             override val properties: Properties = Properties.empty()
         ) : Item<URI>()
@@ -221,7 +225,7 @@ class Manifest private constructor(
     }
 
     internal companion object {
-        @JvmField val URL_VALIDATOR = UrlValidator()
+        @JvmField internal val URL_VALIDATOR = UrlValidator()
 
         @JvmSynthetic
         internal fun fromElement(book: Book, element: Element, file: Path): Manifest = with(element) {
@@ -245,7 +249,7 @@ class Manifest private constructor(
         private fun createItem(element: Element, book: Book, container: Path, current: Path): Item<*> = with(element) {
             val id = Identifier.fromElement(this, container, current)
             val href = element.attr("href", container, current)
-            val fallback = element.getAttributeValue("fallback")
+            val fallback = element.getAttributeValue("fallback")?.let(Identifier.Companion::of)
             val mediaType = element.getAttributeValue("media-type")?.let(MediaType::parse)
             val mediaOverlay = element.getAttributeValue("media-overlay")
             val properties = element.getAttributeValue("properties")?.let {
@@ -256,8 +260,8 @@ class Manifest private constructor(
             * Let's talk about 'local' and 'remote' resources for a bit, and by talk I mean, let's talk about
             * the specification. So the EPUB32 specification for "resource-locations" (https://w3c.github.io/publ-epub-revision/epub32/spec/epub-spec.html#sec-resource-locations)
             * states the following:
-            *      "The inclusion of Remote Resources in an EPUB Publication is indicated via the
-            *      remote-resources property on the manifest item element"
+            *      "The inclusion of Remote Resources in an EPUB Publication is indicated via the remote-resources
+            *       property on the manifest item element"
             *  while the actual specification for the `manifest` element shows the following example of a
             * remote resource:
             *      Manifest:
@@ -278,7 +282,7 @@ class Manifest private constructor(
                 }
             } else {
                 if (URL_VALIDATOR.isValid(href)) {
-                    logger.warn { "Encountered invalid 'item' element, 'href' is a URL, but it does not have a 'properties' attribute: $element" }
+                    logger.warn { "Encountered an external resource 'item' that is missing the 'resource-locations' property: $element" }
                     Item.Remote(id, URI.create(href), mediaType, fallback, mediaOverlay, properties)
                 } else {
                     Item.Local(id, getBookPathFromHref(book, href, current), mediaType, fallback, mediaOverlay, properties)

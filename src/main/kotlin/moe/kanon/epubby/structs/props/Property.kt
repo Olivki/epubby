@@ -20,14 +20,15 @@ import moe.kanon.epubby.metainf.MetaInfContainer
 import moe.kanon.epubby.packages.Manifest
 import moe.kanon.epubby.packages.Metadata
 import moe.kanon.epubby.packages.Spine
+import moe.kanon.epubby.structs.prefixes.PackagePrefix
+import moe.kanon.epubby.structs.prefixes.Prefix
 import moe.kanon.epubby.structs.props.vocabs.ManifestVocabulary
 import moe.kanon.epubby.structs.props.vocabs.MetadataLinkRelVocabulary
 import moe.kanon.epubby.structs.props.vocabs.MetadataLinkVocabulary
 import moe.kanon.epubby.structs.props.vocabs.MetadataMetaVocabulary
 import moe.kanon.epubby.structs.props.vocabs.SpineVocabulary
 import moe.kanon.epubby.structs.props.vocabs.VocabularyMode
-import org.jdom2.Attribute
-import org.jdom2.Namespace
+import java.net.URI
 import java.net.URL
 import kotlin.reflect.KClass
 
@@ -42,46 +43,56 @@ import kotlin.reflect.KClass
  * @see [BasicProperty]
  */
 interface Property {
-    val prefix: PropertyPrefix
-
-    val reference: String
+    /**
+     * The prefix that this property is prefixed with.
+     *
+     * This is used when [proccessing][process] this property into a IRI.
+     */
+    val prefix: Prefix
 
     /**
-     * Returns a new `property` attribute containing the value represented by this property.
+     * The entry that this property is referring to.
      */
+    val reference: String
+
     @JvmDefault
-    fun toAttribute(name: String = "property", namespace: Namespace = Namespace.NO_NAMESPACE): Attribute =
-        Attribute(name, reference, namespace)
+    fun toStringForm(): String = when {
+        prefix.prefix.isBlank() -> reference
+        else -> "${prefix.prefix}:$reference"
+    }
 
     /**
      * [Processes](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#sec-property-processing)
      * this property into a [URL] and returns the result.
      */
     @JvmDefault
-    fun process(): URL = URL("${prefix.url}$reference")
+    fun process(): URI = prefix.uri.resolve(reference)//URL("${prefix.iri}$reference")
 
     companion object {
         @JvmStatic
-        fun of(prefix: PropertyPrefix, reference: String): Property = BasicProperty(prefix, reference)
+        fun of(prefix: Prefix, reference: String): Property = BasicProperty(prefix, reference)
 
         @JvmSynthetic
         internal fun parse(
             caller: KClass<*>,
             input: String,
             mode: VocabularyMode = VocabularyMode.PROPERTY
-        ): Property = if (':' in input) {
-            val (prefix, reference) = input.split(':')
-            of(PackagePrefix.fromPrefix(prefix), reference)
-        } else when (caller) {
-            Manifest::class -> ManifestVocabulary.fromReference(input) as Property
-            Metadata.Link::class -> when (mode) {
-                VocabularyMode.PROPERTY -> MetadataLinkVocabulary.fromReference(input) as Property
-                VocabularyMode.RELATION -> MetadataLinkRelVocabulary.fromReference(input) as Property
+        ): Property = when {
+            ':' in input -> {
+                val (prefix, reference) = input.split(':')
+                of(PackagePrefix.getByPrefix(prefix), reference)
             }
-            Metadata.Meta::class -> MetadataMetaVocabulary.fromReference(input) as Property
-            MetaInfContainer.Link::class -> MetadataLinkRelVocabulary.fromReference(input) as Property
-            Spine.ItemReference::class -> SpineVocabulary.fromReference(input) as Property
-            else -> throw IllegalArgumentException("Caller <$caller> does not have any known vocabularies")
+            else -> when (caller) {
+                Manifest::class -> ManifestVocabulary.fromReference(input) as Property
+                Metadata.Link::class -> when (mode) {
+                    VocabularyMode.PROPERTY -> MetadataLinkVocabulary.fromReference(input) as Property
+                    VocabularyMode.RELATION -> MetadataLinkRelVocabulary.fromReference(input) as Property
+                }
+                Metadata.Meta::class -> MetadataMetaVocabulary.fromReference(input) as Property
+                MetaInfContainer.Link::class -> MetadataLinkRelVocabulary.fromReference(input) as Property
+                Spine.ItemReference::class -> SpineVocabulary.fromReference(input) as Property
+                else -> throw IllegalArgumentException("Caller <$caller> does not have any known vocabularies")
+            }
         }
     }
 }

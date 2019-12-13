@@ -16,20 +16,21 @@
 
 package moe.kanon.epubby.structs.props.vocabs
 
+import moe.kanon.epubby.packages.Manifest
 import moe.kanon.epubby.resources.Resource
-import moe.kanon.epubby.structs.props.BasicPropertyPrefix
+import moe.kanon.epubby.structs.prefixes.Prefix
 import moe.kanon.epubby.structs.props.Property
-import moe.kanon.epubby.structs.props.PropertyPrefix
 import moe.kanon.epubby.utils.internal.findProperty
+import moe.kanon.epubby.utils.internal.findPropertyOrNull
 
 /**
  * Represents the [manifest properties vocabulary](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#app-item-properties-vocab).
  *
- * Used for resolving any [item properties][Manifest.Item.properties] that are missing prefixes.
+ * The values defined here can be used in the `properties` of a [manifest item][Manifest.Item].
  */
 enum class ManifestVocabulary(override val reference: String) : Property {
     /**
-     * The `cover-image` property identifies the described [resource][Resource] as the cover image for the Publication.
+     * The `cover-image` property identifies the described [resource][Resource] as the cover image for the book.
      */
     COVER_IMAGE("cover-image"),
     /**
@@ -63,14 +64,13 @@ enum class ManifestVocabulary(override val reference: String) : Property {
      */
     SVG("svg");
 
-    // TODO: Update documentation with references to the actual implementations of the concepts they speak of
-    //       And references to what each property actually applies to
-
-    override val prefix: PropertyPrefix =
-        BasicPropertyPrefix(null, "http://idpf.org/epub/vocab/package/item/#")
+    override val prefix: Prefix = Prefix.forVocabulary("http://idpf.org/epub/vocab/package/item/#")
 
     companion object {
         @JvmStatic
         fun fromReference(reference: String): ManifestVocabulary = findProperty(reference)
+
+        @JvmStatic
+        fun fromReferenceOrNull(reference: String): ManifestVocabulary? = findPropertyOrNull(reference)
     }
 }

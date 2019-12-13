@@ -30,7 +30,7 @@ open class EpubbyException(message: String? = null, cause: Throwable? = null) : 
  * Thrown to indicate that an error occurred in the [current file][currentFile] when parsing a [file][epub] into a
  * [Book] instance.
  */
-open class MalformedBookException(
+class MalformedBookException(
     val epub: Path,
     val currentFile: Path,
     message: String? = null,
@@ -70,3 +70,9 @@ open class MalformedBookException(
         }
     }
 }
+
+/**
+ * Thrown to indicate that a `book` instance failed the validation phase.
+ */
+class InvalidBookException internal constructor(message: String? = null, cause: Throwable? = null) :
+    EpubbyException(message, cause)

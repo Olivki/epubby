@@ -17,14 +17,13 @@
 package moe.kanon.epubby.structs
 
 import moe.kanon.epubby.Book
-import moe.kanon.epubby.resources.Resource
 import moe.kanon.epubby.utils.attr
 import moe.kanon.kommons.io.paths.name
 import org.jdom2.Attribute
 import org.jdom2.Element
 import org.jdom2.Namespace
 import java.nio.file.Path
-import java.util.WeakHashMap
+import java.util.UUID
 
 /**
  * Represents an identifier value used through-out a [Book] instance.
@@ -49,6 +48,12 @@ class Identifier private constructor(val value: String) {
     override fun toString(): String = value
 
     companion object {
+        /**
+         * Returns a new identifier where the `value` is a [random-uuid][UUID.randomUUID].
+         */
+        @JvmStatic
+        fun createUnique(): Identifier = Identifier(UUID.randomUUID().toString())
+
         /**
          * Returns a new identifier where the `value` is the given [value].
          */

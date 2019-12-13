@@ -1,0 +1,81 @@
+/*
+ * Copyright 2019 Oliver Berg
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package moe.kanon.epubby.structs.prefixes
+
+import moe.kanon.epubby.structs.props.vocabs.ManifestVocabulary
+import moe.kanon.epubby.structs.props.vocabs.MetadataLinkRelVocabulary
+import moe.kanon.epubby.structs.props.vocabs.MetadataLinkVocabulary
+import moe.kanon.epubby.structs.props.vocabs.MetadataMetaVocabulary
+import moe.kanon.epubby.structs.props.vocabs.SpineVocabulary
+import moe.kanon.epubby.utils.internal.Patterns
+import moe.kanon.kommons.collections.mapToTypedArray
+import moe.kanon.kommons.requireThat
+
+class Prefixes private constructor(private val delegate: MutableMap<String, Prefix>) : MutableMap<String, Prefix> by delegate {
+    // unsure if this the correct form to output this to
+    fun toStringForm(): String = delegate.values.joinToString(separator = " ") {  "${it.prefix}: ${it.uri}" }
+
+    override fun toString(): String = delegate.toString()
+
+    override fun equals(other: Any?): Boolean = when {
+        this === other -> true
+        other !is Prefixes -> false
+        delegate != other.delegate -> false
+        else -> true
+    }
+
+    override fun hashCode(): Int = delegate.hashCode()
+
+    companion object {
+        // TODO: Document the throws
+        @JvmStatic
+        fun of(first: Prefix, vararg rest: Prefix): Prefixes {
+            requireThat(!(first.belongsToDefaultVocabulary()) && rest.none { it.belongsToDefaultVocabulary() }) {
+                "prefixes are not allowed to map to default vocabularies"
+            }
+            requireThat(first.prefix.isNotBlank() && rest.none { it.prefix.isBlank() }) {
+                "prefixes are not allowed to have a blank 'prefix'"
+            }
+            return Prefixes(hashMapOf(first.prefix to first, *rest.asIterable().mapToTypedArray { it.prefix to it }))
+        }
+
+        private fun Prefix.belongsToDefaultVocabulary(): Boolean = when {
+            ManifestVocabulary.values().any { it.prefix.uri == this.uri } -> true
+            MetadataLinkRelVocabulary.values().any { it.prefix.uri == this.uri } -> true
+            MetadataLinkVocabulary.values().any { it.prefix.uri == this.uri } -> true
+            MetadataMetaVocabulary.values().any { it.prefix.uri == this.uri } -> true
+            SpineVocabulary.values().any { it.prefix.uri == this.uri } -> true
+            else -> false
+        }
+
+        @JvmSynthetic
+        internal fun empty(): Prefixes = Prefixes(hashMapOf())
+
+        // whitespace = (#x20 = SPACE | #x9 = CHARACTER TABULATION | #xD = CARRIAGE RETURN | #xA = LINE FEED) ;
+        @JvmSynthetic
+        internal fun parse(input: String): Prefixes = input
+            // this might be a bit excessive seeing as the EBNF grammar only defines space, character tabulation,
+            // carriage return and line feed as the valid whitespace characters
+            .replace(Patterns.WHITESPACE, " ")
+            .replace(Patterns.EXCESSIVE_WHITESPACE, " ")
+            .splitToSequence(" ")
+            .windowed(2, 2)
+            .map { Prefix.of(it[0].substringBeforeLast(':'), it[1]) }
+            .associateByTo(HashMap()) { it.prefix }
+            .let { Prefixes(it) }
+    }
+}

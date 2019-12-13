@@ -20,7 +20,6 @@ import moe.kanon.epubby.Book
 import moe.kanon.epubby.packages.PackageDocument
 import moe.kanon.epubby.structs.props.vocabs.VocabularyMode
 import moe.kanon.epubby.utils.internal.Patterns
-import moe.kanon.kommons.collections.isEmpty
 import moe.kanon.kommons.collections.isNotEmpty
 import moe.kanon.kommons.requireThat
 import org.jdom2.Attribute
@@ -56,20 +55,25 @@ class Properties private constructor(private val delegate: MutableList<Property>
     override fun toString(): String = delegate.toString()
 
     companion object {
+        /**
+         * Returns a new properties instance that contains the [first] property and any values defined in [rest].
+         */
         @JvmStatic
-        fun empty(): Properties = Properties(mutableListOf())
+        fun of(first: Property, vararg rest: Property): Properties = Properties(mutableListOf(first, *rest))
 
-        @JvmStatic
-        fun of(vararg properties: Property): Properties {
-            requireThat(properties.isNotEmpty()) { "vararg properties should not be empty" }
-            return Properties(properties.toMutableList())
-        }
-
+        /**
+         * Returns a new properties instance containing the property values in the given [properties].
+         *
+         * @throws [IllegalArgumentException] if [properties] is empty
+         */
         @JvmStatic
         fun copyOf(properties: Iterable<Property>): Properties {
-            requireThat(properties.isNotEmpty) { "properties should not be empty" }
+            requireThat(properties.isNotEmpty) { "expected 'properties' to not be empty" }
             return Properties(properties.toMutableList())
         }
+
+        @JvmSynthetic
+        fun empty(): Properties = Properties(mutableListOf())
 
         @JvmSynthetic
         internal fun parse(

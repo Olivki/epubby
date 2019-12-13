@@ -22,21 +22,13 @@ import moe.kanon.epubby.packages.Metadata
 import moe.kanon.epubby.packages.PackageDocument
 import moe.kanon.epubby.packages.Spine
 import moe.kanon.epubby.resources.Resources
-import moe.kanon.epubby.resources.pages.PageTransformer
 import moe.kanon.epubby.resources.pages.Pages
 import moe.kanon.epubby.utils.internal.logger
-import moe.kanon.epubby.utils.internal.malformed
-import moe.kanon.kommons.io.paths.copyTo
-import moe.kanon.kommons.io.paths.deleteIfExists
-import moe.kanon.kommons.io.paths.name
-import moe.kanon.kommons.io.paths.touch
 import java.io.Closeable
 import java.io.IOException
 import java.net.URI
 import java.nio.file.FileSystem
-import java.nio.file.FileSystems
 import java.nio.file.Path
-import java.nio.file.StandardCopyOption
 import java.nio.file.spi.FileSystemProvider
 import java.util.Locale
 
@@ -70,8 +62,7 @@ class Book internal constructor(
     val metaInf: MetaInf,
     val file: Path,
     val fileSystem: FileSystem,
-    val root: Path,
-    var settings: BookSettings
+    val root: Path
 ) : Closeable {
     lateinit var version: BookVersion
         @JvmSynthetic internal set
@@ -81,7 +72,7 @@ class Book internal constructor(
     val pages: Pages = Pages(this)
 
     // TODO: Name? packageDocument is kind of a mouth-full..
-    val packageDocument: PackageDocument = PackageDocument.fromBook(this)
+    val packageDocument: PackageDocument = PackageDocument.fromFile(this)
 
     val packageFile: Path get() = packageDocument.file
 

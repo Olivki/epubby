@@ -16,16 +16,14 @@
 
 package moe.kanon.epubby.packages
 
-import kotlinx.collections.immutable.ImmutableMap
-import kotlinx.collections.immutable.toImmutableMap
 import moe.kanon.epubby.Book
+import moe.kanon.epubby.DeprecatedFeature
 import moe.kanon.epubby.structs.Identifier
 import moe.kanon.epubby.utils.attr
 import moe.kanon.epubby.utils.internal.Namespaces
 import moe.kanon.epubby.utils.internal.logger
 import moe.kanon.epubby.utils.internal.malformed
 import moe.kanon.kommons.collections.asUnmodifiable
-import moe.kanon.kommons.collections.getValueOrThrow
 import org.jdom2.Element
 import org.jdom2.Namespace
 import java.nio.file.Path
@@ -37,74 +35,37 @@ import java.nio.file.Path
  */
 // As this element was already deprecated in v2.0.1 of the EPUB specification, the chance of coming across a book
 // containing this is *very* slim.
-class Tours private constructor(val book: Book, private val tours: MutableMap<Identifier, Tour>) :
-    Iterable<Tours.Tour> {
-    val entries: ImmutableMap<Identifier, Tour> get() = tours.toImmutableMap()
-
-    // TODO: Should a tour already existing with the same identifier be considered exceptional behaviour?
-
-    fun addTour(tour: Tour) {
-        val identifier = tour.identifier
-        if (identifier !in tours) {
-            tours[identifier] = tour
-            logger.debug { "Added tour <$tour> to book <$book>" }
-        } else {
-            logger.error { "There already exists a tour with the same identifier as the given one. (existing=${tours[identifier]}, given=$tour)" }
-        }
-    }
-
-    fun removeTour(identifier: Identifier) {
-        if (identifier in tours) {
-            val tour = tours[identifier]
-            tours -= identifier
-            logger.debug { "Removed tour <$tour> from book <$book>" }
-        } else {
-            logger.error { "There exists no tour with the given identifier <$identifier>" }
-        }
-    }
-
-    fun getTour(identifier: Identifier): Tour =
-        tours.getValueOrThrow(identifier) { "No 'tour' found with the identifier '$identifier'" }
-
-    fun getTourOrNull(identifier: Identifier): Tour? = tours[identifier]
-
-    fun hasTour(identifier: Identifier): Boolean = identifier in tours
-
-    fun hasTour(tour: Tour): Boolean = tours.containsValue(tour)
-
-    override fun iterator(): Iterator<Tour> = tours.values.iterator().asUnmodifiable()
-
+@DeprecatedFeature(since = "2.0")
+class Tours private constructor(val book: Book, val entries: MutableMap<Identifier, Tour>) {
     @JvmSynthetic
     internal fun toElement(namespace: Namespace = Namespaces.OPF): Element = Element("tours", namespace).apply {
-        for (tour in tours) {
-            addContent(tour.value.toElement(namespace))
+        for ((_, tour) in entries) {
+            addContent(tour.toElement(namespace))
         }
     }
 
-    data class Tour(val identifier: Identifier, val title: String, private val sites: MutableList<Site>) :
+    class Tour internal constructor(val identifier: Identifier, var title: String, val sites: MutableList<Site>) :
         Iterable<Tour.Site> {
 
-        fun addSite(site: Site) {
-            sites += site
-            logger.debug { "Added site <$site> to tour <$this>" }
-        }
-
-        fun removeSite(site: Site) {
-            if (site in sites) {
-                sites -= site
-                logger.debug { "Removed site <$site> from tour <$this>" }
-            } else {
-                logger.error { "The given site <$site> does not belong to this tour <$this>" }
-            }
-        }
-
-        fun getSiteAt(index: Int): Site = sites[index]
-
-        fun getSiteAtOrNull(index: Int): Site? = sites.getOrNull(index)
-
-        fun hasSite(site: Site): Boolean = site in sites
-
         override fun iterator(): Iterator<Site> = sites.iterator().asUnmodifiable()
+
+        override fun toString(): String = "Tour(identifier=$identifier, title='$title', sites=$sites)"
+
+        override fun equals(other: Any?): Boolean = when {
+            this === other -> true
+            other !is Tour -> false
+            identifier != other.identifier -> false
+            title != other.title -> false
+            sites != other.sites -> false
+            else -> true
+        }
+
+        override fun hashCode(): Int {
+            var result = identifier.hashCode()
+            result = 31 * result + title.hashCode()
+            result = 31 * result + sites.hashCode()
+            return result
+        }
 
         @JvmSynthetic
         internal fun toElement(namespace: Namespace = Namespaces.OPF): Element = Element("tour", namespace).apply {
@@ -114,7 +75,23 @@ class Tours private constructor(val book: Book, private val tours: MutableMap<Id
         }
 
         // TODO: Change 'href' to path?
-        data class Site(val href: String, val title: String) {
+        class Site internal constructor(var href: String, var title: String) {
+            override fun toString(): String = "Site(href='$href', title='$title')"
+
+            override fun equals(other: Any?): Boolean = when {
+                this === other -> true
+                other !is Site -> false
+                href != other.href -> false
+                title != other.title -> false
+                else -> true
+            }
+
+            override fun hashCode(): Int {
+                var result = href.hashCode()
+                result = 31 * result + title.hashCode()
+                return result
+            }
+
             @JvmSynthetic
             internal fun toElement(namespace: Namespace = Namespaces.OPF): Element = Element("site", namespace).apply {
                 setAttribute("href", href)
@@ -139,7 +116,8 @@ class Tours private constructor(val book: Book, private val tours: MutableMap<Id
         private fun createTour(element: Element, container: Path, current: Path): Tour = with(element) {
             val identifier = Identifier.fromElement(element, container, current)
             val title = attr("title", container, current)
-            val sites = getChildren("site", namespace).mapTo(ArrayList()) { createTourSite(it, container, current) }
+            val sites = getChildren("site", namespace)
+                .mapTo(ArrayList()) { createTourSite(it, container, current) }
             if (sites.isEmpty()) {
                 malformed(container, current, "'tour' elements need to contain at least one 'site' element")
             }
@@ -148,12 +126,13 @@ class Tours private constructor(val book: Book, private val tours: MutableMap<Id
             }
         }
 
-        private fun createTourSite(element: Element, container: Path, current: Path): Tour.Site = with(element) {
-            val href = attr("href", container, current)
-            val title = attr("title", container, current)
-            return Tour.Site(href, title).also {
-                logger.trace { "Constructed tours tour-site instance <$it>" }
+        private fun createTourSite(element: Element, container: Path, current: Path): Tour.Site =
+            with(element) {
+                val href = attr("href", container, current)
+                val title = attr("title", container, current)
+                return Tour.Site(href, title).also {
+                    logger.trace { "Constructed tours tour-site instance <$it>" }
+                }
             }
-        }
     }
 }

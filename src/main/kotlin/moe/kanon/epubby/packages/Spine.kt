@@ -158,12 +158,12 @@ class Spine(
             _references[_references.indexOf(ref)] =
                 ItemReference(newItem, ref.identifier, ref.isLinearRaw, ref.properties)
         } else {
-            logger.info { "Page resource <$resource> has no spine entry" } // TODO: Lower to debug?
+            logger.debug { "Page resource <$resource> has no spine entry" } // TODO: Lower to debug?
         }
     }
 
     @JvmSynthetic
-    internal fun addReferenceFor(page: Page) {
+    internal fun addReferenceOf(page: Page) {
         requireThat(page.resource in book.manifest) { "page-resource should be in book manifest" }
         val itemRef = ItemReference(page.resource.manifestItem)
         logger.trace { "Created spine item-ref instance <$itemRef> for page <$page>" }
@@ -171,11 +171,19 @@ class Spine(
     }
 
     @JvmSynthetic
-    internal fun addReferenceFor(index: Int, page: Page) {
+    internal fun addReferenceOf(index: Int, page: Page) {
         requireThat(page.resource in book.manifest) { "page-resource should be in book manifest" }
         val itemRef = ItemReference(page.resource.manifestItem)
         logger.trace { "Created spine item-ref instance <$itemRef> for page <$page>" }
         _references.add(index, itemRef)
+    }
+
+    @JvmSynthetic
+    internal fun setReferenceOf(index: Int, page: Page) {
+        requireThat(page.resource in book.manifest) { "page-resource should be in book manifest" }
+        val itemRef = ItemReference(page.resource.manifestItem)
+        logger.trace { "Created spine item-ref instance <$itemRef> for page <$page>" }
+        _references[index] = itemRef
     }
 
     @JvmSynthetic

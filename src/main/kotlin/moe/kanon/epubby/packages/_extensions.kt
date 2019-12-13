@@ -24,9 +24,70 @@ import moe.kanon.epubby.resources.PageResource
 import moe.kanon.epubby.resources.Resource
 import moe.kanon.epubby.structs.Identifier
 
-// -- BINDINGS -- \\
+// -- METADATA -- \\
+typealias OPF2Meta = Metadata.Meta.OPF2
 
-// -- COLLECTION -- \\
+typealias OPF3Meta = Metadata.Meta.OPF3
+
+// -- MANIFEST -- \\
+typealias LocalItem = Manifest.Item.Local
+
+typealias RemoteItem = Manifest.Item.Remote
+
+/**
+ * Returns the [item][Item] stored under the given [identifier], or throws a [NoSuchElementException] if none is
+ * found.
+ */
+operator fun Manifest.get(identifier: Identifier): Item<*> = getItem(identifier)
+
+/**
+ * Returns `true` if this manifest has an [item][Item] with the given [identifier], `false` otherwise.
+ */
+operator fun Manifest.contains(identifier: Identifier): Boolean = hasItem(identifier)
+
+/**
+ * Returns `true` if this manifest contains the given [item], `false` otherwise.
+ */
+operator fun Manifest.contains(item: Item<*>): Boolean = hasItem(item)
+
+/**
+ * Returns `true` if this manifest contains a [local item][Item.Local] that points towards the given [resource],
+ * `false` otherwise.
+ */
+operator fun Manifest.contains(resource: Resource): Boolean = hasItemFor(resource)
+
+// -- SPINE -- \\
+/**
+ * Returns the [itemref][ItemReference] at the given [index].
+ *
+ * @throws [IndexOutOfBoundsException] if the given [index] is out of range
+ */
+operator fun Spine.get(index: Int): ItemReference = getReference(index)
+
+/**
+ * Returns the first [itemref][ItemReference] that references an [item][ItemReference] that has an
+ * [id][Manifest.Item.identifier] that matches the given [resource], or throws a [NoSuchElementException] if none
+ * is found.
+ */
+operator fun Spine.get(resource: PageResource): ItemReference = getReferenceOf(resource)
+
+/**
+ * Returns the first [itemref][ItemReference] that references the given [item], or throws [NoSuchElementException]
+ * if none is found.
+ */
+operator fun Spine.get(item: Item<*>): ItemReference = getReferenceOf(item)
+
+/**
+ * Returns whether or not this `spine` element contains any [itemref][ItemReference] elements that reference
+ * an [item][Manifest.Item] that has a [id][Manifest.Item.identifier] that matches the given [resource].
+ */
+operator fun Spine.contains(resource: PageResource): Boolean = hasReferenceOf(resource)
+
+/**
+ * Returns whether or not this `spine` element contains any [itemref][ItemReference] elements that reference the
+ * given [item].
+ */
+operator fun Spine.contains(item: Item<*>): Boolean = hasReferenceOf(item)
 
 // -- GUIDE -- \\
 /**
@@ -78,6 +139,10 @@ operator fun Guide.contains(type: Type): Boolean = hasType(type)
  * `reference` under the key `"tn"`, instead it will store the `reference` under the key `"other.tn"`. This
  * behaviour is consistent across all functions that accept a `customType`.
  *
+ * Note that as guide references are *case-insensitive* the casing of the given [customType] does not matter when
+ * attempting to return it from [getCustomReference][Guide.getCustomReference] or removing it via
+ * [removeCustomReference][Guide.removeCustomReference].
+ *
  * @param [customType] the custom type string
  * @param [reference] the [Resource] to inherit the [href][Resource.href] of
  */
@@ -99,6 +164,10 @@ operator fun Guide.set(customType: String, reference: PageResource) {
  * under the key `"tn"`, instead it removes a `reference` stored under the key `"other.tn"`. This behaviour is
  * consistent across all functions that accept a `customType`.
  *
+ * Note that as guide references are *case-insensitive* the casing of the given [customType] does not matter,
+ * meaning that invoking this function with `customType` as `"deStROyeR"` will remove the same `reference` as if
+ * invoking it with `customType` as `"destroyer"` or any other casing variation of the same string.
+ *
  * @param [customType] the custom type string
  */
 operator fun Guide.minusAssign(customType: String) {
@@ -119,6 +188,10 @@ operator fun Guide.minusAssign(customType: String) {
  * This means that if this function is invoked with `("tn")` the system does *not* look for a `reference` stored
  * under the key `"tn"`, instead it looks for a `reference` stored under the key `"other.tn"`. This behaviour is
  * consistent across all functions that accept a `customType`.
+ *
+ * Note that as guide references are *case-insensitive* the casing given to this function does not matter, meaning
+ * that invoking this function with `"deStROyeR"` will return the same result as if invoking it with `"destroyer"`
+ * or any other casing variation of the same string.
  */
 operator fun Guide.get(customType: String): Reference = getCustomReference(customType)
 
@@ -135,65 +208,15 @@ operator fun Guide.get(customType: String): Reference = getCustomReference(custo
  * This means that if this function is invoked with `("tn")` the system does *not* look for a `reference` stored
  * under the key `"tn"`, instead it looks for a `reference` stored under the key `"other.tn"`. This behaviour is
  * consistent across all functions that accept a `customType`.
+ *
+ * Note that as guide references are *case-insensitive* the casing given to this function does not matter, meaning
+ * that invoking this function with `"deStROyeR"` will return the same result as if invoking it with `"destroyer"`
+ * or any other casing variation of the same string.
  */
 operator fun Guide.contains(customType: String): Boolean = hasCustomType(customType)
 
-// -- MANIFEST -- \\
-/**
- * Returns the [item][Item] stored under the given [identifier], or throws a [NoSuchElementException] if none is
- * found.
- */
-operator fun Manifest.get(identifier: Identifier): Item<*> = getItem(identifier)
+// -- BINDINGS -- \\
 
-/**
- * Returns `true` if this manifest has an [item][Item] with the given [identifier], `false` otherwise.
- */
-operator fun Manifest.contains(identifier: Identifier): Boolean = hasItem(identifier)
-
-/**
- * Returns `true` if this manifest contains the given [item], `false` otherwise.
- */
-operator fun Manifest.contains(item: Item<*>): Boolean = hasItem(item)
-
-/**
- * Returns `true` if this manifest contains a [local item][Item.Local] that points towards the given [resource],
- * `false` otherwise.
- */
-operator fun Manifest.contains(resource: Resource): Boolean = hasItemFor(resource)
-
-// -- METADATA -- \\
-
-// -- SPINE -- \\
-/**
- * Returns the [itemref][ItemReference] at the given [index].
- *
- * @throws [IndexOutOfBoundsException] if the given [index] is out of range
- */
-operator fun Spine.get(index: Int): ItemReference = getReference(index)
-
-/**
- * Returns the first [itemref][ItemReference] that references an [item][ItemReference] that has an
- * [id][Manifest.Item.identifier] that matches the given [resource], or throws a [NoSuchElementException] if none
- * is found.
- */
-operator fun Spine.get(resource: PageResource): ItemReference = getReferenceOf(resource)
-
-/**
- * Returns the first [itemref][ItemReference] that references the given [item], or throws [NoSuchElementException]
- * if none is found.
- */
-operator fun Spine.get(item: Item<*>): ItemReference = getReferenceOf(item)
-
-/**
- * Returns whether or not this `spine` element contains any [itemref][ItemReference] elements that reference
- * an [item][Manifest.Item] that has a [id][Manifest.Item.identifier] that matches the given [resource].
- */
-operator fun Spine.contains(resource: PageResource): Boolean = hasReferenceOf(resource)
-
-/**
- * Returns whether or not this `spine` element contains any [itemref][ItemReference] elements that reference the
- * given [item].
- */
-operator fun Spine.contains(item: Item<*>): Boolean = hasReferenceOf(item)
+// -- COLLECTION -- \\
 
 // -- TOURS -- \\

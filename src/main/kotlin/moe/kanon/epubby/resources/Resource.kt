@@ -131,7 +131,7 @@ sealed class Resource(file: Path, identifier: Identifier, desiredDirectory: Stri
      */
     var fallback by Delegates.observable<Resource?>(null) { _, oldFallback, newFallback ->
         if (oldFallback != newFallback) {
-            updateManifest(fallback = newFallback?.identifier?.value)
+            updateManifest(fallback = newFallback?.identifier)
         }
     }
 
@@ -248,7 +248,7 @@ sealed class Resource(file: Path, identifier: Identifier, desiredDirectory: Stri
         identifier: Identifier = item.identifier,
         href: Path = item.href,
         mediaType: MediaType? = item.mediaType,
-        fallback: String? = item.fallback,
+        fallback: Identifier? = item.fallback,
         mediaOverlay: String? = item.mediaOverlay,
         properties: Properties = item.properties
     ) {
@@ -275,10 +275,10 @@ sealed class Resource(file: Path, identifier: Identifier, desiredDirectory: Stri
 
         // TODO: This should probably work without ending up in an infinite loop, as 'fallback' is an observable and
         //       will only invoke this function if the 'old' & 'new' value are NOT the same
-        if (fallback != this.fallback?.identifier?.value) {
+        if (fallback != this.fallback?.identifier) {
             this.fallback = when (fallback) {
                 null -> null
-                else -> book.resources.getResourceOrNull(Identifier.of(fallback))
+                else -> book.resources.getResourceOrNull(fallback)
             }
         }
 
@@ -428,7 +428,7 @@ class PageResource internal constructor(override val book: Book, file: Path, ide
      * Returns the page tied to `this` page-resource, or throws a [NoSuchElementException] if `this` page-resource has
      * no page tied to it.
      */
-    val page: Page get() = book.pages.getPage(this)
+    val page: Page get() = book.pages.getPageByResource(this)
 
     /**
      * Returns the [page], or creates a new [page][Page], adds it to the [spine][Spine] at the given [index] and

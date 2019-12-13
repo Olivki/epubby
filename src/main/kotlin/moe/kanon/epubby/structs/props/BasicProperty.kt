@@ -16,20 +16,6 @@
 
 package moe.kanon.epubby.structs.props
 
-import org.jdom2.Attribute
-import org.jdom2.Namespace
+import moe.kanon.epubby.structs.prefixes.Prefix
 
-/**
- * Represents a basic [property data-type](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#sec-property-datatype).
- */
-internal data class BasicProperty(override val prefix: PropertyPrefix, override val reference: String) : Property {
-    /**
-     * Returns a new `property` attribute containing the value represented by this property.
-     */
-    override fun toAttribute(name: String, namespace: Namespace): Attribute = Attribute(name, toString(), namespace)
-
-    override fun toString(): String = when (prefix.prefix) {
-        null -> reference
-        else -> "${prefix.prefix}:$reference"
-    }
-}
+internal data class BasicProperty(override val prefix: Prefix, override val reference: String) : Property

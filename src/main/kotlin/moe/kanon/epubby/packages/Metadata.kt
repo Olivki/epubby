@@ -24,9 +24,9 @@ import kotlinx.collections.immutable.toImmutableList
 import moe.kanon.epubby.Book
 import moe.kanon.epubby.BookVersion
 import moe.kanon.epubby.structs.Direction
+import moe.kanon.epubby.structs.DublinCore
 import moe.kanon.epubby.structs.Identifier
-import moe.kanon.epubby.structs.dublincore.DublinCore
-import moe.kanon.epubby.structs.props.PackagePrefix
+import moe.kanon.epubby.structs.prefixes.PackagePrefix
 import moe.kanon.epubby.structs.props.Properties
 import moe.kanon.epubby.structs.props.Property
 import moe.kanon.epubby.structs.props.Relationship
@@ -35,27 +35,35 @@ import moe.kanon.epubby.utils.attr
 import moe.kanon.epubby.utils.internal.Namespaces
 import moe.kanon.epubby.utils.internal.logger
 import moe.kanon.epubby.utils.internal.malformed
-import moe.kanon.epubby.utils.stringify
+import moe.kanon.epubby.utils.toCompactString
 import moe.kanon.kommons.checkThat
 import org.jdom2.Attribute
 import org.jdom2.Element
 import org.jdom2.Namespace
-import org.jdom2.output.Format
+import java.net.URI
 import java.nio.charset.Charset
 import java.nio.file.Path
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
+/**
+ * Represents the [metadata](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#sec-pkg-metadata)
+ * element belonging to the [package-document][PackageDocument] of the [book].
+ */
 class Metadata private constructor(
     val book: Book,
     private val _identifiers: MutableList<DublinCore.Identifier>,
     private val _titles: MutableList<DublinCore.Title>,
     private val _languages: MutableList<DublinCore.Language>,
-    private val _dublinCoreElements: MutableList<DublinCore<*>>,
-    private val _metaElements: MutableList<Meta>,
-    private val _links: MutableList<Link>
+    val dublinCoreElements: MutableList<DublinCore<*>>,
+    val metaElements: MutableList<Meta>,
+    val links: MutableList<Link>
 ) {
+    val opf2MetaElements: ImmutableList<Meta.OPF2> get() = metaElements.filterIsInstance<Meta.OPF2>().toImmutableList()
+
+    val opf3MetaElements: ImmutableList<Meta.OPF3> get() = metaElements.filterIsInstance<Meta.OPF3>().toImmutableList()
+
     // -- IDENTIFIERS -- \\
     /**
      * Returns a list of all the known [identifiers][DublinCore.Identifier]. The returned list is guaranteed to have
@@ -86,18 +94,18 @@ class Metadata private constructor(
 
     /**
      * Attempts to remove the *first* [identifier][DublinCore.Identifier] that has [value][DublinCore.Identifier.value]
-     * that matches the given [id], returning `true` if one was found, or `false` if none was found.
+     * that matches the given [value], returning `true` if one was found, or `false` if none was found.
      *
      * @throws [IllegalStateException] If [identifiers] only contains *one* element.
      *
      * This is because there *NEEDS* to always be *AT LEAST* one known identifier at all times, which means that we
      * *CAN NOT* perform any removal operations if `identifiers` only contains one element.
      */
-    fun removeIdentifier(id: String): Boolean {
+    fun removeIdentifier(value: String): Boolean {
         // there needs to always be AT LEAST one identifier element, so we can't allow any removal operations if there's
         // only one identifier element available
         checkThat(_identifiers.size > 1, "(identifiers.size <= 1)")
-        return _identifiers.find { it.value == id }?.let { _identifiers.remove(it) } ?: false
+        return _identifiers.find { it.value == value }?.let { _identifiers.remove(it) } ?: false
     }
 
     /**
@@ -146,19 +154,19 @@ class Metadata private constructor(
     }
 
     /**
-     * Attempts to remove the *first* [title][DublinCore.Title] that has [value][DublinCore.Title.value] that matches
-     * the given [title], returning `true` if one was found, or `false` if none was found.
+     * Removes the given [title] from the known [titles] of the book, returning `true` if it was a success, otherwise
+     * `false`.
      *
      * @throws [IllegalStateException] If [titles] only contains *one* element.
      *
      * This is because there *NEEDS* to always be *AT LEAST* one known title at all times, which means that we
      * *CAN NOT* perform any removal operations if `titles` only contains one element.
      */
-    fun removeTitle(title: String): Boolean {
+    fun removeTitle(title: DublinCore.Title): Boolean {
         // there needs to always be AT LEAST one title element, so we can't allow any removal operations if there's
         // only one title element available
         checkThat(_titles.size > 1) { "(titles.size <= 1)" }
-        return _titles.find { it.value == title }?.let { _titles.remove(it) } ?: false
+        return _titles.remove(title)
     }
 
     /**
@@ -189,31 +197,33 @@ class Metadata private constructor(
         }
 
     /**
-     * Creates a new [Language][DublinCore.Language] instance from the given [value] and [identifier] and adds it to the
-     * known [languages].
-     *
-     * @param [value] a [Locale] instance
-     * @param [identifier] the [id](https://www.w3.org/TR/xml-id/) attribute for the element
+     * Adds the given [language] to the known [languages] of the book.
      */
-    @JvmOverloads
-    fun addLanguage(value: Locale, identifier: Identifier? = null) {
-        _languages += DublinCore.Language(value, identifier)
+    fun addLanguage(language: DublinCore.Language) {
+        _languages += language
     }
 
     /**
-     * Attempts to remove the *first* [language][DublinCore.Language] that has [value][DublinCore.Language.value] that
-     * matches the given [locale], returning `true` if one was found, or `false` if none was found.
+     * Adds the given [language] to the known [languages] of the book at the given [index].
+     */
+    fun addLanguage(index: Int, language: DublinCore.Language) {
+        _languages.add(index, language)
+    }
+
+    /**
+     * Removes the given [language] from the known [languages] of the book, returning `true` if it was a success,
+     * otherwise `false`.
      *
      * @throws [IllegalStateException] If [languages] only contains *one* element.
      *
      * This is because there *NEEDS* to always be *AT LEAST* one known language at all times, which means that we
      * *CAN NOT* perform any removal operations if `languages` only contains one element.
      */
-    fun removeLanguage(locale: Locale): Boolean {
+    fun removeLanguage(language: DublinCore.Language): Boolean {
         // there needs to always be AT LEAST one language element, so we can't allow any removal operations if there's
         // only one language element available
         checkThat(_languages.size > 1) { "(titles.size <= 1)" }
-        return _languages.find { it.value == locale }?.let { _languages.remove(it) } ?: false
+        return _languages.remove(language)
     }
 
     /**
@@ -227,38 +237,66 @@ class Metadata private constructor(
         _languages[index] = language
     }
 
+    // -- DUBLIN-CORE -- \\
+    fun addDublinCore(dublinCore: DublinCore<*>) {
+        dublinCoreElements += dublinCore
+    }
+
+    // -- META -- \\
+    fun addMeta(meta: Meta) {
+        metaElements += meta
+    }
+
     // -- OTHER -- \\
     // TODO: Add functions for working with the other collections
+
+    // TODO: Add some functions to make this function look cleaner, and just to make stuff like easier to accomplish
+    //       for the actual person using this library
+
+    // -- META -- \\
     /**
-     * Updates the `last-modified` date of the [book] to the [current date][LocalDateTime.now].
+     * Updates the `last-modified` date of the [book] to the given [date], formatted according to
+     * [ISO_LOCAL_DATE_TIME][DateTimeFormatter.ISO_LOCAL_DATE_TIME].
      *
-     * If no `last-modified` metadata element can be found, then one will be created, otherwise this will replace the
-     * first found instance of the `last-modified` element.
+     * This will create a new `last-modified` meta entry if none can be found.
      */
-    fun updateLastModified() {
-        val lastModified = LocalDateTime.now()
-        logger.debug { "Updating last-modified date of book <$book> to '$lastModified'.." }
+    @JvmOverloads
+    fun setLastModifiedDate(date: LocalDateTime = LocalDateTime.now()) {
+        val currentDateTime = date.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+        logger.debug { "Updating last-modified date of book <$book> to '$currentDateTime'.." }
 
-        if (book.version < BookVersion.EPUB_3_0) {
-            fun predicate(dc: DublinCore<*>) = dc._attributes.any { it.name == "event" && it.value == "modification" }
-            val element = DublinCore.Date.of(lastModified).apply {
-                addAttribute(Attribute("event", "modification", Namespaces.DUBLIN_CORE))
-            }
-
-            if (_dublinCoreElements.any(::predicate)) {
-                _dublinCoreElements[_dublinCoreElements.indexOfFirst(::predicate)] = element
-            } else _dublinCoreElements += element
-        } else {
+        if (book.version > BookVersion.EPUB_2_0) {
             val property = Property.of(PackagePrefix.DC_TERMS, "modified")
-            fun predicate(it: Meta) = (it as Meta.Modern).property == property
-            val element = Meta.Modern(lastModified.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME), property)
+            val meta = metaElements
+                .filterIsInstance<Meta.OPF3>()
+                .firstOrNull { it.property == property }
 
-            if (_metaElements.any(::predicate)) {
-                _metaElements[_metaElements.indexOfFirst(::predicate)] = element
-            } else _metaElements += element
+            if (meta != null) {
+                meta.value = currentDateTime
+            } else {
+                metaElements += Meta.OPF3(currentDateTime, property)
+            }
+        } else {
+            val dublinCore = dublinCoreElements
+                .filterIsInstance<DublinCore.Date>()
+                .firstOrNull { it.hasAttribute("event", "modification") }
+
+            if (dublinCore != null) {
+                dublinCore.value = currentDateTime
+            } else {
+                addDublinCore(DublinCore.Date(currentDateTime).addAttribute("event", "modification"))
+            }
         }
     }
 
+    fun getLastModifiedDateOrNull(): String? = when {
+        book.version > BookVersion.EPUB_2_0 -> TODO()
+        else -> dublinCoreElements
+            .filterIsInstance<DublinCore.Date>()
+            .firstOrNull { it.hasAttribute("event", "modification") }?.value
+    }
+
+    // -- INTERNAL -- \\
     @JvmSynthetic
     internal fun toElement(namespace: Namespace = Namespaces.OPF): Element = Element("metadata", namespace).apply {
         addNamespaceDeclaration(Namespaces.DUBLIN_CORE)
@@ -267,12 +305,12 @@ class Metadata private constructor(
             addNamespaceDeclaration(Namespaces.OPF_WITH_PREFIX)
         }
 
-        _identifiers.forEach { addContent(it.toElement()) }
-        _titles.forEach { addContent(it.toElement()) }
-        _languages.forEach { addContent(it.toElement()) }
-        _dublinCoreElements.forEach { addContent(it.toElement()) }
-        _metaElements.forEach { addContent(it.toElement()) }
-        _links.forEach { addContent(it.toElement()) }
+        _identifiers.forEach { addContent(it.toElement(book)) }
+        _titles.forEach { addContent(it.toElement(book)) }
+        _languages.forEach { addContent(it.toElement(book)) }
+        dublinCoreElements.forEach { addContent(it.toElement(book)) }
+        metaElements.forEach { addContent(it.toElement()) }
+        links.forEach { addContent(it.toElement()) }
     }
 
     // this is so that rather than having to have two different lists that may or may not contain any elements depending
@@ -289,7 +327,7 @@ class Metadata private constructor(
 
         /**
          * Represents the [meta](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#elemdef-meta)
-         * element used in EPUB 3.0.
+         * introduced in EPUB 3.0.
          *
          * @property [value] The actual value that this metadata carries.
          * @property [property] A string representing a [property data type](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#sec-property-datatype).
@@ -303,24 +341,26 @@ class Metadata private constructor(
          * @property [scheme] Identifies the system or scheme that the element's [value] is drawn from.
          * @property [language] TODO
          */
-        data class Modern internal constructor(
-            val value: String,
-            val property: Property,
-            val identifier: Identifier? = null,
-            val direction: Direction? = null,
-            val refines: String? = null,
-            val scheme: String? = null,
-            val language: Locale? = null
+        // TODO: Change 'refines' from a String? to a DublinCore reference? as the refines part actually refers to the
+        //       id of a dublin-core element
+        data class OPF3 internal constructor(
+            var value: String,
+            var property: Property,
+            var identifier: Identifier? = null,
+            var direction: Direction? = null,
+            var refines: String? = null,
+            var scheme: String? = null,
+            var language: Locale? = null
         ) : Meta() {
             @JvmSynthetic
             override fun toElement(namespace: Namespace): Element = Element("meta", namespace).apply {
-                setAttribute(property.toAttribute())
+                setAttribute("property", property.toStringForm())
                 identifier?.also { setAttribute("id", it.value) }
                 direction?.also { setAttribute("dir", it.toString()) }
                 refines?.also { setAttribute("refines", it) }
                 scheme?.also { setAttribute("scheme", it) }
                 language?.also { setAttribute("lang", it.toLanguageTag(), Namespace.XML_NAMESPACE) }
-                text = this@Modern.value
+                text = this@OPF3.value
             }
         }
 
@@ -336,7 +376,7 @@ class Metadata private constructor(
          * For more information regarding the `meta` element and what the different parameters do, see the specification
          * linked above.
          */
-        class Legacy private constructor(
+        class OPF2 private constructor(
             val charset: Charset? = null,
             val content: String? = null,
             val httpEquivalent: String? = null,
@@ -347,16 +387,16 @@ class Metadata private constructor(
             @JvmSynthetic
             override fun toElement(namespace: Namespace): Element = Element("meta", namespace).apply {
                 charset?.also { setAttribute("charset", it.name()) }
-                this@Legacy.content?.also { setAttribute("content", it) }
+                this@OPF2.content?.also { setAttribute("content", it) }
                 httpEquivalent?.also { setAttribute("http-equiv", it) }
-                this@Legacy.name?.also { setAttribute("name", it) }
+                this@OPF2.name?.also { setAttribute("name", it) }
                 scheme?.also { setAttribute("scheme", it) }
                 globalAttributes.forEach { setAttribute(it) }
             }
 
             override fun equals(other: Any?): Boolean = when {
                 this === other -> true
-                other !is Legacy -> false
+                other !is OPF2 -> false
                 charset != other.charset -> false
                 content != other.content -> false
                 httpEquivalent != other.httpEquivalent -> false
@@ -381,7 +421,7 @@ class Metadata private constructor(
 
             companion object {
                 /**
-                 * Returns a new [Legacy] instance for the given [httpEquiv] with the given [content].
+                 * Returns a new [OPF2] instance for the given [httpEquiv] with the given [content].
                  */
                 @JvmStatic
                 @JvmOverloads
@@ -389,23 +429,23 @@ class Metadata private constructor(
                     httpEquiv: String,
                     content: String,
                     scheme: String? = null
-                ): Legacy = Legacy(httpEquivalent = httpEquiv, content = content, scheme = scheme)
+                ): OPF2 = OPF2(httpEquivalent = httpEquiv, content = content, scheme = scheme)
 
                 /**
-                 * Returns a new [Legacy] instance for the given [name] with the given [content].
+                 * Returns a new [OPF2] instance for the given [name] with the given [content].
                  */
                 @JvmStatic
                 @JvmOverloads
-                fun withName(name: String, content: String, scheme: String? = null): Legacy =
-                    Legacy(name = name, content = content, scheme = scheme)
+                fun withName(name: String, content: String, scheme: String? = null): OPF2 =
+                    OPF2(name = name, content = content, scheme = scheme)
 
                 /**
-                 * Returns a new [Legacy] instance for the given [charset].
+                 * Returns a new [OPF2] instance for the given [charset].
                  */
                 @JvmStatic
                 @JvmOverloads
-                fun withCharset(charset: Charset, scheme: String? = null): Legacy =
-                    Legacy(charset = charset, scheme = scheme)
+                fun withCharset(charset: Charset, scheme: String? = null): OPF2 =
+                    OPF2(charset = charset, scheme = scheme)
 
                 @JvmSynthetic
                 internal fun newInstance(
@@ -415,10 +455,12 @@ class Metadata private constructor(
                     name: String? = null,
                     scheme: String? = null,
                     globalAttributes: ImmutableList<Attribute> = persistentListOf()
-                ): Legacy = Legacy(charset, content, httpEquiv, name, scheme, globalAttributes)
+                ): OPF2 = OPF2(charset, content, httpEquiv, name, scheme, globalAttributes)
             }
         }
     }
+
+    // TODO: Update the 'href' value of Link instances when updating a resource path
 
     /**
      * Represents the [link](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#elemdef-opf-link)
@@ -439,7 +481,7 @@ class Metadata private constructor(
      * @property [refines] TODO
      */
     data class Link internal constructor(
-        var href: String,
+        var href: URI,
         var relation: Relationship,
         var mediaType: MediaType? = null,
         var identifier: Identifier? = null,
@@ -448,7 +490,8 @@ class Metadata private constructor(
     ) {
         @JvmSynthetic
         internal fun toElement(namespace: Namespace = Namespaces.OPF): Element = Element("link", namespace).apply {
-            setAttribute("href", href)
+            setAttribute("href", href.toString())
+
             // TODO: Can relation be empty?
             //checkThat(relation.isNotEmpty()) { "relation should not be empty" }
             setAttribute(relation.toAttribute("rel", namespace))
@@ -524,24 +567,25 @@ class Metadata private constructor(
     }
 
     internal companion object {
-        private val KNOWN_NAMES = persistentHashSetOf("identifier", "title", "language")
-        private val KNOWN_ATTRIBUTES = persistentHashSetOf("charset", "content", "http-equiv", "name", "scheme")
+        private val DC_NAMES = persistentHashSetOf("identifier", "title", "language")
+        private val META_OPF2_ATTRIBUTES = persistentHashSetOf("charset", "content", "http-equiv", "name", "scheme")
+        private val META_OPF3_ATTRIBUTES = persistentHashSetOf("property", "id", "dir", "refines", "scheme", "lang")
 
         @JvmSynthetic
         internal fun fromElement(book: Book, element: Element, file: Path): Metadata = with(element) {
             val identifiers = getChildren("identifier", Namespaces.DUBLIN_CORE)
-                .mapTo(ArrayList(), ::createIdentifier)
+                .mapTo(ArrayList()) { createIdentifier(it) }
                 .ifEmpty { malformed(book.file, file, "missing required 'dc:identifier' element in 'metadata'") }
             val titles = getChildren("title", Namespaces.DUBLIN_CORE)
-                .mapTo(ArrayList(), ::createTitle)
+                .mapTo(ArrayList()) { createTitle(it) }
                 .ifEmpty { malformed(book.file, file, "missing required 'dc:title' element in 'metadata'") }
             val languages = getChildren("language", Namespaces.DUBLIN_CORE)
-                .mapTo(ArrayList(), ::createLanguage)
+                .mapTo(ArrayList()) { createLanguage(it) }
                 .ifEmpty { malformed(book.file, file, "missing required 'dc:language' element in 'metadata'") }
             val dublinCoreElements: MutableList<DublinCore<*>> = children
                 .asSequence()
                 .filter { it.namespace == Namespaces.DUBLIN_CORE }
-                .filter { it.name !in KNOWN_NAMES && it.text.isNotBlank() && it.attributes.isNotEmpty() }
+                .filter { it.name !in DC_NAMES && it.text.isNotBlank() && it.attributes.isNotEmpty() }
                 .mapTo(ArrayList()) { createDublinCore(it, book.file, file) }
             val metaElements = getChildren("meta", namespace)
                 .asSequence()
@@ -555,59 +599,80 @@ class Metadata private constructor(
             }
         }
 
-        private fun createMetaOrNull(book: Book, element: Element, container: Path, current: Path): Meta? {
-            fun faultyElement(reason: String): Meta? {
-                logger.warn { "Discarding a faulty 'meta' element: [${element.stringify(Format.getCompactFormat())}]: $reason." }
+        private fun Element.hasMeta2Attributes(): Boolean = this.attributes.any { it.name in META_OPF2_ATTRIBUTES }
+
+        private fun Element.hasNoMeta3Attributes(): Boolean = this.attributes.none { it.name in META_OPF3_ATTRIBUTES }
+
+        private fun createMetaOrNull(book: Book, element: Element, container: Path, current: Path): Meta? = when {
+            book.version > BookVersion.EPUB_2_0 -> when {
+                element.hasMeta2Attributes() && element.hasNoMeta3Attributes() -> {
+                    logger.debug { "Encountered a legacy 'meta' element: ${element.toCompactString()}" }
+                    createOPF2MetaElement(element)
+                }
+                else -> createOPF3MetaElement(element, container, current)
+            }
+            else -> createOPF2MetaElement(element)
+        }
+
+
+        // TODO: As I figured out that the "faulty" element we encountered was just a legacy 'meta' element, we can
+        //       probably just have this fail loudly instead?
+        private fun createOPF3MetaElement(element: Element, container: Path, current: Path): Meta.OPF3? {
+            fun faultyElement(reason: String): Meta.OPF3? {
+                logger.warn { "Discarding a faulty 'meta' element: [${element.toCompactString()}]: $reason." }
                 return null
             }
 
             return when {
-                book.version > BookVersion.EPUB_2_0 -> {
-                    when {
-                        // the 'property' attribute is REQUIRED according to the EPUB specification, which means
-                        // that any 'meta' elements that are missing it are NOT valid elements, and should therefore
-                        // be discarded by the system, as we have no way of salvaging a faulty meta element, and we do
-                        // not want to be serializing faulty elements during the writing process
-                        element.attributes.none { it.name == "property" } -> faultyElement("missing required 'property' attribute")
-                        // "Every meta element MUST express a value that is at least one character in length after
-                        // white space normalization" which means that if the text is blank after being normalized
-                        // it's not a valid 'meta' element
-                        element.textNormalize.isBlank() -> faultyElement("value/text is blank")
-                        else -> {
-                            val value = element.text
-                            val property =
-                                element.attr("property", container, current).let { Property.parse(Meta::class, it) }
-                            val identifier = element.getAttributeValue("id")?.let { Identifier.of(it) }
-                            val direction = element.getAttributeValue("dir")?.let(Direction.Companion::of)
-                            val refines = element.getAttributeValue("refines")
-                            val scheme = element.getAttributeValue("scheme")
-                            val language =
-                                element.getAttributeValue("lang", Namespace.XML_NAMESPACE)?.let(Locale::forLanguageTag)
-                            Meta.Modern(value, property, identifier, direction, refines, scheme, language).also {
-                                logger.trace { "Constructed metadata meta instance (3.x) <$it>" }
-                            }
-                        }
-                    }
-                }
+                // the 'property' attribute is REQUIRED according to the EPUB specification, which means
+                // that any 'meta' elements that are missing it are NOT valid elements, and should therefore
+                // be discarded by the system, as we have no way of salvaging a faulty meta element, and we do
+                // not want to be serializing faulty elements during the writing process
+                element.attributes.none { it.name == "property" } -> faultyElement("missing required 'property' attribute")
+                // "Every meta element MUST express a value that is at least one character in length after
+                // white space normalization" which means that if the text is blank after being normalized
+                // it's not a valid 'meta' element
+                element.textNormalize.isBlank() -> faultyElement("value/text is blank")
                 else -> {
-                    val charset = element.getAttributeValue("charset")?.let(Charset::forName)
-                    val content = element.getAttributeValue("content")
-                    val httpEquiv = element.getAttributeValue("http-equiv")
-                    val name = element.getAttributeValue("name")
+                    val value = element.text
+                    val property =
+                        element.attr("property", container, current).let { Property.parse(Meta::class, it) }
+                    val identifier = element.getAttributeValue("id")?.let { Identifier.of(it) }
+                    val direction = element.getAttributeValue("dir")?.let(Direction.Companion::of)
+                    val refines = element.getAttributeValue("refines")
                     val scheme = element.getAttributeValue("scheme")
-                    val globalAttributes =
-                        element.attributes.filterNot { it.name in KNOWN_ATTRIBUTES }.toImmutableList()
-                    Meta.Legacy.newInstance(charset, content, httpEquiv, name, scheme, globalAttributes).also {
-                        logger.trace { "Constructed metadata meta instance (2.x) <$it>" }
+                    val language =
+                        element.getAttributeValue("lang", Namespace.XML_NAMESPACE)?.let(Locale::forLanguageTag)
+                    Meta.OPF3(value, property, identifier, direction, refines, scheme, language).also {
+                        logger.trace { "Constructed metadata meta instance (3.x) <$it>" }
                     }
                 }
+            }
+        }
+
+        private fun createOPF2MetaElement(element: Element): Meta.OPF2 {
+            val charset = element.getAttributeValue("charset")?.let(Charset::forName)
+            val content = element.getAttributeValue("content")
+            val httpEquiv = element.getAttributeValue("http-equiv")
+            val name = element.getAttributeValue("name")
+            val scheme = element.getAttributeValue("scheme")
+            val globalAttributes =
+                element.attributes.filterNot { it.name in META_OPF2_ATTRIBUTES }.toImmutableList()
+            return Meta.OPF2.newInstance(charset, content, httpEquiv, name, scheme, globalAttributes).also {
+                logger.trace { "Constructed metadata meta instance (2.x) <$it>" }
             }
         }
 
         private fun createIdentifier(element: Element): DublinCore.Identifier {
             val value = element.textNormalize
             val identifier = element.getAttributeValue("id")?.let { Identifier.of(it) }
+            val attributes = element
+                .attributes
+                .asSequence()
+                .filter { it.namespace == Namespaces.OPF_WITH_PREFIX }
+                .map(Attribute::detach)
             return DublinCore.Identifier(value, identifier).also {
+                it._attributes.addAll(attributes)
                 logger.trace { "Constructed metadata dublin-core identifier instance <$it>" }
             }
         }
@@ -617,7 +682,13 @@ class Metadata private constructor(
             val identifier = element.getAttributeValue("id")?.let { Identifier.of(it) }
             val direction = element.getAttributeValue("dir")?.let(Direction.Companion::of)
             val language = element.getAttributeValue("lang", Namespace.XML_NAMESPACE)?.let(Locale::forLanguageTag)
+            val attributes = element
+                .attributes
+                .asSequence()
+                .filter { it.namespace == Namespaces.OPF_WITH_PREFIX }
+                .map(Attribute::detach)
             return DublinCore.Title(value, identifier, direction, language).also {
+                it._attributes.addAll(attributes)
                 logger.trace { "Constructed metadata dublin-core title instance <$it>" }
             }
         }
@@ -625,7 +696,13 @@ class Metadata private constructor(
         private fun createLanguage(element: Element): DublinCore.Language {
             val value = Locale.forLanguageTag(element.textNormalize)
             val identifier = element.getAttributeValue("id")?.let { Identifier.of(it) }
+            val attributes = element
+                .attributes
+                .asSequence()
+                .filter { it.namespace == Namespaces.OPF_WITH_PREFIX }
+                .map(Attribute::detach)
             return DublinCore.Language(value, identifier).also {
+                it._attributes.addAll(attributes)
                 logger.trace { "Constructed metadata dublin-core language instance <$it>" }
             }
         }
@@ -663,7 +740,7 @@ class Metadata private constructor(
         }
 
         private fun createLink(element: Element, container: Path, current: Path): Link = with(element) {
-            val href = attr("href", container, current)
+            val href = URI(attr("href", container, current))
             val relation =
                 attr("rel", container, current).let { Properties.parse(Link::class, it, VocabularyMode.RELATION) }
             val mediaType = getAttributeValue("media-type")?.let(MediaType::parse)

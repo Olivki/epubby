@@ -20,18 +20,18 @@ import moe.kanon.epubby.resources.PageResource
 import moe.kanon.epubby.resources.Resource
 import moe.kanon.epubby.structs.Identifier
 
-operator fun Pages.get(index: Int): Page = getPage(index)
+operator fun Pages.get(index: Int): Page = getPageAt(index)
 
 /**
  * Returns the first page that has a [resource][Page.resource] that matches the given [resource], or throws a
  * [NoSuchElementException] if none is found.
  */
-operator fun Pages.get(resource: PageResource): Page = getPage(resource)
+operator fun Pages.get(resource: PageResource): Page = getPageByResource(resource)
 
 /**
  * Returns the first page that has a [resource][Page.resource] with an [identifier][Resource.identifier] that
  * matches the given [identifier], or throws a [NoSuchElementException] if none is found.
  */
-operator fun Pages.get(identifier: Identifier): Page = getPage(identifier)
+operator fun Pages.get(identifier: Identifier): Page = getPageByIdentifier(identifier)
 
 operator fun Pages.contains(resource: PageResource): Boolean = hasPage(resource)

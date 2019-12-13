@@ -14,24 +14,8 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.structs.props
+package moe.kanon.epubby.structs.prefixes
 
-/**
- * Represents the `prefix` used by [Property] implementations.
- */
-interface PropertyPrefix {
-    /**
-     * The shorthand name used to refer to the underlying [url] when [processing][BasicProperty.process] a property.
-     */
-    val prefix: String?
+import java.net.URI
 
-    /**
-     * The URL that this prefix points towards.
-     */
-    val url: String
-
-    companion object {
-        @JvmStatic
-        fun of(prefix: String, url: String): PropertyPrefix = BasicPropertyPrefix(prefix, url)
-    }
-}
+internal data class BasicPrefix(override val prefix: String, override val uri: URI) : Prefix

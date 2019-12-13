@@ -16,34 +16,43 @@
 
 package moe.kanon.epubby.structs.props.vocabs
 
-import moe.kanon.epubby.structs.props.BasicPropertyPrefix
+import moe.kanon.epubby.packages.Collection
+import moe.kanon.epubby.packages.Metadata
+import moe.kanon.epubby.packages.PackageDocument
+import moe.kanon.epubby.structs.prefixes.Prefix
 import moe.kanon.epubby.structs.props.Property
-import moe.kanon.epubby.structs.props.PropertyPrefix
 import moe.kanon.epubby.utils.internal.findProperty
+import moe.kanon.epubby.utils.internal.findPropertyOrNull
 
 /**
  * Represents the [metadata link rel vocabulary](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#sec-link-rel).
  *
- * The following values can be used in the link element rel attribute to establish the relationship of the resource
- * referenced in the href attribute.
+ * The values defined here can be used as the `rel` of a [metadata link][Metadata.Link].
  *
- * @property [refinesStrategy] Defines whether or not the constant can be used when the `refines` attribute is
+ * @property [refinesRelation] Defines whether or not the constant can be used when the `refines` attribute is
  * present.
  */
 enum class MetadataLinkRelVocabulary(
     override val reference: String,
-    val refinesStrategy: Refines
+    private val refinesRelation: Refines
 ) : Property {
+    // TODO: Change the documentation for these to not just be pointing towards the specification and instead actually
+    //       explain what they do
+    // TODO: Documentation
     /**
-     * Represents the [acquire](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#sec-acquire)
-     * entry.
-     *
-     * Used to identify where the full version of the book can be acquired.
+     * Identifies where the full version of the book can be acquired.
      */
     ACQUIRE("acquire", Refines.MUST_NOT_BE_PRESENT),
     /**
-     * Represents the [alternate](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#sec-alternate)
-     * entry.
+     * The `alternate` property is a subset of the HTML `alternate` keyword for `link` elements, it differs as follows:
+     *
+     * - It cannot be paired with other keywords.
+     * - If an alternate `link` is included in the [package-document][PackageDocument] [metadata][Metadata], it
+     * identifies an alternate representation of the `package-document` in the format specified by the
+     * [mediaType][Metadata.Link.mediaType] of the `link`.
+     * - If an alternate `link` is included in a [collection][Collection]'s [metadata][Collection.Metadata], it
+     * identifies an alternate representation of the `collection` in the format specified in by the
+     * [mediaType][Collection.Metadata.Link.mediaType] of the `link`.
      */
     ALTERNATE("alternate", Refines.MUST_NOT_BE_PRESENT),
     /**
@@ -86,13 +95,19 @@ enum class MetadataLinkRelVocabulary(
 
     // TODO: Implement the deprecation tags?
 
-    enum class Refines { MUST_BE_PRESENT, MUST_NOT_BE_PRESENT, INDIFFERENT }
+    fun m() {
+        Collection
+    }
 
-    override val prefix: PropertyPrefix =
-        BasicPropertyPrefix(null, "http://idpf.org/epub/vocab/package/link/#")
+    private enum class Refines { MUST_BE_PRESENT, MUST_NOT_BE_PRESENT, INDIFFERENT }
+
+    override val prefix: Prefix = Prefix.forVocabulary("http://idpf.org/epub/vocab/package/link/#")
 
     companion object {
         @JvmStatic
         fun fromReference(reference: String): MetadataLinkRelVocabulary = findProperty(reference)
+
+        @JvmStatic
+        fun fromReferenceOrNull(reference: String): MetadataLinkRelVocabulary? = findPropertyOrNull(reference)
     }
 }

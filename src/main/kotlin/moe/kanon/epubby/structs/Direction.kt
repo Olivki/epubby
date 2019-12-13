@@ -23,13 +23,13 @@ import org.jdom2.Namespace
  * Represents the two possible values a [dir](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#attrdef-dir)
  * attribute can have.
  */
-enum class Direction(val serializedName: String) {
+enum class Direction(val attributeName: String) {
     LEFT_TO_RIGHT("ltr"),
     RIGHT_TO_LEFT("rtl");
 
     @JvmSynthetic
     internal fun toAttribute(namespace: Namespace = Namespace.NO_NAMESPACE): Attribute =
-        Attribute("dir", serializedName, namespace)
+        Attribute("dir", attributeName, namespace)
 
     companion object {
         /**
