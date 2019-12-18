@@ -16,6 +16,7 @@
 
 package moe.kanon.epubby
 
+import moe.kanon.epubby.internal.logger
 import moe.kanon.epubby.packages.Bindings
 import moe.kanon.epubby.packages.Collection
 import moe.kanon.epubby.packages.Guide
@@ -24,7 +25,6 @@ import moe.kanon.epubby.packages.Metadata
 import moe.kanon.epubby.packages.PackageDocument
 import moe.kanon.epubby.packages.Spine
 import moe.kanon.epubby.packages.Tours
-import moe.kanon.epubby.utils.internal.logger
 
 internal class BookValidator internal constructor(val book: Book) {
     @JvmSynthetic

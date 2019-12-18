@@ -25,6 +25,19 @@ import kotlin.annotation.AnnotationTarget.PROPERTY_GETTER
 import kotlin.annotation.AnnotationTarget.PROPERTY_SETTER
 
 /**
+ * Used for marking which version the feature was introduced into the EPUB specification in.
+ *
+ * If a feature is not annotated with `this` annotation then it's safe to assume that the feature has been available
+ * since EPUB 2.0.
+ *
+ * @property [since] The version that the feature was introduced into the EPUB specification in.
+ */
+@MustBeDocumented
+@Retention(AnnotationRetention.SOURCE)
+@Target(CLASS, FIELD, FILE, FUNCTION, PROPERTY, PROPERTY_GETTER, PROPERTY_SETTER)
+internal annotation class NewFeature(val since: String)
+
+/**
  * Used for marking that the feature the annotation target represents is considered to be a
  * [legacy feature](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-spec.html#legacy).
  *

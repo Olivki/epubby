@@ -16,11 +16,11 @@
 
 package moe.kanon.epubby.metainf
 
-import moe.kanon.epubby.utils.internal.logger
-import moe.kanon.epubby.utils.internal.malformed
+import moe.kanon.epubby.Book
+import moe.kanon.epubby.internal.logger
+import moe.kanon.epubby.internal.malformed
 import moe.kanon.kommons.io.paths.exists
 import moe.kanon.kommons.io.paths.notExists
-import java.io.IOException
 import java.nio.file.FileSystem
 import java.nio.file.Path
 
@@ -46,12 +46,15 @@ class MetaInf private constructor(
     val epub: Path,
     val directory: Path,
     val container: MetaInfContainer,
-    val encryption: MetaInfEncryption?,
-    val manifest: MetaInfManifest?,
-    val metadata: MetaInfMetadata?,
-    val rights: MetaInfRights?,
-    val signatures: MetaInfSignatures?
+    var encryption: MetaInfEncryption?,
+    var manifest: MetaInfManifest?,
+    var metadata: MetaInfMetadata?,
+    var rights: MetaInfRights?,
+    var signatures: MetaInfSignatures?
 ) {
+    lateinit var book: Book
+        @JvmSynthetic internal set
+
     @JvmSynthetic
     internal fun writeToFiles(fileSystem: FileSystem) {
         container.writeToFile(fileSystem)

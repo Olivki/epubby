@@ -19,6 +19,7 @@ package moe.kanon.epubby.resources.pages
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import moe.kanon.epubby.Book
+import moe.kanon.epubby.internal.logger
 import moe.kanon.epubby.packages.Spine
 import moe.kanon.epubby.packages.contains
 import moe.kanon.epubby.packages.get
@@ -26,7 +27,6 @@ import moe.kanon.epubby.resources.PageResource
 import moe.kanon.epubby.resources.Resource
 import moe.kanon.epubby.resources.ResourceReference
 import moe.kanon.epubby.structs.Identifier
-import moe.kanon.epubby.utils.internal.logger
 import moe.kanon.kommons.collections.asUnmodifiable
 import moe.kanon.kommons.collections.isEmpty
 import org.jsoup.nodes.Attribute

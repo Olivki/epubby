@@ -14,14 +14,6 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.utils.internal
+package moe.kanon.epubby.structs.props.vocabs
 
-@PublishedApi
-internal object Patterns {
-    // -- WHITESPACE -- \\
-    @JvmField val WHITESPACE = "\\s".toRegex()
-    @JvmField val EXCESSIVE_WHITESPACE = "\\s{2,}".toRegex()
-
-    // -- SPACE -- \\
-    @JvmField val EXCESSIVE_SPACE = " {2,}".toRegex()
-}
+internal enum class VocabularyParseMode { PROPERTY, RELATION }

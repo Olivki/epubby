@@ -26,6 +26,8 @@ import kotlinx.collections.immutable.persistentHashSetOf
 import kotlinx.collections.immutable.persistentSetOf
 import moe.kanon.epubby.Book
 import moe.kanon.epubby.EpubbyException
+import moe.kanon.epubby.internal.logger
+import moe.kanon.epubby.internal.mediaType
 import moe.kanon.epubby.packages.Manifest
 import moe.kanon.epubby.packages.PackageDocument
 import moe.kanon.epubby.packages.Spine
@@ -34,8 +36,6 @@ import moe.kanon.epubby.resources.pages.contains
 import moe.kanon.epubby.structs.Identifier
 import moe.kanon.epubby.structs.props.Properties
 import moe.kanon.epubby.structs.props.vocabs.ManifestVocabulary
-import moe.kanon.epubby.utils.internal.logger
-import moe.kanon.epubby.utils.internal.mediaType
 import moe.kanon.kommons.collections.emptyEnumSet
 import moe.kanon.kommons.io.paths.copyTo
 import moe.kanon.kommons.io.paths.createDirectories

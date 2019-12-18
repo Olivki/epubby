@@ -14,16 +14,14 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.utils.internal
+package moe.kanon.epubby.internal
 
-import com.google.common.net.MediaType
-import moe.kanon.epubby.Book
-import moe.kanon.kommons.io.paths.contentType
-import java.nio.file.Path
+@PublishedApi
+internal object Patterns {
+    // -- WHITESPACE -- \\
+    @JvmField val WHITESPACE = "\\s".toRegex()
+    @JvmField val EXCESSIVE_WHITESPACE = "\\s{2,}".toRegex()
 
-@get:JvmSynthetic
-internal val Path.mediaType: MediaType? get() = this.contentType?.let(MediaType::parse)
-
-@JvmSynthetic
-internal fun getBookPathFromHref(book: Book, href: String, documentFile: Path): Path =
-    book.getPath(href).let { if (it.isAbsolute) it else documentFile.parent.resolve(it) }
+    // -- SPACE -- \\
+    @JvmField val EXCESSIVE_SPACE = " {2,}".toRegex()
+}

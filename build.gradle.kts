@@ -15,8 +15,8 @@ buildscript {
 }
 
 plugins {
-    kotlin("jvm").version("1.3.50")
-    kotlin("kapt").version("1.3.50")
+    kotlin("jvm").version("1.3.61")
+    kotlin("kapt").version("1.3.61")
 
     id("com.github.ben-manes.versions").version("0.21.0")
     
@@ -43,11 +43,11 @@ dependencies {
     implementation(group = "org.jetbrains.kotlinx", name = "kotlinx-collections-immutable-jvm", version = "0.3")
 
     // Kanon
-    implementation(group = "moe.kanon.kommons", name = "kommons.func", version = "1.4.0")
+    implementation(group = "moe.kanon.kommons", name = "kommons.func", version = "1.6.1")
     implementation(group = "moe.kanon.kommons", name = "kommons.reflection", version = "0.5.0")
-    implementation(group = "moe.kanon.kommons", name = "kommons.io", version = "1.4.0")
+    implementation(group = "moe.kanon.kommons", name = "kommons.io", version = "1.4.1")
     implementation(group = "moe.kanon.kommons", name = "kommons.lang", version = "0.4.1")
-    implementation(group = "moe.kanon.kommons", name = "kommons.collections", version = "0.9.0")
+    implementation(group = "moe.kanon.kommons", name = "kommons.collections", version = "0.10.3")
 
     // XML
     implementation(group = "org.jdom", name = "jdom2", version = "2.0.6")

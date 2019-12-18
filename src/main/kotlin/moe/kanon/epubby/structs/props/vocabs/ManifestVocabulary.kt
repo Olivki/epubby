@@ -16,12 +16,12 @@
 
 package moe.kanon.epubby.structs.props.vocabs
 
+import moe.kanon.epubby.internal.findProperty
+import moe.kanon.epubby.internal.findPropertyOrNull
 import moe.kanon.epubby.packages.Manifest
 import moe.kanon.epubby.resources.Resource
 import moe.kanon.epubby.structs.prefixes.Prefix
 import moe.kanon.epubby.structs.props.Property
-import moe.kanon.epubby.utils.internal.findProperty
-import moe.kanon.epubby.utils.internal.findPropertyOrNull
 
 /**
  * Represents the [manifest properties vocabulary](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#app-item-properties-vocab).
@@ -64,9 +64,15 @@ enum class ManifestVocabulary(override val reference: String) : Property {
      */
     SVG("svg");
 
+    // Prefix.of("idpf", "http://idpf.org/epub/vocab/package/item/#")
     override val prefix: Prefix = Prefix.forVocabulary("http://idpf.org/epub/vocab/package/item/#")
 
     companion object {
+        /**
+         * The prefix used by this vocabulary.
+         */
+        @JvmField val PREFIX: Prefix = Prefix.forVocabulary("http://idpf.org/epub/vocab/package/item/#")
+
         @JvmStatic
         fun fromReference(reference: String): ManifestVocabulary = findProperty(reference)
 

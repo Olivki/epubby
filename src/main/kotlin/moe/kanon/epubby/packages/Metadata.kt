@@ -23,6 +23,9 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import moe.kanon.epubby.Book
 import moe.kanon.epubby.BookVersion
+import moe.kanon.epubby.internal.Namespaces
+import moe.kanon.epubby.internal.logger
+import moe.kanon.epubby.internal.malformed
 import moe.kanon.epubby.structs.Direction
 import moe.kanon.epubby.structs.DublinCore
 import moe.kanon.epubby.structs.Identifier
@@ -30,11 +33,8 @@ import moe.kanon.epubby.structs.prefixes.PackagePrefix
 import moe.kanon.epubby.structs.props.Properties
 import moe.kanon.epubby.structs.props.Property
 import moe.kanon.epubby.structs.props.Relationship
-import moe.kanon.epubby.structs.props.vocabs.VocabularyMode
+import moe.kanon.epubby.structs.props.vocabs.VocabularyParseMode
 import moe.kanon.epubby.utils.attr
-import moe.kanon.epubby.utils.internal.Namespaces
-import moe.kanon.epubby.utils.internal.logger
-import moe.kanon.epubby.utils.internal.malformed
 import moe.kanon.epubby.utils.toCompactString
 import moe.kanon.kommons.checkThat
 import org.jdom2.Attribute
@@ -742,7 +742,7 @@ class Metadata private constructor(
         private fun createLink(element: Element, container: Path, current: Path): Link = with(element) {
             val href = URI(attr("href", container, current))
             val relation =
-                attr("rel", container, current).let { Properties.parse(Link::class, it, VocabularyMode.RELATION) }
+                attr("rel", container, current).let { Properties.parse(Link::class, it, VocabularyParseMode.RELATION) }
             val mediaType = getAttributeValue("media-type")?.let(MediaType::parse)
             val identifier = getAttributeValue("id")?.let { Identifier.of(it) }
             val properties = getAttributeValue("properties")?.let {

@@ -16,6 +16,7 @@
 
 package moe.kanon.epubby
 
+import moe.kanon.epubby.internal.logger
 import moe.kanon.epubby.metainf.MetaInf
 import moe.kanon.epubby.packages.Manifest
 import moe.kanon.epubby.packages.Metadata
@@ -23,7 +24,6 @@ import moe.kanon.epubby.packages.PackageDocument
 import moe.kanon.epubby.packages.Spine
 import moe.kanon.epubby.resources.Resources
 import moe.kanon.epubby.resources.pages.Pages
-import moe.kanon.epubby.utils.internal.logger
 import java.io.Closeable
 import java.io.IOException
 import java.net.URI
@@ -60,24 +60,22 @@ import java.util.Locale
  */
 class Book internal constructor(
     val metaInf: MetaInf,
+    val version: BookVersion,
     val file: Path,
     val fileSystem: FileSystem,
     val root: Path
 ) : Closeable {
-    lateinit var version: BookVersion
+    lateinit var packageDocument: PackageDocument
         @JvmSynthetic internal set
 
     val resources: Resources = Resources(this)
 
     val pages: Pages = Pages(this)
 
-    // TODO: Name? packageDocument is kind of a mouth-full..
-    val packageDocument: PackageDocument = PackageDocument.fromFile(this)
-
     val packageFile: Path get() = packageDocument.file
 
     // TODO: Name?
-    val packageRoot: Path = packageFile.parent
+    val packageRoot: Path get() = packageFile.parent
 
     // TODO: Documentation
     val manifest: Manifest get() = packageDocument.manifest

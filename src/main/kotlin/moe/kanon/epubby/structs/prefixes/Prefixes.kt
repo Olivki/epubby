@@ -16,18 +16,13 @@
 
 package moe.kanon.epubby.structs.prefixes
 
-import moe.kanon.epubby.structs.props.vocabs.ManifestVocabulary
-import moe.kanon.epubby.structs.props.vocabs.MetadataLinkRelVocabulary
-import moe.kanon.epubby.structs.props.vocabs.MetadataLinkVocabulary
-import moe.kanon.epubby.structs.props.vocabs.MetadataMetaVocabulary
-import moe.kanon.epubby.structs.props.vocabs.SpineVocabulary
-import moe.kanon.epubby.utils.internal.Patterns
+import moe.kanon.epubby.internal.Patterns
 import moe.kanon.kommons.collections.mapToTypedArray
 import moe.kanon.kommons.requireThat
 
 class Prefixes private constructor(private val delegate: MutableMap<String, Prefix>) : MutableMap<String, Prefix> by delegate {
     // unsure if this the correct form to output this to
-    fun toStringForm(): String = delegate.values.joinToString(separator = " ") {  "${it.prefix}: ${it.uri}" }
+    fun toStringForm(): String = delegate.values.joinToString(separator = " ", transform = Prefix::toStringForm)
 
     override fun toString(): String = delegate.toString()
 
@@ -43,23 +38,10 @@ class Prefixes private constructor(private val delegate: MutableMap<String, Pref
     companion object {
         // TODO: Document the throws
         @JvmStatic
-        fun of(first: Prefix, vararg rest: Prefix): Prefixes {
-            requireThat(!(first.belongsToDefaultVocabulary()) && rest.none { it.belongsToDefaultVocabulary() }) {
-                "prefixes are not allowed to map to default vocabularies"
-            }
-            requireThat(first.prefix.isNotBlank() && rest.none { it.prefix.isBlank() }) {
-                "prefixes are not allowed to have a blank 'prefix'"
-            }
-            return Prefixes(hashMapOf(first.prefix to first, *rest.asIterable().mapToTypedArray { it.prefix to it }))
-        }
-
-        private fun Prefix.belongsToDefaultVocabulary(): Boolean = when {
-            ManifestVocabulary.values().any { it.prefix.uri == this.uri } -> true
-            MetadataLinkRelVocabulary.values().any { it.prefix.uri == this.uri } -> true
-            MetadataLinkVocabulary.values().any { it.prefix.uri == this.uri } -> true
-            MetadataMetaVocabulary.values().any { it.prefix.uri == this.uri } -> true
-            SpineVocabulary.values().any { it.prefix.uri == this.uri } -> true
-            else -> false
+        fun of(vararg prefixes: Prefix): Prefixes {
+            requireThat(prefixes.none { it.isDefaultVocabularyPrefix() }) { "prefixes are not allowed to map to default vocabularies" }
+            requireThat(prefixes.none { it.prefix.isBlank() }) { "prefixes are not allowed to have a blank 'prefix'" }
+            return Prefixes(hashMapOf(*prefixes.asIterable().mapToTypedArray { it.prefix to it }))
         }
 
         @JvmSynthetic

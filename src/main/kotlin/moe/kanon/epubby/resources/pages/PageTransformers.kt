@@ -19,7 +19,7 @@ package moe.kanon.epubby.resources.pages
 import kotlinx.collections.immutable.ImmutableSet
 import kotlinx.collections.immutable.toPersistentHashSet
 import moe.kanon.epubby.Book
-import moe.kanon.epubby.utils.internal.logger
+import moe.kanon.epubby.internal.logger
 import moe.kanon.kommons.collections.asUnmodifiable
 import moe.kanon.kommons.reflection.loadServices
 

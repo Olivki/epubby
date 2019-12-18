@@ -16,9 +16,9 @@
 
 package moe.kanon.epubby
 
+import moe.kanon.epubby.internal.logger
+import moe.kanon.epubby.internal.malformed
 import moe.kanon.epubby.metainf.MetaInf
-import moe.kanon.epubby.utils.internal.logger
-import moe.kanon.epubby.utils.internal.malformed
 import moe.kanon.kommons.io.paths.copyTo
 import moe.kanon.kommons.io.paths.createTmpDirectory
 import moe.kanon.kommons.io.paths.deleteIfExists

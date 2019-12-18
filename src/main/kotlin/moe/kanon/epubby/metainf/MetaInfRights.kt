@@ -16,12 +16,10 @@
 
 package moe.kanon.epubby.metainf
 
-import moe.kanon.epubby.utils.internal.logger
+import moe.kanon.epubby.internal.logger
 import moe.kanon.epubby.utils.parseXmlFile
 import moe.kanon.epubby.utils.writeTo
-import moe.kanon.kommons.io.paths.moveTo
 import org.jdom2.Document
-import java.io.IOException
 import java.nio.file.FileSystem
 import java.nio.file.Path
 

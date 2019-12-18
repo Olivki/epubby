@@ -14,6 +14,10 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.structs.props.vocabs
+package moe.kanon.epubby.internal
 
-internal enum class VocabularyMode { PROPERTY, RELATION }
+import org.apache.logging.log4j.kotlin.KotlinLogger
+import org.apache.logging.log4j.kotlin.logger as namedLogger
+
+@get:JvmSynthetic
+internal val logger: KotlinLogger = namedLogger("epubby")

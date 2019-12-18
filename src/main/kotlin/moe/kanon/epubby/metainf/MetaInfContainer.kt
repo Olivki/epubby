@@ -19,23 +19,21 @@ package moe.kanon.epubby.metainf
 import com.google.common.net.MediaType
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
+import moe.kanon.epubby.internal.Namespaces
+import moe.kanon.epubby.internal.logger
+import moe.kanon.epubby.internal.malformed
 import moe.kanon.epubby.structs.props.Properties
 import moe.kanon.epubby.structs.props.Relationship
 import moe.kanon.epubby.utils.attr
 import moe.kanon.epubby.utils.child
 import moe.kanon.epubby.utils.docScope
-import moe.kanon.epubby.utils.internal.Namespaces
-import moe.kanon.epubby.utils.internal.logger
-import moe.kanon.epubby.utils.internal.malformed
 import moe.kanon.epubby.utils.parseXmlFile
 import moe.kanon.epubby.utils.writeTo
 import moe.kanon.kommons.io.paths.notExists
 import org.jdom2.Document
 import org.jdom2.Element
 import org.jdom2.Namespace
-import java.io.IOException
 import java.nio.file.FileSystem
-import java.nio.file.FileSystems
 import java.nio.file.Path
 
 /**

@@ -18,13 +18,14 @@ package moe.kanon.epubby.packages
 
 import moe.kanon.epubby.Book
 import moe.kanon.epubby.BookVersion
+import moe.kanon.epubby.internal.Namespaces
+import moe.kanon.epubby.metainf.MetaInf
 import moe.kanon.epubby.structs.Direction
 import moe.kanon.epubby.structs.Identifier
 import moe.kanon.epubby.structs.prefixes.Prefixes
 import moe.kanon.epubby.utils.attr
 import moe.kanon.epubby.utils.child
 import moe.kanon.epubby.utils.docScope
-import moe.kanon.epubby.utils.internal.Namespaces
 import moe.kanon.epubby.utils.parseXmlFile
 import moe.kanon.epubby.utils.writeTo
 import moe.kanon.kommons.requireThat
@@ -142,37 +143,40 @@ class PackageDocument private constructor(
 
     internal companion object {
         @JvmSynthetic
-        internal fun fromFile(book: Book): PackageDocument {
-            val file = book.metaInf.container.packageDocument.path
-            parseXmlFile(file) { _, root ->
+        internal fun fromMetaInf(metaInf: MetaInf, fileSystem: FileSystem): PackageDocument {
+            val epub = metaInf.epub
+            val container = metaInf.container.packageDocument.path
+            parseXmlFile(container) { _, root ->
                 val namespace = root.namespace
-                val uniqueId = root.attr("unique-identifier", book.file, file).let { Identifier.of(it) }
+                val uniqueIdentifier = root.attr("unique-identifier", epub, container).let { Identifier.of(it) }
                 val direction = root.getAttributeValue("dir")?.let(Direction.Companion::of)
                 val identifier = root.getAttributeValue("id")?.let { Identifier.of(it) }
                 val prefix = root.getAttributeValue("prefix")?.let { Prefixes.parse(it) } ?: Prefixes.empty()
                 val language = root.getAttributeValue("lang", Namespace.XML_NAMESPACE)?.let(Locale::forLanguageTag)
-                book.version = root.attr("version", book.file, file).let { BookVersion.parse(it) }
+                val version = root.attr("version", epub, container).let { BookVersion.parse(it) }
+                val book = Book(metaInf, version, epub, fileSystem, fileSystem.getPath("/"))
 
-                val metadata = root.child("metadata", book.file, file, namespace).let {
-                    Metadata.fromElement(book, it, file)
+                val metadata = root.child("metadata", epub, container, namespace).let {
+                    Metadata.fromElement(book, it, container)
                 }
-                val manifest = root.child("manifest", book.file, file, namespace).let {
-                    Manifest.fromElement(book, it, file)
+                val manifest = root.child("manifest", epub, container, namespace).let {
+                    Manifest.fromElement(book, it, container)
                 }
                 book.resources.populateFromManifest(manifest)
-                val spine = root.child("spine", book.file, file, namespace).let {
-                    Spine.fromElement(book, manifest, it, file)
+                val spine = root.child("spine", epub, container, namespace).let {
+                    Spine.fromElement(book, manifest, it, container)
                 }
                 book.pages.populateFromSpine(spine)
-                val guide = root.getChild("guide", namespace)?.let { Guide.fromElement(book, it, file) }
-                val bindings = root.getChild("bindings", namespace)?.let { Bindings.fromElement(book, it, file) }
-                val collection = root.getChild("collection", namespace)?.let { Collection.fromElement(book, it, file) }
-                val tours = root.getChild("tours", namespace)?.let { Tours.fromElement(book, it, file) }
+                val guide = root.getChild("guide", namespace)?.let { Guide.fromElement(book, it, container) }
+                val bindings = root.getChild("bindings", namespace)?.let { Bindings.fromElement(book, it, container) }
+                val collection =
+                    root.getChild("collection", namespace)?.let { Collection.fromElement(book, it, container) }
+                val tours = root.getChild("tours", namespace)?.let { Tours.fromElement(book, it, container) }
 
                 return PackageDocument(
                     book,
-                    file,
-                    uniqueId,
+                    container,
+                    uniqueIdentifier,
                     direction,
                     identifier,
                     prefix,
@@ -184,7 +188,7 @@ class PackageDocument private constructor(
                     bindings,
                     collection,
                     tours
-                )
+                ).also { book.packageDocument = it }
             }
         }
     }

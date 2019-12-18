@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.utils.internal
+package moe.kanon.epubby.internal
 
 import moe.kanon.epubby.metainf.MetaInfContainer
 import org.jdom2.Namespace

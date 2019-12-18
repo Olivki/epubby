@@ -21,10 +21,11 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import moe.kanon.epubby.Book
 import moe.kanon.epubby.BookVersion
+import moe.kanon.epubby.NewFeature
+import moe.kanon.epubby.internal.Namespaces
 import moe.kanon.epubby.structs.Direction
 import moe.kanon.epubby.structs.DublinCore
 import moe.kanon.epubby.structs.Identifier
-import moe.kanon.epubby.utils.internal.Namespaces
 import moe.kanon.kommons.requireThat
 import org.jdom2.Element
 import org.jdom2.Namespace
@@ -35,6 +36,7 @@ import java.util.Locale
  * Represents the [collection](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#sec-pkg-collections)
  * element in the [package-document][PackageDocument].
  */
+@NewFeature(since = "3.0")
 class Collection private constructor(
     val book: Book,
     val role: String,
@@ -45,10 +47,6 @@ class Collection private constructor(
     private val _children: MutableList<Collection>,
     private val _links: MutableList<Link>
 ) {
-    val children: ImmutableList<Collection> get() = _children.toImmutableList()
-
-    val links: ImmutableList<Link> get() = _links.toImmutableList()
-
     init {
         requireThat(book.version > BookVersion.EPUB_2_0) { "expected version of 'book' to be 3.0 or greater, was ${book.version}" }
     }

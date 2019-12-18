@@ -22,14 +22,15 @@ import moe.kanon.epubby.packages.Metadata
 import moe.kanon.epubby.packages.Spine
 import moe.kanon.epubby.structs.prefixes.PackagePrefix
 import moe.kanon.epubby.structs.prefixes.Prefix
+import moe.kanon.epubby.structs.prefixes.Prefixes
 import moe.kanon.epubby.structs.props.vocabs.ManifestVocabulary
 import moe.kanon.epubby.structs.props.vocabs.MetadataLinkRelVocabulary
 import moe.kanon.epubby.structs.props.vocabs.MetadataLinkVocabulary
 import moe.kanon.epubby.structs.props.vocabs.MetadataMetaVocabulary
 import moe.kanon.epubby.structs.props.vocabs.SpineVocabulary
-import moe.kanon.epubby.structs.props.vocabs.VocabularyMode
+import moe.kanon.epubby.structs.props.vocabs.VocabularyParseMode
+import moe.kanon.kommons.collections.getOrThrow
 import java.net.URI
-import java.net.URL
 import kotlin.reflect.KClass
 
 /**
@@ -42,6 +43,8 @@ import kotlin.reflect.KClass
  *
  * @see [BasicProperty]
  */
+// this is kept as an interface in case a user wants to create their own vocabulary implementation with an enum in Java
+// as Java does not allow enums to extend abstract classes
 interface Property {
     /**
      * The prefix that this property is prefixed with.
@@ -55,15 +58,11 @@ interface Property {
      */
     val reference: String
 
-    @JvmDefault
-    fun toStringForm(): String = when {
-        prefix.prefix.isBlank() -> reference
-        else -> "${prefix.prefix}:$reference"
-    }
-
     /**
-     * [Processes](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#sec-property-processing)
-     * this property into a [URL] and returns the result.
+     * Returns the result of resolve the [uri][Prefix.uri] of the [prefix] against the [reference] of this property.
+     *
+     * The operation is done in the exact way defined in the [property processing](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#sec-property-processing)
+     * section of the EPUB 3.2 spec.
      */
     @JvmDefault
     fun process(): URI = prefix.uri.resolve(reference)//URL("${prefix.iri}$reference")
@@ -76,20 +75,26 @@ interface Property {
         internal fun parse(
             caller: KClass<*>,
             input: String,
-            mode: VocabularyMode = VocabularyMode.PROPERTY
+            prefixes: Prefixes,
+            mode: VocabularyParseMode = VocabularyParseMode.PROPERTY
         ): Property = when {
             ':' in input -> {
-                val (prefix, reference) = input.split(':')
-                of(PackagePrefix.getByPrefix(prefix), reference)
+                val prefix = input.substringBefore(':').let {
+                    PackagePrefix.getByPrefixOrNull(it) ?: prefixes.getOrThrow(it) { "Unknown prefix '$it'" }
+                }
+                val reference = input.substringAfter(':')
+                of(prefix, reference)
             }
             else -> when (caller) {
+                // meta-inf
+                MetaInfContainer.Link::class -> MetadataLinkRelVocabulary.fromReference(input) as Property
+                // package-documents
                 Manifest::class -> ManifestVocabulary.fromReference(input) as Property
                 Metadata.Link::class -> when (mode) {
-                    VocabularyMode.PROPERTY -> MetadataLinkVocabulary.fromReference(input) as Property
-                    VocabularyMode.RELATION -> MetadataLinkRelVocabulary.fromReference(input) as Property
+                    VocabularyParseMode.PROPERTY -> MetadataLinkVocabulary.fromReference(input) as Property
+                    VocabularyParseMode.RELATION -> MetadataLinkRelVocabulary.fromReference(input) as Property
                 }
                 Metadata.Meta::class -> MetadataMetaVocabulary.fromReference(input) as Property
-                MetaInfContainer.Link::class -> MetadataLinkRelVocabulary.fromReference(input) as Property
                 Spine.ItemReference::class -> SpineVocabulary.fromReference(input) as Property
                 else -> throw IllegalArgumentException("Caller <$caller> does not have any known vocabularies")
             }

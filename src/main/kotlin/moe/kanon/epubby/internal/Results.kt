@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.utils.internal
+package moe.kanon.epubby.internal
 
 import moe.kanon.epubby.EpubbyException
 import moe.kanon.epubby.MalformedBookException

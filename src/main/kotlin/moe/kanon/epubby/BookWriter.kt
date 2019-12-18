@@ -19,9 +19,10 @@ package moe.kanon.epubby
 import kotlinx.collections.immutable.persistentHashSetOf
 import moe.kanon.epubby.BookWriter.Options.DELETE_EMPTY_RESOURCE_DIRECTORIES
 import moe.kanon.epubby.BookWriter.Options.FIX_FILE_HIERARCHY
-import moe.kanon.epubby.utils.internal.logger
-import moe.kanon.epubby.utils.internal.malformed
+import moe.kanon.epubby.internal.logger
+import moe.kanon.epubby.internal.malformed
 import moe.kanon.kommons.checkThat
+import moe.kanon.kommons.collections.enumSetOf
 import moe.kanon.kommons.collections.isEmpty
 import moe.kanon.kommons.io.paths.PathVisitor
 import moe.kanon.kommons.io.paths.copyTo
@@ -40,8 +41,13 @@ import java.nio.file.FileVisitResult
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import java.nio.file.attribute.BasicFileAttributes
+import java.util.EnumSet
 
 class BookWriter @JvmOverloads constructor(
+    private val options: EnumSet<Options> = enumSetOf(
+        DELETE_EMPTY_RESOURCE_DIRECTORIES,
+        FIX_FILE_HIERARCHY
+    )
 ) {
     // TODO: Add a function for writing a book to an output stream maybe?
 

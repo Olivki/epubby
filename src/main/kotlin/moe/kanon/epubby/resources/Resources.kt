@@ -22,14 +22,13 @@ import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toPersistentHashMap
 import moe.kanon.epubby.Book
 import moe.kanon.epubby.EpubbyException
+import moe.kanon.epubby.internal.logger
 import moe.kanon.epubby.packages.Manifest
 import moe.kanon.epubby.readBookCopy
 import moe.kanon.epubby.structs.Identifier
 import moe.kanon.epubby.structs.props.vocabs.ManifestVocabulary
-import moe.kanon.epubby.utils.internal.logger
 import moe.kanon.kommons.collections.asUnmodifiable
 import moe.kanon.kommons.collections.filterValuesIsInstance
-import moe.kanon.kommons.collections.getValueOrThrow
 import moe.kanon.kommons.func.Option
 import moe.kanon.kommons.func.firstOrNone
 import moe.kanon.kommons.func.getValueOrNone

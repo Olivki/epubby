@@ -16,11 +16,11 @@
 
 package moe.kanon.epubby.structs.props.vocabs
 
+import moe.kanon.epubby.internal.findProperty
+import moe.kanon.epubby.internal.findPropertyOrNull
 import moe.kanon.epubby.packages.Metadata
 import moe.kanon.epubby.structs.prefixes.Prefix
 import moe.kanon.epubby.structs.props.Property
-import moe.kanon.epubby.utils.internal.findProperty
-import moe.kanon.epubby.utils.internal.findPropertyOrNull
 
 /**
  * Represents the [metadata link properties vocabulary](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#sec-link-properties).
@@ -45,6 +45,11 @@ enum class MetadataLinkVocabulary(override val reference: String) : Property {
     override val prefix: Prefix = Prefix.forVocabulary("http://idpf.org/epub/vocab/package/link/#")
 
     companion object {
+        /**
+         * The prefix used by this vocabulary.
+         */
+        @JvmField val PREFIX: Prefix = Prefix.forVocabulary("http://idpf.org/epub/vocab/package/link/#")
+
         @JvmStatic
         fun fromReference(reference: String): MetadataLinkVocabulary = findProperty(reference)
 

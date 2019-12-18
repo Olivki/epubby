@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.utils.internal
+@file:JvmName("PropertyUtils")
 
-import org.apache.logging.log4j.kotlin.KotlinLogger
-import org.apache.logging.log4j.kotlin.logger as namedLogger
+package moe.kanon.epubby.structs.props
 
-@get:JvmSynthetic
-internal val logger: KotlinLogger = namedLogger("epubby")
+fun Property.toStringForm(): String = when {
+    prefix.prefix.isBlank() -> reference
+    else -> "${prefix.prefix}:$reference"
+}

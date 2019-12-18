@@ -16,13 +16,13 @@
 
 package moe.kanon.epubby.structs.props.vocabs
 
+import moe.kanon.epubby.internal.findProperty
+import moe.kanon.epubby.internal.findPropertyOrNull
 import moe.kanon.epubby.packages.Collection
 import moe.kanon.epubby.packages.Metadata
 import moe.kanon.epubby.packages.PackageDocument
 import moe.kanon.epubby.structs.prefixes.Prefix
 import moe.kanon.epubby.structs.props.Property
-import moe.kanon.epubby.utils.internal.findProperty
-import moe.kanon.epubby.utils.internal.findPropertyOrNull
 
 /**
  * Represents the [metadata link rel vocabulary](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#sec-link-rel).
@@ -95,15 +95,16 @@ enum class MetadataLinkRelVocabulary(
 
     // TODO: Implement the deprecation tags?
 
-    fun m() {
-        Collection
-    }
-
     private enum class Refines { MUST_BE_PRESENT, MUST_NOT_BE_PRESENT, INDIFFERENT }
 
     override val prefix: Prefix = Prefix.forVocabulary("http://idpf.org/epub/vocab/package/link/#")
 
     companion object {
+        /**
+         * The prefix used by this vocabulary.
+         */
+        @JvmField val PREFIX: Prefix = Prefix.forVocabulary("http://idpf.org/epub/vocab/package/link/#")
+
         @JvmStatic
         fun fromReference(reference: String): MetadataLinkRelVocabulary = findProperty(reference)
 

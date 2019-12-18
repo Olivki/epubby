@@ -22,8 +22,8 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import moe.kanon.epubby.Book
 import moe.kanon.epubby.BookVersion
+import moe.kanon.epubby.internal.Namespaces
 import moe.kanon.epubby.packages.Metadata
-import moe.kanon.epubby.utils.internal.Namespaces
 import org.jdom2.Attribute
 import org.jdom2.Element
 import org.jdom2.Namespace

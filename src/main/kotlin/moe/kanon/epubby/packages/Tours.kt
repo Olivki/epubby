@@ -18,11 +18,11 @@ package moe.kanon.epubby.packages
 
 import moe.kanon.epubby.Book
 import moe.kanon.epubby.DeprecatedFeature
+import moe.kanon.epubby.internal.Namespaces
+import moe.kanon.epubby.internal.logger
+import moe.kanon.epubby.internal.malformed
 import moe.kanon.epubby.structs.Identifier
 import moe.kanon.epubby.utils.attr
-import moe.kanon.epubby.utils.internal.Namespaces
-import moe.kanon.epubby.utils.internal.logger
-import moe.kanon.epubby.utils.internal.malformed
 import moe.kanon.kommons.collections.asUnmodifiable
 import org.jdom2.Element
 import org.jdom2.Namespace

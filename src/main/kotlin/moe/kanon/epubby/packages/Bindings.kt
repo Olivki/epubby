@@ -16,15 +16,14 @@
 
 package moe.kanon.epubby.packages
 
-import kotlinx.collections.immutable.ImmutableList
-import kotlinx.collections.immutable.toImmutableList
 import moe.kanon.epubby.Book
 import moe.kanon.epubby.BookVersion
 import moe.kanon.epubby.DeprecatedFeature
+import moe.kanon.epubby.NewFeature
+import moe.kanon.epubby.internal.Namespaces
+import moe.kanon.epubby.internal.logger
 import moe.kanon.epubby.structs.Identifier
 import moe.kanon.epubby.utils.attr
-import moe.kanon.epubby.utils.internal.Namespaces
-import moe.kanon.epubby.utils.internal.logger
 import moe.kanon.kommons.requireThat
 import org.jdom2.Element
 import org.jdom2.Namespace
@@ -40,10 +39,9 @@ import com.google.common.net.MediaType as MediaTypeModel
  * Note that as the `bindings` element was introduced in 3.0 and then deprecated in 3.2 this means that the only
  * version that this feature is *actually* supported for is 3.0, as the usage of 3.1 is officially discouraged.
  */
+@NewFeature(since = "3.0")
 @DeprecatedFeature(since = "3.2")
-class Bindings private constructor(val book: Book, private val _mediaTypes: MutableList<MediaType>) {
-    val mediaTypes: ImmutableList<MediaType> get() = _mediaTypes.toImmutableList()
-
+class Bindings private constructor(val book: Book, val mediaTypes: MutableList<MediaType>) {
     // TODO: Maybe just completely disallow the user to create a bindings instance if the version is not 3.0?
     init {
         requireThat(book.version > BookVersion.EPUB_2_0) { "expected version of 'book' to be 3.0 or greater, was ${book.version}" }
@@ -55,7 +53,7 @@ class Bindings private constructor(val book: Book, private val _mediaTypes: Muta
     // -- INTERNAL -- \\
     @JvmSynthetic
     internal fun toElement(namespace: Namespace = Namespaces.OPF): Element = Element("bindings", namespace).apply {
-        _mediaTypes.forEach { addContent(it.toElement()) }
+        mediaTypes.forEach { addContent(it.toElement()) }
     }
 
     /**
@@ -69,7 +67,7 @@ class Bindings private constructor(val book: Book, private val _mediaTypes: Muta
         }
     }
 
-    override fun toString(): String = "Bindings(mediaTypes=$_mediaTypes)"
+    override fun toString(): String = "Bindings(mediaTypes=$mediaTypes)"
 
     internal companion object {
         @JvmSynthetic

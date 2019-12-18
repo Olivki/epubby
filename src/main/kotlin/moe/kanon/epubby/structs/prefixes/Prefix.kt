@@ -26,20 +26,15 @@ import java.net.URISyntaxException
  */
 interface Prefix {
     /**
-     * The shorthand name used to refer to the underlying [uri] when [processing][Property.process] a property.
+     * The shorthand name used to refer to the underlying [uri] when [processing][Property.process] a property that
+     * uses `this` prefix.
      */
     val prefix: String
 
     /**
-     * The [IRI] that this prefix maps to.
+     * The [URI] that this prefix maps to.
      */
     val uri: URI
-
-    @JvmDefault
-    fun toStringForm(): String = when {
-        prefix.isBlank() -> uri.toString()
-        else -> "$prefix: $uri"
-    }
 
     companion object {
         /**
@@ -50,7 +45,7 @@ interface Prefix {
         @JvmStatic
         fun of(prefix: String, uri: URI): Prefix {
             requireThat(prefix.isNotBlank()) { "expected 'prefix' to not be blank" }
-            requireThat(prefix != "_") { "'_' is not an allowed prefix name" }
+            requireThat(prefix != "_") { "'_' is a reserved prefix name and can therefore not be used" }
             return BasicPrefix(prefix, uri)
         }
 
@@ -58,6 +53,7 @@ interface Prefix {
          * TODO
          *
          * @throws [IllegalArgumentException] if [prefix] is [blank][String.isBlank] or equal to `"_"`
+         * @throws [URISyntaxException] if [uri] can not be parsed into a valid [URI]
          */
         @JvmStatic
         @Throws(URISyntaxException::class)
