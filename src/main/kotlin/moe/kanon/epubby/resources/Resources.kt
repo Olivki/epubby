@@ -24,14 +24,14 @@ import moe.kanon.epubby.Book
 import moe.kanon.epubby.EpubbyException
 import moe.kanon.epubby.internal.logger
 import moe.kanon.epubby.packages.Manifest
-import moe.kanon.epubby.readBookCopy
 import moe.kanon.epubby.structs.Identifier
 import moe.kanon.epubby.structs.props.vocabs.ManifestVocabulary
 import moe.kanon.kommons.collections.asUnmodifiable
 import moe.kanon.kommons.collections.filterValuesIsInstance
+import moe.kanon.kommons.collections.getOrThrow
 import moe.kanon.kommons.func.Option
 import moe.kanon.kommons.func.firstOrNone
-import moe.kanon.kommons.func.getValueOrNone
+import moe.kanon.kommons.func.getOrNone
 import moe.kanon.kommons.io.paths.delete
 import moe.kanon.kommons.io.paths.exists
 import moe.kanon.kommons.io.paths.getOrCreateDirectory
@@ -39,6 +39,7 @@ import moe.kanon.kommons.io.paths.moveTo
 import moe.kanon.kommons.io.paths.name
 import moe.kanon.kommons.requireThat
 import java.io.IOException
+import java.net.URI
 import java.nio.file.CopyOption
 import java.nio.file.Path
 
@@ -49,14 +50,6 @@ class Resources internal constructor(val book: Book) : Iterable<Resource> {
      * Returns a map of all the resources in the [book], mapped like `identifier::resource`.
      */
     val entries: ImmutableMap<Identifier, Resource> get() = resources.toPersistentHashMap()
-
-    /**
-     * Returns a map of all the [ncx-resources][NcxResource] that the book has, mapped like `identifier::resource`.
-     *
-     * A well-formed EPUB file should *at most* contain `1` `ncx-resource`.
-     */
-    val ncxResources: ImmutableMap<Identifier, NcxResource>
-        get() = resources.filterValuesIsInstance<Identifier, NcxResource>().toPersistentHashMap()
 
     /**
      * Returns a map of all the [page-resources][PageResource] that the book has, mapped like `identifier::resource`.
@@ -108,8 +101,14 @@ class Resources internal constructor(val book: Book) : Iterable<Resource> {
     val miscResources: ImmutableMap<Identifier, MiscResource>
         get() = resources.filterValuesIsInstance<Identifier, MiscResource>().toPersistentHashMap()
 
+    /**
+     * Returns the [ncx-resource][NcxResource] that belongs to the [book].
+     */
+    val ncxResource: NcxResource get() = resources.values.filterIsInstance<NcxResource>().first()
+
     fun <R : Resource> addResource(resource: R): R {
         // TODO: Is this too extreme?
+        requireThat(resource !is NcxResource) { "there can only be one ncx-resource per book" }
         requireThat(resource.identifier !in resources) { "there already exists a resource with the identifier '${resource.identifier}'" }
         resources[resource.identifier] = resource
         if (!book.manifest.hasItemFor(resource)) {
@@ -167,9 +166,9 @@ class Resources internal constructor(val book: Book) : Iterable<Resource> {
     }
 
     fun getResource(identifier: Identifier): Resource =
-        resources.getValueOrThrow(identifier) { "No resource found with the identifier '$identifier'" }
+        resources.getOrThrow(identifier) { "No resource found with the identifier '$identifier'" }
 
-    fun getResourceOrNone(identifier: Identifier): Option<Resource> = resources.getValueOrNone(identifier)
+    fun getResourceOrNone(identifier: Identifier): Option<Resource> = resources.getOrNone(identifier)
 
     fun getResourceOrNull(identifier: Identifier): Resource? = resources[identifier]
 
@@ -179,6 +178,14 @@ class Resources internal constructor(val book: Book) : Iterable<Resource> {
     fun getResourceByFileOrNone(file: Path): Option<Resource> = resources.values.firstOrNone { it.file == file }
 
     fun getResourceByFileOrNull(file: Path): Resource? = resources.values.firstOrNull { it.file == file }
+
+    fun getResourceByUri(uri: URI): Resource =
+        getResourceByUriOrNull(uri) ?: throw NoSuchElementException("No resource found with the uri '$uri'")
+
+    fun getResourceByUriOrNone(uri: URI): Option<Resource> =
+        resources.values.firstOrNone { it.file == book.getPath(uri) }
+
+    fun getResourceByUriOrNull(uri: URI): Resource? = resources.values.firstOrNull { it.file == book.getPath(uri) }
 
     /**
      * Returns `true` if there exists a resource with the given [identifier], `false` otherwise.

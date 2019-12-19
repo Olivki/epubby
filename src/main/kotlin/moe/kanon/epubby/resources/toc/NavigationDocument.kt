@@ -18,9 +18,11 @@ package moe.kanon.epubby.resources.toc
 
 import moe.kanon.epubby.Book
 import moe.kanon.epubby.BookVersion
+import moe.kanon.epubby.internal.logger
 import moe.kanon.epubby.utils.parseHtmlFile
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
+import java.nio.file.FileSystem
 import java.nio.file.Path
 
 /**
@@ -29,13 +31,20 @@ import java.nio.file.Path
  */
 internal class NavigationDocument private constructor(
     val book: Book,
+    val file: Path,
     val document: Document,
     val tocNav: Navigation,
     val pageListNav: Navigation?,
     val landmarksNav: Navigation?
 ) {
-    // Note that there are no restrictions on the attributes allowed on these elements.
+    @JvmSynthetic
+    internal fun writeToFile(fileSystem: FileSystem) {
+        val target = fileSystem.getPath(file.toString())
+        logger.debug { "Writing navigation-document to file '$target'.." }
+        TODO()
+    }
 
+    // Note that there are no restrictions on the attributes allowed on these elements.
     data class Navigation(val title: String?, val orderedList: OrderedList, val type: String)
 
     data class OrderedList(val entryList: EntryList)

@@ -30,14 +30,17 @@ import moe.kanon.epubby.structs.Direction
 import moe.kanon.epubby.structs.DublinCore
 import moe.kanon.epubby.structs.Identifier
 import moe.kanon.epubby.structs.prefixes.PackagePrefix
+import moe.kanon.epubby.structs.prefixes.Prefixes
 import moe.kanon.epubby.structs.props.Properties
 import moe.kanon.epubby.structs.props.Property
 import moe.kanon.epubby.structs.props.Relationship
+import moe.kanon.epubby.structs.props.toStringForm
 import moe.kanon.epubby.structs.props.vocabs.VocabularyParseMode
 import moe.kanon.epubby.utils.attr
 import moe.kanon.epubby.utils.toCompactString
 import moe.kanon.kommons.checkThat
 import org.jdom2.Attribute
+import org.jdom2.Comment
 import org.jdom2.Element
 import org.jdom2.Namespace
 import java.net.URI
@@ -93,7 +96,7 @@ class Metadata private constructor(
     }
 
     /**
-     * Attempts to remove the *first* [identifier][DublinCore.Identifier] that has [value][DublinCore.Identifier.value]
+     * Attempts to remove the *first* [identifier][DublinCore.Identifier] that has [value][DublinCore.Identifier.content]
      * that matches the given [value], returning `true` if one was found, or `false` if none was found.
      *
      * @throws [IllegalStateException] If [identifiers] only contains *one* element.
@@ -105,7 +108,7 @@ class Metadata private constructor(
         // there needs to always be AT LEAST one identifier element, so we can't allow any removal operations if there's
         // only one identifier element available
         checkThat(_identifiers.size > 1, "(identifiers.size <= 1)")
-        return _identifiers.find { it.value == value }?.let { _identifiers.remove(it) } ?: false
+        return _identifiers.find { it.content == value }?.let { _identifiers.remove(it) } ?: false
     }
 
     /**
@@ -242,6 +245,10 @@ class Metadata private constructor(
         dublinCoreElements += dublinCore
     }
 
+    // TODO: add more things like this
+    val authors: ImmutableList<DublinCore.Creator>
+        get() = dublinCoreElements.filterIsInstance<DublinCore.Creator>().toImmutableList()
+
     // -- META -- \\
     fun addMeta(meta: Meta) {
         metaElements += meta
@@ -282,7 +289,7 @@ class Metadata private constructor(
                 .firstOrNull { it.hasAttribute("event", "modification") }
 
             if (dublinCore != null) {
-                dublinCore.value = currentDateTime
+                dublinCore.content = currentDateTime
             } else {
                 addDublinCore(DublinCore.Date(currentDateTime).addAttribute("event", "modification"))
             }
@@ -293,7 +300,7 @@ class Metadata private constructor(
         book.version > BookVersion.EPUB_2_0 -> TODO()
         else -> dublinCoreElements
             .filterIsInstance<DublinCore.Date>()
-            .firstOrNull { it.hasAttribute("event", "modification") }?.value
+            .firstOrNull { it.hasAttribute("event", "modification") }?.content
     }
 
     // -- INTERNAL -- \\
@@ -309,7 +316,11 @@ class Metadata private constructor(
         _titles.forEach { addContent(it.toElement(book)) }
         _languages.forEach { addContent(it.toElement(book)) }
         dublinCoreElements.forEach { addContent(it.toElement(book)) }
-        metaElements.forEach { addContent(it.toElement()) }
+        opf3MetaElements.forEach { addContent(it.toElement()) }
+        opf2MetaElements.also { opf2Meta ->
+            if (opf2Meta.isNotEmpty()) addContent(Comment("LEGACY META ELEMENTS"))
+            opf2Meta.forEach { addContent(it.toElement()) }
+        }
         links.forEach { addContent(it.toElement()) }
     }
 
@@ -324,45 +335,6 @@ class Metadata private constructor(
     sealed class Meta {
         @JvmSynthetic
         internal abstract fun toElement(namespace: Namespace = Namespaces.OPF): Element
-
-        /**
-         * Represents the [meta](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#elemdef-meta)
-         * introduced in EPUB 3.0.
-         *
-         * @property [value] The actual value that this metadata carries.
-         * @property [property] A string representing a [property data type](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#sec-property-datatype).
-         * @property [identifier] TODO
-         * @property [direction] TODO
-         * @property [refines] Identifies the expression or resource augmented that is being augmented by this `meta`
-         * element.
-         *
-         * This must be a relative [IRI](https://tools.ietf.org/html/rfc3987) referencing the resource or element that is
-         * being augmented.
-         * @property [scheme] Identifies the system or scheme that the element's [value] is drawn from.
-         * @property [language] TODO
-         */
-        // TODO: Change 'refines' from a String? to a DublinCore reference? as the refines part actually refers to the
-        //       id of a dublin-core element
-        data class OPF3 internal constructor(
-            var value: String,
-            var property: Property,
-            var identifier: Identifier? = null,
-            var direction: Direction? = null,
-            var refines: String? = null,
-            var scheme: String? = null,
-            var language: Locale? = null
-        ) : Meta() {
-            @JvmSynthetic
-            override fun toElement(namespace: Namespace): Element = Element("meta", namespace).apply {
-                setAttribute("property", property.toStringForm())
-                identifier?.also { setAttribute("id", it.value) }
-                direction?.also { setAttribute("dir", it.toString()) }
-                refines?.also { setAttribute("refines", it) }
-                scheme?.also { setAttribute("scheme", it) }
-                language?.also { setAttribute("lang", it.toLanguageTag(), Namespace.XML_NAMESPACE) }
-                text = this@OPF3.value
-            }
-        }
 
         /**
          * Represents the [meta](https://www.w3.org/TR/2011/WD-html5-author-20110809/the-meta-element.html) used in EPUB 2.0.
@@ -458,6 +430,45 @@ class Metadata private constructor(
                 ): OPF2 = OPF2(charset, content, httpEquiv, name, scheme, globalAttributes)
             }
         }
+
+        /**
+         * Represents the [meta](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#elemdef-meta)
+         * introduced in EPUB 3.0.
+         *
+         * @property [value] The actual value that this metadata carries.
+         * @property [property] A string representing a [property data type](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#sec-property-datatype).
+         * @property [identifier] TODO
+         * @property [direction] TODO
+         * @property [refines] Identifies the expression or resource augmented that is being augmented by this `meta`
+         * element.
+         *
+         * This must be a relative [IRI](https://tools.ietf.org/html/rfc3987) referencing the resource or element that is
+         * being augmented.
+         * @property [scheme] Identifies the system or scheme that the element's [value] is drawn from.
+         * @property [language] TODO
+         */
+        // TODO: Change 'refines' from a String? to a DublinCore reference? as the refines part actually refers to the
+        //       id of a dublin-core element
+        data class OPF3 internal constructor(
+            var value: String,
+            var property: Property,
+            var identifier: Identifier? = null,
+            var direction: Direction? = null,
+            var refines: DublinCore<*>? = null,
+            var scheme: String? = null,
+            var language: Locale? = null
+        ) : Meta() {
+            @JvmSynthetic
+            override fun toElement(namespace: Namespace): Element = Element("meta", namespace).apply {
+                setAttribute("property", property.toStringForm())
+                identifier?.also { setAttribute("id", it.value) }
+                direction?.also { setAttribute("dir", it.toString()) }
+                refines?.also { setAttribute("refines", "#${it.identifier!!}") }
+                scheme?.also { setAttribute("scheme", it) }
+                language?.also { setAttribute("lang", it.toLanguageTag(), Namespace.XML_NAMESPACE) }
+                text = this@OPF3.value
+            }
+        }
     }
 
     // TODO: Update the 'href' value of Link instances when updating a resource path
@@ -506,110 +517,67 @@ class Metadata private constructor(
         }
     }
 
-    // TODO: Make the class use this wrapper rather than the direct 'DublinCore' so we can remove useless crud from the
-    //       'dublinCore' class
-    internal sealed class DCWrapper(val book: Book) {
-        abstract val value: DublinCore<*>
-        abstract val identifier: Identifier?
-
-        // for EPUB 2.0 compliance, as the 'meta' element wasn't defined back then, so 'opf:property' attributes were used,
-        // which means we need to catch them and then just throw them back onto the element during 'toElement' invocation
-        @get:JvmSynthetic
-        internal var _attributes: MutableList<Attribute> = ArrayList()
-
-        class Basic(book: Book, override val value: DublinCore<*>, override val identifier: Identifier?) :
-            DCWrapper(book) {
-            override fun toString(): String = "Basic(value=$value, identifier=$identifier)"
-
-            override fun equals(other: Any?): Boolean = when {
-                this === other -> true
-                other !is Basic -> false
-                value != other.value -> false
-                identifier != other.identifier -> false
-                else -> true
-            }
-
-            override fun hashCode(): Int {
-                var result = value.hashCode()
-                result = 31 * result + (identifier?.hashCode() ?: 0)
-                return result
-            }
-        }
-
-        class Localized(
-            book: Book,
-            override val value: DublinCore<*>,
-            override val identifier: Identifier?,
-            val direction: Direction?,
-            val locale: Locale?
-        ) : DCWrapper(book) {
-            override fun toString(): String =
-                "Localized(value=$value, identifier=$identifier, direction=$direction, locale=$locale)"
-
-            override fun equals(other: Any?): Boolean = when {
-                this === other -> true
-                other !is Localized -> false
-                value != other.value -> false
-                identifier != other.identifier -> false
-                direction != other.direction -> false
-                locale != other.locale -> false
-                else -> true
-            }
-
-            override fun hashCode(): Int {
-                var result = value.hashCode()
-                result = 31 * result + (identifier?.hashCode() ?: 0)
-                result = 31 * result + (direction?.hashCode() ?: 0)
-                result = 31 * result + (locale?.hashCode() ?: 0)
-                return result
-            }
-        }
-    }
-
     internal companion object {
         private val DC_NAMES = persistentHashSetOf("identifier", "title", "language")
         private val META_OPF2_ATTRIBUTES = persistentHashSetOf("charset", "content", "http-equiv", "name", "scheme")
         private val META_OPF3_ATTRIBUTES = persistentHashSetOf("property", "id", "dir", "refines", "scheme", "lang")
 
         @JvmSynthetic
-        internal fun fromElement(book: Book, element: Element, file: Path): Metadata = with(element) {
-            val identifiers = getChildren("identifier", Namespaces.DUBLIN_CORE)
-                .mapTo(ArrayList()) { createIdentifier(it) }
-                .ifEmpty { malformed(book.file, file, "missing required 'dc:identifier' element in 'metadata'") }
-            val titles = getChildren("title", Namespaces.DUBLIN_CORE)
-                .mapTo(ArrayList()) { createTitle(it) }
-                .ifEmpty { malformed(book.file, file, "missing required 'dc:title' element in 'metadata'") }
-            val languages = getChildren("language", Namespaces.DUBLIN_CORE)
-                .mapTo(ArrayList()) { createLanguage(it) }
-                .ifEmpty { malformed(book.file, file, "missing required 'dc:language' element in 'metadata'") }
-            val dublinCoreElements: MutableList<DublinCore<*>> = children
-                .asSequence()
-                .filter { it.namespace == Namespaces.DUBLIN_CORE }
-                .filter { it.name !in DC_NAMES && it.text.isNotBlank() && it.attributes.isNotEmpty() }
-                .mapTo(ArrayList()) { createDublinCore(it, book.file, file) }
-            val metaElements = getChildren("meta", namespace)
-                .asSequence()
-                .map { createMetaOrNull(book, it, book.file, file) }
-                // remove any invalid meta-elements, this is because we don't want to raise an exception and stop the
-                // program just because of a faulty meta-element
-                .filterNotNullTo(ArrayList())
-            val links = getChildren("link", namespace).mapTo(ArrayList()) { createLink(it, book.file, file) }
-            return@with Metadata(book, identifiers, titles, languages, dublinCoreElements, metaElements, links).also {
-                logger.trace { "Constructed metadata instance <$it> from file '$file'" }
+        internal fun fromElement(book: Book, element: Element, file: Path, prefixes: Prefixes): Metadata =
+            with(element) {
+                val identifiers = getChildren("identifier", Namespaces.DUBLIN_CORE)
+                    .mapTo(ArrayList()) { createIdentifier(it) }
+                    .ifEmpty { malformed(book.file, file, "missing required 'dc:identifier' element in 'metadata'") }
+                val titles = getChildren("title", Namespaces.DUBLIN_CORE)
+                    .mapTo(ArrayList()) { createTitle(it) }
+                    .ifEmpty { malformed(book.file, file, "missing required 'dc:title' element in 'metadata'") }
+                val languages = getChildren("language", Namespaces.DUBLIN_CORE)
+                    .mapTo(ArrayList()) { createLanguage(it) }
+                    .ifEmpty { malformed(book.file, file, "missing required 'dc:language' element in 'metadata'") }
+                val dublinCoreElements: MutableList<DublinCore<*>> = children
+                    .asSequence()
+                    .filter { it.namespace == Namespaces.DUBLIN_CORE }
+                    .filter { it.name !in DC_NAMES && it.text.isNotBlank() && it.attributes.isNotEmpty() }
+                    .mapTo(ArrayList()) { createDublinCore(it, book.file, file) }
+                val metaElements = getChildren("meta", namespace)
+                    .asSequence()
+                    .map { createMetaOrNull(book, it, book.file, file, prefixes, dublinCoreElements) }
+                    // remove any invalid meta-elements, this is because we don't want to raise an exception and stop
+                    // the program just because of a faulty meta-element
+                    .filterNotNullTo(ArrayList())
+                val links = getChildren("link", namespace)
+                    .mapTo(ArrayList()) { createLink(it, book.file, file, prefixes) }
+                return@with Metadata(
+                    book,
+                    identifiers,
+                    titles,
+                    languages,
+                    dublinCoreElements,
+                    metaElements,
+                    links
+                ).also {
+                    logger.trace { "Constructed metadata instance <$it> from file '$file'" }
+                }
             }
-        }
 
         private fun Element.hasMeta2Attributes(): Boolean = this.attributes.any { it.name in META_OPF2_ATTRIBUTES }
 
         private fun Element.hasNoMeta3Attributes(): Boolean = this.attributes.none { it.name in META_OPF3_ATTRIBUTES }
 
-        private fun createMetaOrNull(book: Book, element: Element, container: Path, current: Path): Meta? = when {
+        private fun createMetaOrNull(
+            book: Book,
+            element: Element,
+            container: Path,
+            current: Path,
+            prefixes: Prefixes,
+            dublinCoreElements: List<DublinCore<*>>
+        ): Meta? = when {
             book.version > BookVersion.EPUB_2_0 -> when {
                 element.hasMeta2Attributes() && element.hasNoMeta3Attributes() -> {
                     logger.debug { "Encountered a legacy 'meta' element: ${element.toCompactString()}" }
                     createOPF2MetaElement(element)
                 }
-                else -> createOPF3MetaElement(element, container, current)
+                else -> createOPF3MetaElement(element, container, current, prefixes, dublinCoreElements)
             }
             else -> createOPF2MetaElement(element)
         }
@@ -617,7 +585,13 @@ class Metadata private constructor(
 
         // TODO: As I figured out that the "faulty" element we encountered was just a legacy 'meta' element, we can
         //       probably just have this fail loudly instead?
-        private fun createOPF3MetaElement(element: Element, container: Path, current: Path): Meta.OPF3? {
+        private fun createOPF3MetaElement(
+            element: Element,
+            container: Path,
+            current: Path,
+            prefixes: Prefixes,
+            dublinCoreElements: List<DublinCore<*>>
+        ): Meta.OPF3? {
             fun faultyElement(reason: String): Meta.OPF3? {
                 logger.warn { "Discarding a faulty 'meta' element: [${element.toCompactString()}]: $reason." }
                 return null
@@ -634,12 +608,19 @@ class Metadata private constructor(
                 // it's not a valid 'meta' element
                 element.textNormalize.isBlank() -> faultyElement("value/text is blank")
                 else -> {
-                    val value = element.text
+                    val value = element.textNormalize
                     val property =
-                        element.attr("property", container, current).let { Property.parse(Meta::class, it) }
-                    val identifier = element.getAttributeValue("id")?.let { Identifier.of(it) }
+                        element.attr("property", container, current).let { Property.parse(Meta::class, it, prefixes) }
+                    val identifier = element.getAttributeValue("id")?.let(Identifier.Companion::of)
                     val direction = element.getAttributeValue("dir")?.let(Direction.Companion::of)
-                    val refines = element.getAttributeValue("refines")
+                    val refines = element.getAttributeValue("refines")?.let { rawId ->
+                        val id = Identifier.of(rawId.substringAfter('#'))
+                        dublinCoreElements.find { it.identifier == id } ?: malformed(
+                            container,
+                            current,
+                            "could not find a dublin-core element with the id '$id' to refine"
+                        )
+                    }
                     val scheme = element.getAttributeValue("scheme")
                     val language =
                         element.getAttributeValue("lang", Namespace.XML_NAMESPACE)?.let(Locale::forLanguageTag)
@@ -739,19 +720,21 @@ class Metadata private constructor(
             }
         }
 
-        private fun createLink(element: Element, container: Path, current: Path): Link = with(element) {
-            val href = URI(attr("href", container, current))
-            val relation =
-                attr("rel", container, current).let { Properties.parse(Link::class, it, VocabularyParseMode.RELATION) }
-            val mediaType = getAttributeValue("media-type")?.let(MediaType::parse)
-            val identifier = getAttributeValue("id")?.let { Identifier.of(it) }
-            val properties = getAttributeValue("properties")?.let {
-                Properties.parse(Link::class, it)
-            } ?: Properties.empty()
-            val refines = getAttributeValue("refines")
-            return@with Link(href, relation, mediaType, identifier, properties, refines).also {
-                logger.trace { "Constructed metadata link instance <$it>" }
+        private fun createLink(element: Element, container: Path, current: Path, prefixes: Prefixes): Link =
+            with(element) {
+                val href = URI(attr("href", container, current))
+                val relation = attr("rel", container, current).let {
+                    Properties.parse(Link::class, it, prefixes, VocabularyParseMode.RELATION)
+                }
+                val mediaType = getAttributeValue("media-type")?.let(MediaType::parse)
+                val identifier = getAttributeValue("id")?.let { Identifier.of(it) }
+                val properties = getAttributeValue("properties")?.let {
+                    Properties.parse(Link::class, it, prefixes)
+                } ?: Properties.empty()
+                val refines = getAttributeValue("refines")
+                return@with Link(href, relation, mediaType, identifier, properties, refines).also {
+                    logger.trace { "Constructed metadata link instance <$it>" }
+                }
             }
-        }
     }
 }

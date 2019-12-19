@@ -24,6 +24,10 @@ import moe.kanon.epubby.Book
 import moe.kanon.epubby.BookVersion
 import moe.kanon.epubby.internal.Namespaces
 import moe.kanon.epubby.packages.Metadata
+import moe.kanon.epubby.packages.OPF3Meta
+import moe.kanon.epubby.structs.props.Property
+import moe.kanon.kommons.checkThat
+import moe.kanon.kommons.requireThat
 import org.jdom2.Attribute
 import org.jdom2.Element
 import org.jdom2.Namespace
@@ -50,7 +54,7 @@ sealed class DublinCore<T : Any>(val label: String, val isLocaleDependant: Boole
     /**
      * The value of `this` dublin-core element.
      */
-    abstract var value: T
+    abstract var content: T
 
     /**
      * The direction in which the contents should be read in.
@@ -89,7 +93,7 @@ sealed class DublinCore<T : Any>(val label: String, val isLocaleDependant: Boole
      * @see [removeAttributes]
      */
     val attributes: ImmutableList<Attribute>
-        get() = _attributes.toImmutableList()
+        get() = _attributes.map { it.clone() }.toImmutableList()
 
     /**
      * Creates and adds a new `opf:property` attribute based on the given [name] and [value] to `this` dublin-core
@@ -132,25 +136,36 @@ sealed class DublinCore<T : Any>(val label: String, val isLocaleDependant: Boole
      */
     fun hasAttribute(name: String): Boolean = _attributes.any { it.name == name }
 
+    // TODO: Documentation
+    @JvmOverloads
+    fun refine(
+        book: Book,
+        value: String,
+        property: Property,
+        identifier: EpubbyIdentifier? = null,
+        scheme: String? = null,
+        language: Locale? = null,
+        direction: Direction? = null
+    ): Metadata.Meta.OPF3 {
+        requireThat(book.version >= BookVersion.EPUB_3_0) { "refining is only available in EPUB 3.0 and up" }
+        checkThat(this.identifier != null) { "can't refine a dublin-core element without an identifier" }
+        if (this !in book.metadata.dublinCoreElements) book.metadata.addDublinCore(this)
+        return OPF3Meta(value, property, identifier, direction, this, scheme, language).also {
+            book.metadata.addMeta(it)
+        }
+    }
+
     /**
-     * Returns a `String` version of the [value] of `this` dublin-core metadata element.
+     * Returns a `String` version of the [content] of `this` dublin-core metadata element.
      */
     protected abstract fun stringify(): String
-
-    override fun toString(): String = buildString {
-        append("DublinCore.$label(value='$value'")
-        identifier?.also { append(", identifier='$identifier'") }
-        direction?.also { append(", direction=$direction") }
-        language?.also { append(", language='$language'") }
-        append(")")
-    }
 
     override fun equals(other: Any?): Boolean = when {
         this === other -> true
         other !is DublinCore<*> -> false
         label != other.label -> false
         identifier != other.identifier -> false
-        value != other.value -> false
+        content != other.content -> false
         direction != other.direction -> false
         language != other.language -> false
         else -> true
@@ -159,10 +174,18 @@ sealed class DublinCore<T : Any>(val label: String, val isLocaleDependant: Boole
     override fun hashCode(): Int {
         var result = label.hashCode()
         result = 31 * result + (identifier?.hashCode() ?: 0)
-        result = 31 * result + value.hashCode()
+        result = 31 * result + content.hashCode()
         result = 31 * result + (direction?.hashCode() ?: 0)
         result = 31 * result + (language?.hashCode() ?: 0)
         return result
+    }
+
+    override fun toString(): String = buildString {
+        append("DublinCore.$label(value='$content'")
+        identifier?.also { append(", identifier='$identifier'") }
+        direction?.also { append(", direction=$direction") }
+        language?.also { append(", language='$language'") }
+        append(")")
     }
 
     // -- INTERNAL -- \\
@@ -187,7 +210,7 @@ sealed class DublinCore<T : Any>(val label: String, val isLocaleDependant: Boole
      * `Date` may be used to express temporal information at any level of granularity.
      */
     class Date internal constructor(
-        override var value: String,
+        override var content: String,
         override var identifier: EpubbyIdentifier? = null
     ) : DublinCore<String>("Date", false) {
         @JvmOverloads
@@ -196,7 +219,7 @@ sealed class DublinCore<T : Any>(val label: String, val isLocaleDependant: Boole
             identifier: EpubbyIdentifier? = null
         ) : this(value.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME), identifier)
 
-        override fun stringify(): String = value
+        override fun stringify(): String = content
     }
 
     /**
@@ -206,10 +229,10 @@ sealed class DublinCore<T : Any>(val label: String, val isLocaleDependant: Boole
      * such as the list of [Internet Media Types](http://www.iana.org/assignments/media-types/).
      */
     class Format @JvmOverloads constructor(
-        override var value: String,
+        override var content: String,
         override var identifier: EpubbyIdentifier? = null
     ) : DublinCore<String>("Format", false) {
-        override fun stringify(): String = value
+        override fun stringify(): String = content
     }
 
     /**
@@ -219,10 +242,10 @@ sealed class DublinCore<T : Any>(val label: String, val isLocaleDependant: Boole
      * system.
      */
     class Identifier @JvmOverloads constructor(
-        override var value: String,
+        override var content: String,
         override var identifier: EpubbyIdentifier? = null
     ) : DublinCore<String>("Identifier", false) {
-        override fun stringify(): String = value
+        override fun stringify(): String = content
     }
 
     /**
@@ -231,10 +254,10 @@ sealed class DublinCore<T : Any>(val label: String, val isLocaleDependant: Boole
      * Recommended best practice is to use a controlled vocabulary such as [RFC 4646](http://www.ietf.org/rfc/rfc4646.txt).
      */
     class Language @JvmOverloads constructor(
-        override var value: Locale,
+        override var content: Locale,
         override var identifier: EpubbyIdentifier? = null
     ) : DublinCore<Locale>("Language", false) {
-        override fun stringify(): String = value.toLanguageTag()
+        override fun stringify(): String = content.toLanguageTag()
     }
 
     /**
@@ -244,10 +267,10 @@ sealed class DublinCore<T : Any>(val label: String, val isLocaleDependant: Boole
      * is to identify the related resource by means of a string conforming to a formal identification system.
      */
     class Source @JvmOverloads constructor(
-        override var value: String,
+        override var content: String,
         override var identifier: EpubbyIdentifier? = null
     ) : DublinCore<String>("Source", false) {
-        override fun stringify(): String = value
+        override fun stringify(): String = content
     }
 
     /**
@@ -257,10 +280,10 @@ sealed class DublinCore<T : Any>(val label: String, val isLocaleDependant: Boole
      * To describe the file format, physical medium, or dimensions of the resource, use the [Format] element.
      */
     class Type @JvmOverloads constructor(
-        override var value: String,
+        override var content: String,
         override var identifier: EpubbyIdentifier? = null
     ) : DublinCore<String>("Type", false) {
-        override fun stringify(): String = value
+        override fun stringify(): String = content
     }
 
     /**
@@ -270,12 +293,12 @@ sealed class DublinCore<T : Any>(val label: String, val isLocaleDependant: Boole
      * `Contributor` should be used to indicate the entity.
      */
     class Contributor @JvmOverloads constructor(
-        override var value: String,
+        override var content: String,
         override var identifier: EpubbyIdentifier? = null,
         override var direction: Direction? = null,
         override var language: Locale? = null
     ) : DublinCore<String>("Contributor", true) {
-        override fun stringify(): String = value
+        override fun stringify(): String = content
     }
 
     /**
@@ -290,12 +313,12 @@ sealed class DublinCore<T : Any>(val label: String, val isLocaleDependant: Boole
      * coordinates or date ranges.
      */
     class Coverage @JvmOverloads constructor(
-        override var value: String,
+        override var content: String,
         override var identifier: EpubbyIdentifier? = null,
         override var direction: Direction? = null,
         override var language: Locale? = null
     ) : DublinCore<String>("Coverage", true) {
-        override fun stringify(): String = value
+        override fun stringify(): String = content
     }
 
     /**
@@ -308,12 +331,12 @@ sealed class DublinCore<T : Any>(val label: String, val isLocaleDependant: Boole
      * should be used to indicate the entity.
      */
     class Creator @JvmOverloads constructor(
-        override var value: String,
+        override var content: String,
         override var identifier: EpubbyIdentifier? = null,
         override var direction: Direction? = null,
         override var language: Locale? = null
     ) : DublinCore<String>("Creator", true) {
-        override fun stringify(): String = value
+        override fun stringify(): String = content
     }
 
     /**
@@ -323,12 +346,12 @@ sealed class DublinCore<T : Any>(val label: String, val isLocaleDependant: Boole
      * or a free-text account of the resource.
      */
     class Description @JvmOverloads constructor(
-        override var value: String,
+        override var content: String,
         override var identifier: EpubbyIdentifier? = null,
         override var direction: Direction? = null,
         override var language: Locale? = null
     ) : DublinCore<String>("Description", true) {
-        override fun stringify(): String = value
+        override fun stringify(): String = content
     }
 
     /**
@@ -338,12 +361,12 @@ sealed class DublinCore<T : Any>(val label: String, val isLocaleDependant: Boole
      * should be used to indicate the entity.
      */
     class Publisher @JvmOverloads constructor(
-        override var value: String,
+        override var content: String,
         override var identifier: EpubbyIdentifier? = null,
         override var direction: Direction? = null,
         override var language: Locale? = null
     ) : DublinCore<String>("Publisher", true) {
-        override fun stringify(): String = value
+        override fun stringify(): String = content
     }
 
     /**
@@ -353,12 +376,12 @@ sealed class DublinCore<T : Any>(val label: String, val isLocaleDependant: Boole
      * identification system.
      */
     class Relation @JvmOverloads constructor(
-        override var value: String,
+        override var content: String,
         override var identifier: EpubbyIdentifier? = null,
         override var direction: Direction? = null,
         override var language: Locale? = null
     ) : DublinCore<String>("Relation", true) {
-        override fun stringify(): String = value
+        override fun stringify(): String = content
     }
 
     /**
@@ -368,12 +391,12 @@ sealed class DublinCore<T : Any>(val label: String, val isLocaleDependant: Boole
      * including intellectual property rights.
      */
     class Rights @JvmOverloads constructor(
-        override var value: String,
+        override var content: String,
         override var identifier: EpubbyIdentifier? = null,
         override var direction: Direction? = null,
         override var language: Locale? = null
     ) : DublinCore<String>("Rights", true) {
-        override fun stringify(): String = value
+        override fun stringify(): String = content
     }
 
     /**
@@ -383,23 +406,23 @@ sealed class DublinCore<T : Any>(val label: String, val isLocaleDependant: Boole
      * best practice is to use a controlled vocabulary.
      */
     class Subject @JvmOverloads constructor(
-        override var value: String,
+        override var content: String,
         override var identifier: EpubbyIdentifier? = null,
         override var direction: Direction? = null,
         override var language: Locale? = null
     ) : DublinCore<String>("Subject", true) {
-        override fun stringify(): String = value
+        override fun stringify(): String = content
     }
 
     /**
      * A name given to the resource.
      */
     class Title @JvmOverloads constructor(
-        override var value: String,
+        override var content: String,
         override var identifier: EpubbyIdentifier? = null,
         override var direction: Direction? = null,
         override var language: Locale? = null
     ) : DublinCore<String>("Title", true) {
-        override fun stringify(): String = value
+        override fun stringify(): String = content
     }
 }

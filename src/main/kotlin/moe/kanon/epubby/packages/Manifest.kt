@@ -26,11 +26,13 @@ import moe.kanon.epubby.internal.logger
 import moe.kanon.epubby.internal.malformed
 import moe.kanon.epubby.resources.Resource
 import moe.kanon.epubby.structs.Identifier
+import moe.kanon.epubby.structs.prefixes.Prefixes
 import moe.kanon.epubby.structs.props.Properties
 import moe.kanon.epubby.structs.props.vocabs.ManifestVocabulary
 import moe.kanon.epubby.utils.attr
 import moe.kanon.kommons.collections.asUnmodifiable
 import moe.kanon.kommons.collections.filterValuesIsInstance
+import moe.kanon.kommons.collections.getOrThrow
 import org.apache.commons.validator.routines.UrlValidator
 import org.jdom2.Element
 import org.jdom2.Namespace
@@ -89,7 +91,7 @@ class Manifest private constructor(
      * if none is found.
      */
     fun getLocalItem(identifier: Identifier): Item.Local =
-        localItems.getValueOrThrow(identifier) { "No local manifest item found under id <$identifier>" }
+        localItems.getOrThrow(identifier) { "No local manifest item found under id <$identifier>" }
 
     /**
      * Returns the [local item][Item.Local] stored under the given [identifier], or `null` if none is found.
@@ -118,7 +120,7 @@ class Manifest private constructor(
      * if none is found.
      */
     fun getRemoteItem(identifier: Identifier): Item.Remote =
-        remoteItems.getValueOrThrow(identifier) { "No remote manifest item found under id <$identifier>" }
+        remoteItems.getOrThrow(identifier) { "No remote manifest item found under id <$identifier>" }
 
     /**
      * Returns the [remote item][Item.Remote] stored under the given [identifier], or `null` if none is found.
@@ -227,32 +229,39 @@ class Manifest private constructor(
         @JvmField internal val URL_VALIDATOR = UrlValidator()
 
         @JvmSynthetic
-        internal fun fromElement(book: Book, element: Element, file: Path): Manifest = with(element) {
-            val items: MutableMap<Identifier, Item<*>> = getChildren("item", namespace)
-                .asSequence()
-                .map { createItem(it, book, book.file, file) }
-                .onEach { logger.trace { "Constructed manifest item instance <$it>" } }
-                .associateByTo(HashMap()) { it.identifier }
+        internal fun fromElement(book: Book, element: Element, file: Path, prefixes: Prefixes): Manifest =
+            with(element) {
+                val items: MutableMap<Identifier, Item<*>> = getChildren("item", namespace)
+                    .asSequence()
+                    .map { createItem(it, book, book.file, file, prefixes) }
+                    .onEach { logger.trace { "Constructed manifest item instance <$it>" } }
+                    .associateByTo(HashMap()) { it.identifier }
 
-            if (items.isEmpty()) {
-                malformed(book.file, file, "the 'manifest' element needs to contain at least one child")
+                if (items.isEmpty()) {
+                    malformed(book.file, file, "the 'manifest' element needs to contain at least one child")
+                }
+
+                val identifier = getAttributeValue("id")?.let { Identifier.of(it) }
+
+                return@with Manifest(book, identifier, items).also {
+                    logger.trace { "Constructed manifest instance <$it> from file '$file'" }
+                }
             }
 
-            val identifier = getAttributeValue("id")?.let { Identifier.of(it) }
-
-            return@with Manifest(book, identifier, items).also {
-                logger.trace { "Constructed manifest instance <$it> from file '$file'" }
-            }
-        }
-
-        private fun createItem(element: Element, book: Book, container: Path, current: Path): Item<*> = with(element) {
+        private fun createItem(
+            element: Element,
+            book: Book,
+            container: Path,
+            current: Path,
+            prefixes: Prefixes
+        ): Item<*> = with(element) {
             val id = Identifier.fromElement(this, container, current)
             val href = element.attr("href", container, current)
             val fallback = element.getAttributeValue("fallback")?.let(Identifier.Companion::of)
             val mediaType = element.getAttributeValue("media-type")?.let(MediaType::parse)
             val mediaOverlay = element.getAttributeValue("media-overlay")
             val properties = element.getAttributeValue("properties")?.let {
-                Properties.parse(Manifest::class, it)
+                Properties.parse(Manifest::class, it, prefixes)
             } ?: Properties.empty()
 
             /*
@@ -277,14 +286,28 @@ class Manifest private constructor(
                 if (ManifestVocabulary.REMOTE_RESOURCES in properties) {
                     Item.Remote(id, URI.create(href), mediaType, fallback, mediaOverlay, properties)
                 } else {
-                    Item.Local(id, getBookPathFromHref(book, href, current), mediaType, fallback, mediaOverlay, properties)
+                    Item.Local(
+                        id,
+                        getBookPathFromHref(book, href, current),
+                        mediaType,
+                        fallback,
+                        mediaOverlay,
+                        properties
+                    )
                 }
             } else {
                 if (URL_VALIDATOR.isValid(href)) {
                     logger.warn { "Encountered an external resource 'item' that is missing the 'resource-locations' property: $element" }
                     Item.Remote(id, URI.create(href), mediaType, fallback, mediaOverlay, properties)
                 } else {
-                    Item.Local(id, getBookPathFromHref(book, href, current), mediaType, fallback, mediaOverlay, properties)
+                    Item.Local(
+                        id,
+                        getBookPathFromHref(book, href, current),
+                        mediaType,
+                        fallback,
+                        mediaOverlay,
+                        properties
+                    )
                 }
             }
         }

@@ -17,6 +17,7 @@
 package moe.kanon.epubby.packages
 
 import moe.kanon.epubby.Book
+import moe.kanon.epubby.BookReadMode
 import moe.kanon.epubby.BookVersion
 import moe.kanon.epubby.internal.Namespaces
 import moe.kanon.epubby.metainf.MetaInf
@@ -143,7 +144,7 @@ class PackageDocument private constructor(
 
     internal companion object {
         @JvmSynthetic
-        internal fun fromMetaInf(metaInf: MetaInf, fileSystem: FileSystem): PackageDocument {
+        internal fun fromMetaInf(metaInf: MetaInf, fileSystem: FileSystem, mode: BookReadMode): PackageDocument {
             val epub = metaInf.epub
             val container = metaInf.container.packageDocument.path
             parseXmlFile(container) { _, root ->
@@ -156,17 +157,21 @@ class PackageDocument private constructor(
                 val version = root.attr("version", epub, container).let { BookVersion.parse(it) }
                 val book = Book(metaInf, version, epub, fileSystem, fileSystem.getPath("/"))
 
-                val metadata = root.child("metadata", epub, container, namespace).let {
-                    Metadata.fromElement(book, it, container)
-                }
+                // mandatory
                 val manifest = root.child("manifest", epub, container, namespace).let {
-                    Manifest.fromElement(book, it, container)
+                    Manifest.fromElement(book, it, container, prefix)
                 }
                 book.resources.populateFromManifest(manifest)
                 val spine = root.child("spine", epub, container, namespace).let {
-                    Spine.fromElement(book, manifest, it, container)
+                    Spine.fromElement(book, manifest, it, container, prefix)
                 }
                 book.pages.populateFromSpine(spine)
+                // we parse 'metadata' last of the mandatory elements so that we can reference resources
+                val metadata = root.child("metadata", epub, container, namespace).let {
+                    Metadata.fromElement(book, it, container, prefix)
+                }
+
+                // optional
                 val guide = root.getChild("guide", namespace)?.let { Guide.fromElement(book, it, container) }
                 val bindings = root.getChild("bindings", namespace)?.let { Bindings.fromElement(book, it, container) }
                 val collection =

@@ -17,6 +17,7 @@
 package moe.kanon.epubby.metainf
 
 import moe.kanon.epubby.Book
+import moe.kanon.epubby.BookReadMode
 import moe.kanon.epubby.internal.logger
 import moe.kanon.epubby.internal.malformed
 import moe.kanon.kommons.io.paths.exists
@@ -77,14 +78,14 @@ class MetaInf private constructor(
 
     internal companion object {
         @JvmSynthetic
-        internal fun fromDirectory(epub: Path, directory: Path, rootFile: Path): MetaInf {
+        internal fun fromDirectory(epub: Path, directory: Path, rootFile: Path, mode: BookReadMode): MetaInf {
             val containerFile = directory.resolve("container.xml")
 
             if (containerFile.notExists) {
                 malformed(epub, directory, "required 'container.xml' is missing from meta-inf directory")
             }
 
-            val container = MetaInfContainer.fromFile(epub, containerFile, rootFile)
+            val container = MetaInfContainer.fromFile(epub, containerFile, rootFile, mode)
             logger.debug { "Located package-document (OPF) at '${container.packageDocument.path}'" }
             val encryption = null
             val manifest = null

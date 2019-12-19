@@ -24,6 +24,7 @@ import moe.kanon.epubby.packages.PackageDocument
 import moe.kanon.epubby.packages.Spine
 import moe.kanon.epubby.resources.Resources
 import moe.kanon.epubby.resources.pages.Pages
+import moe.kanon.epubby.resources.toc.TableOfContents
 import java.io.Closeable
 import java.io.IOException
 import java.net.URI
@@ -68,6 +69,9 @@ class Book internal constructor(
     lateinit var packageDocument: PackageDocument
         @JvmSynthetic internal set
 
+    lateinit var tableOfContents: TableOfContents
+        @JvmSynthetic internal set
+
     val resources: Resources = Resources(this)
 
     val pages: Pages = Pages(this)
@@ -88,18 +92,18 @@ class Book internal constructor(
      * Returns the primary title of `this` book.
      */
     var title: String
-        get() = metadata.title.value
+        get() = metadata.title.content
         set(value) {
-            metadata.title.value = value
+            metadata.title.content = value
         }
 
     /**
      * Returns the primary language of `this` book.
      */
     var language: Locale
-        get() = metadata.language.value
+        get() = metadata.language.content
         set(value) {
-            metadata.language.value = value
+            metadata.language.content = value
         }
 
     /*fun getResource(identifier: Identifier): Resource = resources.getResource(identifier)

@@ -28,6 +28,7 @@ import java.net.URI
  * issues. Validation tools will often reject new prefixes until the tools are updated, for example. Authors
  * are strongly encouraged to declare all prefixes they use to avoid such issues.
  */
+// TODO: Add enums for easy creation of properties for things that are tied here?
 enum class PackagePrefix(override val prefix: String, override val uri: URI) : Prefix {
     A11Y("a11y", URI.create("http://www.idpf.org/epub/vocab/package/a11y/#")),
     DC_TERMS("dcterms", URI.create("http://purl.org/dc/terms/")),

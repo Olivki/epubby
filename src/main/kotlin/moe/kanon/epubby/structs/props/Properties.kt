@@ -19,6 +19,7 @@ package moe.kanon.epubby.structs.props
 import moe.kanon.epubby.Book
 import moe.kanon.epubby.internal.Patterns
 import moe.kanon.epubby.packages.PackageDocument
+import moe.kanon.epubby.structs.prefixes.Prefixes
 import moe.kanon.epubby.structs.props.vocabs.VocabularyParseMode
 import moe.kanon.kommons.collections.isNotEmpty
 import moe.kanon.kommons.requireThat
@@ -79,11 +80,12 @@ class Properties private constructor(private val delegate: MutableList<Property>
         internal fun parse(
             caller: KClass<*>,
             input: String,
+            prefixes: Prefixes,
             mode: VocabularyParseMode = VocabularyParseMode.PROPERTY
         ): Properties = input
             .replace(Patterns.EXCESSIVE_WHITESPACE, " ") // TODO: remove?
             .split(' ')
-            .mapTo(ArrayList()) { Property.parse(caller, it, mode) }
+            .mapTo(ArrayList()) { Property.parse(caller, it, prefixes, mode) }
             .let(::Properties)
     }
 }

@@ -80,11 +80,12 @@ class BookWriter @JvmOverloads constructor(
         logger.debug { "Opening file-system for file '$file'.." }
         try {
             FileSystems.newFileSystem(file, null).use {
-                logger.info { "Writing contents of book <$this> to file '$file'.." }
+                logger.info { "Writing contents of book <$book> to file '$file'.." }
                 book.metadata.setLastModifiedDate()
                 book.metaInf.writeToFiles(it)
                 book.packageDocument.writeToFile(it)
                 book.pages.writePagesToFile(it)
+                book.tableOfContents.writeToFile(it)
                 for (setting in options) setting.modifyBook(book, it, it.getPath("/"))
             }
         } catch (e: IOException) {
@@ -171,7 +172,7 @@ class BookWriter @JvmOverloads constructor(
                     if (name !in KNOWN_ROOT_FILES && name != packageRootName) {
                         if (file.isDirectory) {
                             logger.debug { "Encountered unknown directory '$name' in root level of book <$book>, removing all files.." }
-                            // TODO: Clean directory
+                            file.toFile().deleteRecursively()
                         } else {
                             logger.debug { "Encountered unknown file '$name' in root level of book <$book>, removing.." }
                             file.deleteIfExists()

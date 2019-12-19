@@ -25,10 +25,12 @@ import kotlinx.collections.immutable.ImmutableSet
 import kotlinx.collections.immutable.persistentHashSetOf
 import kotlinx.collections.immutable.persistentSetOf
 import moe.kanon.epubby.Book
+import moe.kanon.epubby.BookVersion
 import moe.kanon.epubby.EpubbyException
 import moe.kanon.epubby.internal.logger
 import moe.kanon.epubby.internal.mediaType
 import moe.kanon.epubby.packages.Manifest
+import moe.kanon.epubby.packages.OPF2Meta
 import moe.kanon.epubby.packages.PackageDocument
 import moe.kanon.epubby.packages.Spine
 import moe.kanon.epubby.resources.pages.Page
@@ -517,6 +519,42 @@ class ImageResource internal constructor(override val book: Book, file: Path, id
         }
     }
 
+    /**
+     * Returns `true` if `this` resource represents the `cover-image` of the [book], otherwise `false`.
+     */
+    fun isCoverImage(): Boolean = when {
+        book.version < BookVersion.EPUB_3_0 -> book
+            .metadata
+            .metaElements
+            .asSequence()
+            .filterIsInstance<OPF2Meta>()
+            .filter { it.name == "cover" }
+            .any { it.content == identifier.toString() }
+        book.version >= BookVersion.EPUB_3_0 -> ManifestVocabulary.COVER_IMAGE in properties
+        else -> throw IllegalStateException("Unknown version '${book.version}'")
+    }
+
+    /**
+     * Sets the image that `this` resource represents as the `cover-image` of the [book].
+     */
+    fun setAsCoverImage() {
+        when {
+            book.version < BookVersion.EPUB_3_0 -> {
+                book.metadata.metaElements.removeIf { it is OPF2Meta && it.name == "cover" }
+                book.metadata.addMeta(OPF2Meta.withName("cover", identifier.toString()))
+            }
+            book.version >= BookVersion.EPUB_3_0 -> {
+                for ((_, image) in book.resources.imageResources) {
+                    image.properties.remove(ManifestVocabulary.COVER_IMAGE)
+                }
+
+                properties.add(ManifestVocabulary.COVER_IMAGE)
+            }
+        }
+    }
+
+    // TODO: 'removeAsCoverImage'
+
     override fun toString(): String = "ImageResource(identifier='$identifier', href='$href', book=$book)"
 
     internal companion object {
@@ -562,7 +600,8 @@ class ScriptResource internal constructor(override val book: Book, file: Path, i
     internal companion object {
         @JvmField internal val MEDIA_TYPES: ImmutableSet<MediaType> = persistentHashSetOf(
             MediaType.create("text", "javascript"),
-            MediaType.TEXT_JAVASCRIPT_UTF_8
+            MediaType.TEXT_JAVASCRIPT_UTF_8,
+            MediaType.create("application", "javascript")
         )
     }
 }

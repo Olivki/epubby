@@ -20,6 +20,7 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import moe.kanon.epubby.Book
 import moe.kanon.epubby.BookVersion
+import moe.kanon.epubby.LegacyFeature
 import moe.kanon.epubby.internal.Namespaces
 import moe.kanon.epubby.internal.logger
 import moe.kanon.epubby.internal.malformed
@@ -27,6 +28,7 @@ import moe.kanon.epubby.resources.PageResource
 import moe.kanon.epubby.resources.pages.Page
 import moe.kanon.epubby.structs.Identifier
 import moe.kanon.epubby.structs.PageProgressionDirection
+import moe.kanon.epubby.structs.prefixes.Prefixes
 import moe.kanon.epubby.structs.props.Properties
 import moe.kanon.epubby.utils.attr
 import moe.kanon.epubby.utils.stringify
@@ -64,7 +66,8 @@ class Spine(
      * Note that the `toc` attribute that this relies on is marked as a **LEGACY** feature as of
      * [EPUB 3.0][BookVersion.EPUB_3_0], so there is no guarantee that this will return anything.
      */
-    var tableOfContents: Manifest.Item<*>?
+    @LegacyFeature(since = "3.0")
+    var tableOfContents: Manifest.Item.Local?
         get() = tableOfContentsIdentifier?.let { book.manifest.getLocalItemOrNull(it) }
         set(value) {
             logger.debug { "Setting the spine table-of-contents to $tableOfContents." }
@@ -271,20 +274,32 @@ class Spine(
 
     internal companion object {
         @JvmSynthetic
-        internal fun fromElement(book: Book, manifest: Manifest, element: Element, file: Path): Spine = with(element) {
+        internal fun fromElement(
+            book: Book,
+            manifest: Manifest,
+            element: Element,
+            file: Path,
+            prefixes: Prefixes
+        ): Spine = with(element) {
             val identifier = getAttributeValue("id")?.let { Identifier.of(it) }
             val pageProgressionDirection =
                 getAttributeValue("page-progression-direction")?.let { PageProgressionDirection.of(it) }
             val tocIdentifier = getAttributeValue("toc")?.let { Identifier.of(it) }
             val references = getChildren("itemref", namespace)
-                .mapTo(mutableListOf()) { createReference(manifest, it, book.file, file) }
+                .mapTo(mutableListOf()) { createReference(manifest, it, book.file, file, prefixes) }
                 .ifEmpty { malformed(book.file, file, "The book spine should not be empty") }
             return Spine(book, identifier, pageProgressionDirection, tocIdentifier, references).also {
                 logger.trace { "Constructed spine instance <$it> from file '$file'" }
             }
         }
 
-        private fun createReference(manifest: Manifest, element: Element, epub: Path, container: Path): ItemReference {
+        private fun createReference(
+            manifest: Manifest,
+            element: Element,
+            epub: Path,
+            container: Path,
+            prefixes: Prefixes
+        ): ItemReference {
             val textual = element.stringify(Format.getCompactFormat())
             val idRef = element.attr("idref", epub, container).let { Identifier.of(it) }
             val item = try {
@@ -301,7 +316,7 @@ class Spine(
                 }
             }
             val properties = element.getAttributeValue("properties")?.let {
-                Properties.parse(ItemReference::class, it)
+                Properties.parse(ItemReference::class, it, prefixes)
             } ?: Properties.empty()
             return ItemReference(item, identifier, isLinear, properties).also {
                 logger.trace { "Constructed spine item-ref instance <$it>" }

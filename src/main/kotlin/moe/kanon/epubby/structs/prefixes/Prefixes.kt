@@ -36,16 +36,33 @@ class Prefixes private constructor(private val delegate: MutableMap<String, Pref
     override fun hashCode(): Int = delegate.hashCode()
 
     companion object {
+        @JvmStatic
+        fun empty(): Prefixes = Prefixes(hashMapOf())
+
         // TODO: Document the throws
         @JvmStatic
         fun of(vararg prefixes: Prefix): Prefixes {
+            requireThat(prefixes.isNotEmpty()) { "expected 'prefixes' to not be empty" }
             requireThat(prefixes.none { it.isDefaultVocabularyPrefix() }) { "prefixes are not allowed to map to default vocabularies" }
             requireThat(prefixes.none { it.prefix.isBlank() }) { "prefixes are not allowed to have a blank 'prefix'" }
             return Prefixes(hashMapOf(*prefixes.asIterable().mapToTypedArray { it.prefix to it }))
         }
 
-        @JvmSynthetic
-        internal fun empty(): Prefixes = Prefixes(hashMapOf())
+        @JvmStatic
+        fun copyOf(prefixes: Iterable<Prefix>): Prefixes {
+            requireThat(prefixes.any()) { "expected 'prefixes' to not be empty" }
+            requireThat(prefixes.none { it.isDefaultVocabularyPrefix() }) { "prefixes are not allowed to map to default vocabularies" }
+            requireThat(prefixes.none { it.prefix.isBlank() }) { "prefixes are not allowed to have a blank 'prefix'" }
+            return Prefixes(prefixes.associateByTo(HashMap()) { it.prefix })
+        }
+
+        @JvmStatic
+        fun copyOf(prefixes: Map<String, Prefix>): Prefixes {
+            requireThat(prefixes.isNotEmpty()) { "expected 'prefixes' to not be empty" }
+            requireThat(prefixes.values.none { it.isDefaultVocabularyPrefix() }) { "prefixes are not allowed to map to default vocabularies" }
+            requireThat(prefixes.values.none { it.prefix.isBlank() }) { "prefixes are not allowed to have a blank 'prefix'" }
+            return Prefixes(prefixes.toMap(HashMap()))
+        }
 
         // whitespace = (#x20 = SPACE | #x9 = CHARACTER TABULATION | #xD = CARRIAGE RETURN | #xA = LINE FEED) ;
         @JvmSynthetic

@@ -14,14 +14,16 @@
  * limitations under the License.
  */
 
+@file:JvmName("BookFactory")
+
 package moe.kanon.epubby
 
 import moe.kanon.epubby.internal.logger
 import moe.kanon.epubby.internal.malformed
 import moe.kanon.epubby.metainf.MetaInf
-import moe.kanon.kommons.io.paths.copyTo
-import moe.kanon.kommons.io.paths.createTmpDirectory
-import moe.kanon.kommons.io.paths.deleteIfExists
+import moe.kanon.epubby.packages.PackageDocument
+import moe.kanon.epubby.resources.toc.NcxDocument
+import moe.kanon.epubby.resources.toc.TableOfContents
 import moe.kanon.kommons.io.paths.exists
 import moe.kanon.kommons.io.paths.isDirectory
 import moe.kanon.kommons.io.paths.isRegularFile
@@ -38,13 +40,15 @@ import java.nio.file.Path
  *
  * @param [epubFile] the file to read and parse into a [Book] instance, this needs to be a EPUB file or this function
  * will throw a [MalformedBookException]
+ * @param [mode] the [mode][BookReadMode] to use when parsing the [epubFile] into a [Book] instance
  *
  * @throws [IOException] if an i/o error occurred
  * @throws [EpubbyException] if something went wrong when parsing the [epubFile] file
  */
+@JvmOverloads
 @JvmName("read")
 @Throws(IOException::class, EpubbyException::class)
-fun readBook(epubFile: Path): Book {
+fun readBook(epubFile: Path, mode: BookReadMode = BookReadMode.STRICT): Book {
     logger.info { "Reading file '$epubFile' as an EPUB container.." }
 
     val fileSystem = try {
@@ -58,47 +62,20 @@ fun readBook(epubFile: Path): Book {
         throw e
     }
     val root = fileSystem.getPath("/")
-    val metaInf = MetaInf.fromDirectory(epubFile, root.resolve("META-INF"), root)
+    val metaInf = MetaInf.fromDirectory(epubFile, root.resolve("META-INF"), root, mode)
+    val packageDocument = PackageDocument.fromMetaInf(metaInf, fileSystem, mode)
 
-    return Book(metaInf, epubFile, fileSystem, root)
-}
-
-/**
- * TODO
- *
- * This function copies the given [epubFile] to the given [copyDirectory], the returned [Book] instance then works on
- * the copied file and not the original.
- *
- * @param [epubFile] the file to read and parse into a [Book] instance, this needs to be a EPUB file or this function
- * will throw a [MalformedBookException]
- *
- * @throws [IOException] if an i/o error occurred
- * @throws [EpubbyException] if something went wrong when parsing the [epubFile] file
- */
-@JvmOverloads
-@JvmName("readCopy")
-@Throws(IOException::class, EpubbyException::class)
-fun readBookCopy(epubFile: Path, copyDirectory: Path = createTmpDirectory("epubby")): Book {
-    logger.info { "Copying file '$epubFile' to directory '$copyDirectory'.." }
-    val copy = epubFile.copyTo(copyDirectory, keepName = true)
-    copy.toFile().deleteOnExit()
-    logger.info { "Reading file '$copy' as an EPUB container.." }
-    val fileSystem = try {
-        FileSystems.newFileSystem(copy, null).also { validateContainer(epubFile, it.getPath("/")) }
-    } catch (e: IOException) {
-        // something went wrong when trying to create the new file-system, so we want to rethrow a the exception
-        // wrapped in an epubby-exception, this is to notify the user that *we* know that this happened
-        copy.deleteIfExists()
-        malformed(epubFile, "Could not create a file-system for '${epubFile.name}'", e)
-    } catch (e: EpubbyException) {
-        // the validation failed, so we want to just delete the copy we made and re-throw the exception
-        copy.deleteIfExists()
-        throw e
+    return packageDocument.book.apply {
+        tableOfContents = when {
+            version < BookVersion.EPUB_3_0 -> {
+                val tocFile =
+                    spine.tableOfContents?.href ?: malformed(epubFile, "book does not have 'toc' entry defined")
+                TableOfContents.fromNcxDocument(NcxDocument.fromFile(this, tocFile))
+            }
+            version >= BookVersion.EPUB_3_0 -> TODO()
+            else -> malformed(epubFile, "unknown book version '$version'")
+        }
     }
-    val root = fileSystem.getPath("/")
-    val metaInf = MetaInf.fromDirectory(copy, root.resolve("META-INF"), root)
-
-    return Book(metaInf, copy, fileSystem, root)
 }
 
 // validates that the required parts of an EPUB is available in the epub file

@@ -18,12 +18,14 @@
 
 package moe.kanon.epubby
 
+import moe.kanon.kommons.io.paths.copyTo
+import moe.kanon.kommons.io.paths.createTmpDirectory
 import moe.kanon.kommons.io.paths.deleteIfExists
 import moe.kanon.kommons.io.paths.pathOf
 import java.nio.file.Path
 
-const val FILE_NAME = "Spice and Wolf - Volume 19.epub"
-const val DIR = "!EPUB3"
+const val FILE_NAME = "test_1.epub"
+const val DIR = "!EPUB2"
 
 val input: Path = pathOf("H:", "Programming", "JVM", "Kotlin", "Data", "epubby", "reader")
     .resolve(DIR)
@@ -36,12 +38,14 @@ val writer = BookWriter()
 fun main() {
     output.deleteIfExists()
 
-    val book = readBookCopy(input)
-
-    book.use {
-        book.pages.transformers.registerInstalled()
-        book.resources.moveToDesiredDirectories()
+    val book = readBook(createBackup(input)).use {
+        it.pages.transformers.registerInstalled()
+        it.resources.moveToDesiredDirectories()
+        return@use it
     }
 
     writer.writeToFile(book, output)
 }
+
+private fun createBackup(original: Path): Path =
+    original.copyTo(createTmpDirectory("epubby"), keepName = true).apply { toFile().deleteOnExit() }

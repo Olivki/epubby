@@ -29,6 +29,7 @@ import moe.kanon.epubby.resources.Resource
 import moe.kanon.epubby.resources.pages.Page
 import moe.kanon.epubby.utils.attr
 import moe.kanon.kommons.checkThat
+import moe.kanon.kommons.collections.getOrThrow
 import moe.kanon.kommons.requireThat
 import org.apache.commons.collections4.map.CaseInsensitiveMap
 import org.jdom2.Element
@@ -59,15 +60,17 @@ import java.nio.file.Path
 class Guide private constructor(val book: Book, private val _references: CaseInsensitiveMap<String, Reference>) {
     // TODO: Clean up the class documentation
     // TODO: Make two separate classes for Reference and CustomReference? Maybe add a CustomType too?
-    // TODO: Add functions for stuff like "addCoverPage" and what have you for ease of use.
 
     /**
      * Returns a map of all the [references][Reference] of `this` guide whose [type][Reference.type] is a known
      * [type][Type].
      *
      * There is no guarantee that the returned map will contain any entries.
+     *
+     * @see [customReferences]
+     * @see [allReferences]
      */
-    val knownReferences: ImmutableMap<Type, Reference>
+    val references: ImmutableMap<Type, Reference>
         get() = _references
             .filterValues { !it.isCustomType }
             .mapKeys { (_, ref) -> ref.guideType!! }
@@ -79,6 +82,9 @@ class Guide private constructor(val book: Book, private val _references: CaseIns
      * Note that all custom-types will be prefixed with `"other."`.
      *
      * There is no guarantee that the returned map will contain any entries.
+     *
+     * @see [references]
+     * @see [allReferences]
      */
     val customReferences: ImmutableMap<String, Reference>
         get() = _references.filterValues { it.isCustomType }.toPersistentHashMap()
@@ -87,8 +93,11 @@ class Guide private constructor(val book: Book, private val _references: CaseIns
      * Returns a map of all the [references][Reference] of `this` guide.
      *
      * There is no guarantee that the returned map will contain any entries.
+     *
+     * @see [references]
+     * @see [customReferences]
      */
-    val references: ImmutableMap<String, Reference>
+    val allReferences: ImmutableMap<String, Reference>
         get() = _references.toPersistentHashMap()
 
     // -- NORMAL REFERENCES -- \\
@@ -129,7 +138,7 @@ class Guide private constructor(val book: Book, private val _references: CaseIns
      * is found.
      */
     fun getReference(type: Type): Reference =
-        _references.getValueOrThrow(type.attributeName) { "No reference found with the given type '$type'" }
+        _references.getOrThrow(type.attributeName) { "No reference found with the given type '$type'" }
 
     /**
      * Returns the [reference][Reference] stored under the given [type], or `null` if none is found.
@@ -293,7 +302,7 @@ class Guide private constructor(val book: Book, private val _references: CaseIns
      * or any other casing variation of the same string.
      */
     fun getCustomReference(customType: String): Reference =
-        _references.getValueOrThrow(customType) { "No reference found with the given custom type 'other.$customType'" }
+        _references.getOrThrow(customType) { "No reference found with the given custom type 'other.$customType'" }
 
     /**
      * Returns the [reference][Reference] stored under the given [customType], or `null` if none is found.
@@ -358,7 +367,7 @@ class Guide private constructor(val book: Book, private val _references: CaseIns
      *
      * The `title` property is *not* required for a reference to be valid.
      */
-    data class Reference internal constructor(
+    class Reference internal constructor(
         val type: String,
         var reference: PageResource,
         var title: String? = null
@@ -374,18 +383,35 @@ class Guide private constructor(val book: Book, private val _references: CaseIns
          */
         val isCustomType: Boolean get() = guideType == null
 
-        @JvmSynthetic
-        internal fun toElement(namespace: Namespace = Namespaces.OPF): Element =
-            Element("reference", namespace).apply {
-                setAttribute("type", type)
-                // book.packageFile.relativize(href).toString().substringAfter("../")
-                setAttribute("href", reference.relativeHref.substringAfter("../"))
-                title?.also { setAttribute("title", it) }
-            }
+        override fun equals(other: Any?): Boolean = when {
+            this === other -> true
+            other !is Reference -> false
+            type != other.type -> false
+            reference != other.reference -> false
+            title != other.title -> false
+            guideType != other.guideType -> false
+            else -> true
+        }
 
-        override fun toString(): String = when (title) {
-            null -> "Reference(type='$type', reference='$reference', isCustomType=$isCustomType)"
-            else -> "Reference(type='$type', reference='$reference', title='$title', isCustomType=$isCustomType)"
+        override fun hashCode(): Int {
+            var result = type.hashCode()
+            result = 31 * result + reference.hashCode()
+            result = 31 * result + (title?.hashCode() ?: 0)
+            result = 31 * result + (guideType?.hashCode() ?: 0)
+            return result
+        }
+
+        override fun toString(): String = buildString {
+            append("Reference(type='$type'")
+            title?.also { append(", title='$it'") }
+            append(", reference=$reference, isCustomType=$isCustomType)")
+        }
+
+        @JvmSynthetic
+        internal fun toElement(namespace: Namespace = Namespaces.OPF): Element = Element("reference", namespace).apply {
+            setAttribute("type", type)
+            setAttribute("href", reference.relativeHref.substringAfter("../"))
+            title?.also { setAttribute("title", it) }
         }
     }
 

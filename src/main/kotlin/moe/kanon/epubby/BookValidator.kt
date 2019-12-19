@@ -17,6 +17,8 @@
 package moe.kanon.epubby
 
 import moe.kanon.epubby.internal.logger
+import moe.kanon.epubby.metainf.MetaInf
+import moe.kanon.epubby.metainf.MetaInfContainer
 import moe.kanon.epubby.packages.Bindings
 import moe.kanon.epubby.packages.Collection
 import moe.kanon.epubby.packages.Guide
@@ -25,17 +27,45 @@ import moe.kanon.epubby.packages.Metadata
 import moe.kanon.epubby.packages.PackageDocument
 import moe.kanon.epubby.packages.Spine
 import moe.kanon.epubby.packages.Tours
+import moe.kanon.epubby.structs.prefixes.isDefaultVocabularyPrefix
+import moe.kanon.epubby.structs.prefixes.isDublinCorePrefix
 
 internal class BookValidator internal constructor(val book: Book) {
     @JvmSynthetic
     internal fun validate() {
         logger.info { "Starting validation process of book <$book>.." }
+        validateMetaInf(book.metaInf)
         validatePackageDocument(book.packageDocument)
+    }
+
+    // -- META-INF -- \\
+    private fun validateMetaInf(metaInf: MetaInf) {
+        logger.debug { "Validating the meta-inf of the book.." }
+        validateMetaInfContainer(metaInf.container)
+    }
+
+    private fun validateMetaInfContainer(container: MetaInfContainer) {
+        if (container.rootFiles.isEmpty()) {
+            fail("meta-inf container 'rootFiles' is not allowed to be empty")
+        }
     }
 
     // -- PACKAGE-DOCUMENT -- \\
     private fun validatePackageDocument(packageDocument: PackageDocument) {
-        // TODO: Validate that the 'prefix' on the 'package-document' only contains valid prefixes
+        logger.debug { "Validating the package-document of the book.." }
+        for ((_, prefix) in packageDocument.prefix) {
+            if (prefix.isDefaultVocabularyPrefix()) {
+                fail("package-document 'prefix' can not remap prefixes defined for default vocabularies")
+            }
+
+            if (prefix.isDublinCorePrefix()) {
+                fail("package-document 'prefix' can not remap dublin-core prefixes")
+            }
+
+            if (prefix.prefix.isBlank()) {
+                fail("package-document 'prefix' contains prefix that is empty: $prefix")
+            }
+        }
 
         // parts
         validateMetadata(packageDocument.metadata)
