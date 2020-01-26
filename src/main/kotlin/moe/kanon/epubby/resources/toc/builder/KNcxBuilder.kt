@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Oliver Berg
+ * Copyright 2019-2020 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,16 +14,7 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.resources.pages
+@file:JvmName("KNcxBuilder")
 
-import moe.kanon.epubby.Book
-import org.jsoup.nodes.Document
-import org.jsoup.nodes.Element
+package moe.kanon.epubby.resources.toc.builder
 
-abstract class PageTransformer(val book: Book) {
-    /**
-     * Gets invoked at the start of the [book] saving process, allows this transformer to modify the contents of the
-     * given [page].
-     */
-    abstract fun transformPage(page: Page, document: Document, body: Element)
-}

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Oliver Berg
+ * Copyright 2019-2020 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,20 +20,15 @@ import moe.kanon.epubby.internal.Patterns
 import moe.kanon.kommons.collections.mapToTypedArray
 import moe.kanon.kommons.requireThat
 
-class Prefixes private constructor(private val delegate: MutableMap<String, Prefix>) : MutableMap<String, Prefix> by delegate {
+class Prefixes private constructor(private val delegate: MutableMap<String, Prefix>) :
+    AbstractMutableMap<String, Prefix>() {
+    override val entries: MutableSet<MutableMap.MutableEntry<String, Prefix>>
+        get() = delegate.entries
+
+    override fun put(key: String, value: Prefix): Prefix? = delegate.put(key, value)
+
     // unsure if this the correct form to output this to
     fun toStringForm(): String = delegate.values.joinToString(separator = " ", transform = Prefix::toStringForm)
-
-    override fun toString(): String = delegate.toString()
-
-    override fun equals(other: Any?): Boolean = when {
-        this === other -> true
-        other !is Prefixes -> false
-        delegate != other.delegate -> false
-        else -> true
-    }
-
-    override fun hashCode(): Int = delegate.hashCode()
 
     companion object {
         @JvmStatic

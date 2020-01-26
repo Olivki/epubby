@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Oliver Berg
+ * Copyright 2019-2020 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,9 +17,12 @@
 package moe.kanon.epubby.resources
 
 import com.google.common.net.MediaType
-import cz.vutbr.web.css.CSSException
-import cz.vutbr.web.css.CSSFactory
-import cz.vutbr.web.css.StyleSheet
+import com.helger.css.ECSSVersion
+import com.helger.css.decl.CascadingStyleSheet
+import com.helger.css.reader.CSSReader
+import com.helger.css.reader.CSSReaderSettings
+import com.helger.css.reader.errorhandler.ThrowingCSSParseErrorHandler
+import com.helger.css.writer.CSSWriter
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.ImmutableSet
 import kotlinx.collections.immutable.persistentHashSetOf
@@ -44,12 +47,19 @@ import moe.kanon.kommons.io.paths.createDirectories
 import moe.kanon.kommons.io.paths.extension
 import moe.kanon.kommons.io.paths.isSameAs
 import moe.kanon.kommons.io.paths.name
+import moe.kanon.kommons.io.paths.newBufferedReader
+import moe.kanon.kommons.io.paths.newBufferedWriter
 import moe.kanon.kommons.io.paths.newInputStream
+import moe.kanon.kommons.io.paths.notExists
 import moe.kanon.kommons.io.paths.renameTo
+import moe.kanon.kommons.io.paths.writeString
 import moe.kanon.kommons.io.requireFileExistence
+import moe.kanon.kommons.io.writeTo
 import moe.kanon.kommons.requireThat
+import java.awt.Dimension
 import java.awt.image.BufferedImage
 import java.io.IOException
+import java.nio.file.FileSystem
 import java.nio.file.Path
 import java.util.EnumSet
 import javax.imageio.ImageIO
@@ -57,6 +67,7 @@ import kotlin.properties.Delegates
 
 // TODO: Figure out what to do with Resources and Manifest items. Because they are deeply connected so it might just be
 //       best to only have like a Resource class rather than a Resource class and a Manifest.Item class too?
+
 /**
  * Represents a [Publication Resource](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-spec.html#dfn-publication-resource).
  *
@@ -324,7 +335,7 @@ sealed class Resource(file: Path, identifier: Identifier, desiredDirectory: Stri
             return when (mediaType) {
                 in NcxResource.MEDIA_TYPES -> NcxResource(book, file, identifier)
                 in PageResource.MEDIA_TYPES -> PageResource(book, file, identifier)
-                in StyleSheetResource.MEDIA_TYPES -> StyleSheetResource(book, file, identifier)
+                in StyleSheetResource.MEDIA_TYPES -> StyleSheetResource.fromFile(file, book, identifier)
                 in ImageResource.MEDIA_TYPES -> ImageResource(book, file, identifier)
                 in FontResource.MEDIA_TYPES -> FontResource(book, file, identifier)
                 in AudioResource.MEDIA_TYPES -> AudioResource(book, file, identifier)
@@ -351,15 +362,18 @@ sealed class Resource(file: Path, identifier: Identifier, desiredDirectory: Stri
          * @param [identifier] the unique identifier that the returned [Resource] should be using, this is used for
          * storing the resource inside the [manifest][Manifest] of the [book]
          *
-         * @throws [IllegalArgumentException] if the [file-system][Path.getFileSystem] of the given [file] is not the same as the
-         * [file-system][Book.fileSystem] of the given [book]
          * @throws [IOException] if an i/o error occurred
          * @throws [EpubbyException] if something went wrong with the creation of the resource
+         * @throws [IllegalArgumentException]
+         * - if [book] already contains a resource with the given [identifier]
+         * - if the [file-system][Path.getFileSystem] of the given [file] is not the same as the
+         * [file-system][Book.fileSystem] of the given [book]
          */
         @JvmStatic
         @JvmOverloads
         @Throws(IOException::class, EpubbyException::class)
         fun fromFile(file: Path, book: Book, identifier: Identifier = Identifier.fromFile(file)): Resource {
+            requireThat(identifier !in book.resources) { "expected 'identifier' to be unique, but there already exists a resource with the same identifier '$identifier'" }
             requireThat(file.fileSystem == book.fileSystem) { "file should have the same file-system as the given book [book=${book.fileSystem}, file=${file.fileSystem}]" }
             requireFileExistence(file)
             val resource = file.mediaType?.let { fromMediaType(it, file, book, identifier) }
@@ -383,6 +397,7 @@ sealed class Resource(file: Path, identifier: Identifier, desiredDirectory: Stri
          *
          * @throws [IOException] if an i/o error occurred
          * @throws [EpubbyException] if something went wrong with the creation of the resource
+         * @throws [IllegalArgumentException] if [book] already contains a resource with the given [identifier]
          */
         @JvmStatic
         @JvmOverloads
@@ -393,7 +408,9 @@ sealed class Resource(file: Path, identifier: Identifier, desiredDirectory: Stri
             book: Book,
             identifier: Identifier = Identifier.fromFile(file)
         ): Resource {
+            // TODO: Make this fail if there already exists a file at the target destination?
             requireFileExistence(file)
+            requireThat(identifier !in book.resources) { "expected 'identifier' to be unique, but there already exists a resource with the same identifier '$identifier'" }
             val directory = book.root.resolve(targetDirectory).createDirectories()
             logger.debug { "Copying external file '$file' to '$directory' in book <$book>" }
             val resourceFile = file.copyTo(directory)
@@ -457,49 +474,181 @@ class PageResource internal constructor(override val book: Book, file: Path, ide
         else -> book.pages.addPage(Page.fromResource(this))
     }
 
+    /**
+     * Returns `true` if `this` page-resource has an entry in the spine, otherwise `false`.
+     */
+    fun hasSpineEntry(): Boolean = book.pages.hasPage(this)
+
     override fun onDeletion() {
         book.pages.removePage(page)
     }
 
     override fun toString(): String = "PageResource(identifier='$identifier', href='$href', book=$book)"
 
-    internal companion object {
-        @JvmField internal val MEDIA_TYPES: ImmutableSet<MediaType> = persistentHashSetOf(
-            MediaType.create("application", "xhtml+xml"),
-            MediaType.XHTML_UTF_8
-        )
+    companion object {
+        @JvmField
+        val MEDIA_TYPES: ImmutableSet<MediaType> =
+            persistentHashSetOf(MediaType.create("application", "xhtml+xml"), MediaType.XHTML_UTF_8)
+
+        // TODO: Documentation
+        /**
+         * @throws [IOException] if an i/o error occurred
+         * @throws [IllegalArgumentException]
+         * - if [book] already contains a resource with the given [identifier]
+         * - if the [media-type][Path.mediaType] of [file] does not match any of the [known media-types][MEDIA_TYPES]
+         * for page-resources
+         */
+        @JvmStatic
+        @JvmOverloads
+        @Throws(IOException::class)
+        fun fromFile(
+            file: Path,
+            book: Book,
+            identifier: Identifier = Identifier.fromFile(file)
+        ): PageResource {
+            requireThat(identifier !in book.resources) { "expected 'identifier' to be unique, but there already exists a resource with the same identifier '$identifier'" }
+            val mediaType = file.mediaType
+            requireThat(mediaType in MEDIA_TYPES) { "expected 'file' to have a media-type that matches any of $MEDIA_TYPES, got '$mediaType'" }
+            return PageResource(book, file, identifier)
+        }
+
+        /**
+         * The [resource][Page.resource] that the returned page is tied to will be created from scratch, in the
+         * [desired directory][PageResource.desiredDirectory] of the [page-resource][PageResource], with the given
+         * [fileName]. The newly created resource will then be added to the given [book] with its identifier set to the
+         * given [identifier] *(which by default is the given `fileName` prefixed by an `'x'` and suffixed with
+         * `".xhtml"`)*.
+         *
+         * For example, say we invoke this function in the following manner
+         * `Page.fromString(contents = .., book = .., fileName = "interesting_page")` then a fil
+         *
+         * TODO: The above ddocumentation as it was just copy pasted of what had been written for the function in 'Page'
+         *
+         * @throws [IOException] if an i/o error occurred
+         * @throws [IllegalArgumentException]
+         * - if [book] already contains a resource with the given [identifier]
+         * - if [contents] [is blank][String.isBlank] or invalid CSS
+         * - if [fileName] points to an already existing file
+         */
+        @JvmStatic
+        @JvmOverloads
+        @Throws(IOException::class)
+        fun fromString(
+            contents: String,
+            book: Book,
+            fileName: String,
+            identifier: Identifier = Identifier.of("x_$fileName.xhtml")
+        ): PageResource {
+            requireThat(identifier !in book.resources) { "expected 'identifier' to be unique, but there already exists a resource with the same identifier '$identifier'" }
+            requireThat(contents.isNotBlank()) { "given 'contents' is blank" }
+            // TODO: Some sort of HTML validation done on the 'contents'?
+            val file = book
+                .resources
+                .getDirectoriesUsedBy<PageResource>()
+                .first()
+                .resolve("$fileName.xhtml")
+            requireThat(file.notExists) { "given 'fileName' points to an existing file: '$file'" }
+            file.writeString(contents)
+            return PageResource(book, file, identifier)
+        }
+
     }
 }
 
-class StyleSheetResource internal constructor(override val book: Book, file: Path, identifier: Identifier) :
-    Resource(file, identifier, "Styles/") {
+/**
+ * A resource wrapping around a [CascadingStyleSheet] instance.
+ *
+ * @property [styleSheet] The [CascadingStyleSheet] instance that `this` resource is wrapping around.
+ */
+class StyleSheetResource private constructor(
+    override val book: Book,
+    file: Path,
+    identifier: Identifier,
+    val styleSheet: CascadingStyleSheet
+) : Resource(file, identifier, "Styles/") {
     override val mediaTypes: ImmutableSet<MediaType> get() = MEDIA_TYPES
 
-    /**
-     * Lazily reads and returns a [StyleSheet] instance based on the [file] of `this` resource.
-     */
-    @get:Throws(ResourceException::class)
-    val styleSheet: StyleSheet by lazy {
-        try {
-            CSSFactory.parse(file.toUri().toURL(), "UTF-8")
-        } catch (e: IOException) {
-            raiseException("Could not read file '${file.name}' into a style-sheet", e)
-        } catch (e: CSSException) {
-            raiseException("Could not read file '${file.name}' into a style-sheet", e)
-        }
+    override fun onCreation() {
+        // TODO: The 'onCreation' function seems to never get ran?
     }
 
     override fun onDeletion() {
-        //for (page in book.pages) page.removeStyleSheet(styleSheet)
+        for (page in book.pages) page.removeStyleSheet(this)
     }
 
-    //override fun toString(): String = "StyleSheetResource(identifier='$identifier', href='$href', book=$book)"
+    override fun toString(): String = "StyleSheetResource(identifier='$identifier', href='$href', book=$book)"
 
-    internal companion object {
-        @JvmField internal val MEDIA_TYPES: ImmutableSet<MediaType> = persistentHashSetOf(
-            MediaType.create("text", "css"),
-            MediaType.CSS_UTF_8
-        )
+    @JvmSynthetic
+    internal fun writeToFile(fileSystem: FileSystem) {
+        logger.trace { "Writing style-sheet contents to file <$file>.." }
+        fileSystem.getPath(file.toString()).newBufferedWriter().use { CSSWriter().writeCSS(styleSheet, it) }
+    }
+
+    companion object {
+        @JvmField
+        val MEDIA_TYPES: ImmutableSet<MediaType> =
+            persistentHashSetOf(MediaType.create("text", "css"), MediaType.CSS_UTF_8)
+
+        // TODO: Documentation
+        /**
+         * @throws [IllegalArgumentException]
+         * - if [book] already contains a resource with the given [identifier]
+         * - if the [media-type][Path.mediaType] of [file] does not match any of the [known media-types][MEDIA_TYPES]
+         * for stylesheet-resources
+         * @throws [IOException] if an i/o error occurred
+         */
+        @JvmStatic
+        @JvmOverloads
+        @Throws(IOException::class)
+        fun fromFile(
+            file: Path,
+            book: Book,
+            identifier: Identifier = Identifier.fromFile(file)
+        ): StyleSheetResource {
+            requireThat(identifier !in book.resources) { "expected 'identifier' to be unique, but there already exists a resource with the same identifier '$identifier'" }
+            val mediaType = file.mediaType
+            requireThat(mediaType in MEDIA_TYPES) { "expected 'file' to have a media-type that matches any of $MEDIA_TYPES, got '$mediaType'" }
+            val styleSheet = file.newBufferedReader().use {
+                val settings = CSSReaderSettings()
+                    .setCustomErrorHandler(ThrowingCSSParseErrorHandler())
+                CSSReader.readFromReader({ it }, settings)
+            } ?: throw IllegalArgumentException("Could not read file '${file.name}' into a style-sheet")
+            return StyleSheetResource(book, file, identifier, styleSheet)
+        }
+
+        /**
+         * @throws [IllegalArgumentException]
+         * - if [book] already contains a resource with the given [identifier]
+         * - if [contents] [is blank][String.isBlank] or invalid CSS
+         * - if [fileName] points to an already existing file
+         * @throws [IOException] if an i/o error occurred
+         */
+        @JvmStatic
+        @JvmOverloads
+        @Throws(IOException::class)
+        fun fromString(
+            contents: String,
+            book: Book,
+            fileName: String,
+            identifier: Identifier = Identifier.of("x_$fileName.css")
+        ): StyleSheetResource {
+            requireThat(identifier !in book.resources) { "expected 'identifier' to be unique, but there already exists a resource with the same identifier '$identifier'" }
+            requireThat(contents.isNotBlank()) { "given 'contents' is blank" }
+            requireThat(CSSReader.isValidCSS(contents, ECSSVersion.CSS30)) { "given 'contents' is not valid CSS" }
+            val styleSheetSettings = CSSReaderSettings()
+                .setCustomErrorHandler(ThrowingCSSParseErrorHandler())
+            val styleSheet = requireNotNull(CSSReader.readFromStringReader(contents, styleSheetSettings)) {
+                "given 'contents' could not be parsed as CSS"
+            }
+            val file = book
+                .resources
+                .getDirectoriesUsedBy<StyleSheetResource>()
+                .first()
+                .resolve("$fileName.css")
+            requireThat(file.notExists) { "given 'fileName' points to an existing file: '$file'" }
+            file.newBufferedWriter().use { CSSWriter().writeCSS(styleSheet, it) }
+            return StyleSheetResource(book, file, identifier, styleSheet)
+        }
     }
 }
 
@@ -507,17 +656,29 @@ class ImageResource internal constructor(override val book: Book, file: Path, id
     Resource(file, identifier, "Images/") {
     override val mediaTypes: ImmutableSet<MediaType> get() = MEDIA_TYPES
 
+    private var isBufferedImageAvailable: Boolean = false
+
     /**
      * Lazily reads and returns a [BufferedImage] instance based on the [file] of `this` resource.
+     *
+     * @throws [ResourceException] if an error occurred when attempting to read the [file] into a [BufferedImage]
      */
     @get:Throws(ResourceException::class)
     val image: BufferedImage by lazy {
         try {
-            file.newInputStream().use(ImageIO::read)
+            file.newInputStream().use(ImageIO::read).also { isBufferedImageAvailable = true }
         } catch (e: IOException) {
             raiseException("Could not read file '${file.name}' into a buffered-image", e)
         }
     }
+
+    /**
+     * Returns the current dimension of the [image].
+     *
+     * Note that if `image` has not already been invoked, then invoking this property will result in `image` being
+     * invoked and lazily read, which may produce overhead.
+     */
+    val dimension: Dimension get() = Dimension(image.width, image.height)
 
     /**
      * Returns `true` if `this` resource represents the `cover-image` of the [book], otherwise `false`.
@@ -544,7 +705,7 @@ class ImageResource internal constructor(override val book: Book, file: Path, id
                 book.metadata.addMeta(OPF2Meta.withName("cover", identifier.toString()))
             }
             book.version >= BookVersion.EPUB_3_0 -> {
-                for ((_, image) in book.resources.imageResources) {
+                for ((_, image) in book.resources.images) {
                     image.properties.remove(ManifestVocabulary.COVER_IMAGE)
                 }
 
@@ -555,7 +716,16 @@ class ImageResource internal constructor(override val book: Book, file: Path, id
 
     // TODO: 'removeAsCoverImage'
 
-    override fun toString(): String = "ImageResource(identifier='$identifier', href='$href', book=$book)"
+    override fun toString(): String =
+        "ImageResource(identifier='$identifier', href='$href', isCoverImage=${isCoverImage()}, book=$book)"
+
+    @JvmSynthetic
+    internal fun writeToFile(fileSystem: FileSystem) {
+        if (isBufferedImageAvailable) {
+            logger.trace { "Writing buffered-image contents to file <$file>.." }
+            image.writeTo(fileSystem.getPath(file.toString()))
+        }
+    }
 
     internal companion object {
         @JvmField internal val MEDIA_TYPES: ImmutableSet<MediaType> = persistentHashSetOf(

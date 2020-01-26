@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Oliver Berg
+ * Copyright 2019-2020 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,9 @@ import moe.kanon.epubby.internal.malformed
 import moe.kanon.epubby.resources.Resource
 import moe.kanon.epubby.structs.Direction
 import moe.kanon.epubby.structs.Identifier
+import moe.kanon.epubby.structs.NonEmptyList
+import moe.kanon.epubby.structs.nonEmptyListOf
+import moe.kanon.epubby.structs.toNonEmptyList
 import moe.kanon.epubby.utils.attr
 import moe.kanon.epubby.utils.child
 import moe.kanon.epubby.utils.docScope
@@ -45,31 +48,20 @@ import java.util.Locale
  * Note that since `EPUB 3.0` a new format is used, but for backwards compatibility sake a `ncx` file should also be
  * generated.
  */
-internal class NcxDocument private constructor(
-    val book: Book,
+class NcxDocument private constructor(
     var file: Path,
     val version: String, // should be "2005-1"
-    var language: Locale?,
-    var direction: Direction?,
+    var language: Locale? = null,
+    var direction: Direction? = null,
     var head: Head,
     var title: DocTitle,
     val authors: MutableList<DocAuthor>,
     var navMap: NavMap,
-    var pageList: PageList?,
-    var navLists: MutableList<NavList>
+    var pageList: PageList? = null,
+    var navLists: MutableList<NavList> = mutableListOf()
 ) {
-    fun update() {
-        logger.debug { "Updating ncx-document information to match latest book information.." }
-        title = title.copy(text = title.text.copy(content = book.title))
-        authors.apply {
-            clear()
-            addAll(book.metadata.authors.asSequence().map { DocAuthor(Text(it.content)) })
-        }
-    }
-
     @JvmSynthetic
     internal fun writeToFile(fileSystem: FileSystem) {
-        update()
         val target = fileSystem.getPath(file.toString())
         logger.debug { "Writing ncx-document to file '$target'.." }
         toDocument().writeTo(target)
@@ -93,7 +85,7 @@ internal class NcxDocument private constructor(
     * not apply to EPUB; the only required meta is that which contains a content reference to the OPF unique ID.
     * For backwards compatibility reasons, the value of the name of that meta remains dtb:id.
     */
-    class Head(val meta: MutableList<Meta>) {
+    class Head(val meta: NonEmptyList<Meta>) {
         @JvmSynthetic
         internal fun toElement(namespace: Namespace = Namespaces.DAISY_NCX): Element =
             Element("head", namespace).apply {
@@ -126,7 +118,7 @@ internal class NcxDocument private constructor(
             }
     }
 
-    // narrow 'source' to 'ImageResource'?
+    // TODO: narrow 'source' to 'ImageResource'?
     data class Img(var source: URI, var identifier: Identifier? = null, var clazz: String? = null) {
         fun getPath(book: Book): Path = book.packageRoot.resolve(source.path)
 
@@ -177,7 +169,7 @@ internal class NcxDocument private constructor(
         val info: MutableList<NavInfo>,
         val labels: MutableList<NavLabel>,
         // this needs to contain AT LEAST one entry
-        val points: MutableList<NavPoint>,
+        val points: NonEmptyList<NavPoint>,
         var identifier: Identifier? = null
     ) {
         @JvmSynthetic
@@ -194,7 +186,7 @@ internal class NcxDocument private constructor(
         var identifier: Identifier,
         var content: Content,
         // this needs to contain AT LEAST one entry
-        val labels: MutableList<NavLabel>,
+        val labels: NonEmptyList<NavLabel>,
         var clazz: String? = null,
         // the 'playOrder' attribute is not required for the NCX document used for EPUBs
         var playOrder: Int? = null,
@@ -211,20 +203,6 @@ internal class NcxDocument private constructor(
                 // "<navPoint>s may be nested to represent the hierarchical structure of a document"
                 for (point in this@NavPoint.children) addContent(point.toElement())
             }
-
-        internal companion object {
-            @JvmSynthetic
-            fun fromEntry(entry: TableOfContents.Entry): NavPoint {
-                val identifier = entry.identifier
-                // TODO: This
-                val fixedPath = entry.resource!!.relativeHref.substringAfter("../")
-                val pathWithFragment = entry.fragmentIdentifier?.let { "$fixedPath#$it" } ?: fixedPath
-                val content = Content(URI(pathWithFragment))
-                val title = NavLabel(Text(entry.title))
-                val children = entry.children.mapTo(ArrayList(), ::fromEntry)
-                return NavPoint(identifier, content, mutableListOf(title), children = children)
-            }
-        }
     }
 
     data class NavLabel(
@@ -265,7 +243,7 @@ internal class NcxDocument private constructor(
         val info: MutableList<NavInfo>,
         val labels: MutableList<NavLabel>,
         // this needs to contain AT LEAST one entry
-        val targets: MutableList<PageTarget>,
+        val targets: NonEmptyList<PageTarget>,
         var identifier: Identifier? = null,
         var clazz: String? = null
     ) {
@@ -285,7 +263,7 @@ internal class NcxDocument private constructor(
         var identifier: Identifier,
         var type: Type,
         // this needs to contain AT LEAST one entry
-        val labels: MutableList<NavLabel>,
+        val labels: NonEmptyList<NavLabel>,
         val content: Content,
         var value: Int? = null,
         var clazz: String? = null,
@@ -322,9 +300,9 @@ internal class NcxDocument private constructor(
     class NavList(
         val info: MutableList<NavInfo>,
         // this needs to contain AT LEAST one entry
-        val labels: MutableList<NavLabel>,
+        val labels: NonEmptyList<NavLabel>,
         // this needs to contain AT LEAST one entry
-        val targets: MutableList<NavTarget>,
+        val targets: NonEmptyList<NavTarget>,
         var identifier: Identifier? = null,
         var clazz: String? = null
     ) {
@@ -343,7 +321,7 @@ internal class NcxDocument private constructor(
     data class NavTarget(
         val identifier: Identifier,
         // this needs to contain AT LEAST one entry
-        val labels: MutableList<NavLabel>,
+        val labels: NonEmptyList<NavLabel>,
         val content: Content,
         var value: Int? = null,
         var clazz: String? = null,
@@ -364,9 +342,17 @@ internal class NcxDocument private constructor(
 
     internal companion object {
         @JvmSynthetic
-        internal fun fromFile(book: Book, file: Path): NcxDocument = parseXmlFile(file) { _, root ->
+        internal fun create(book: Book, file: Path, points: NonEmptyList<NavPoint>): NcxDocument {
+            val head = Head(nonEmptyListOf(Head.Meta("dtb:id", book.packageDocument.uniqueIdentifier.toString(), null)))
+            val title = DocTitle(Text(book.title))
+            val authors = book.metadata.authors.mapTo(mutableListOf()) { DocAuthor(Text(it.content)) }
+            val navMap = NavMap(mutableListOf(), mutableListOf(), points)
+            return NcxDocument(file, "2005-1", head = head, title = title, authors = authors, navMap = navMap)
+        }
+
+        @JvmSynthetic
+        internal fun fromFile(epub: Path, file: Path): NcxDocument = parseXmlFile(file) { _, root ->
             val namespace = root.namespace
-            val epub = book.file
 
             val version = root.attr("version", epub, file)
             val language = root.getAttributeValue("lang", Namespace.XML_NAMESPACE)?.let(Locale::forLanguageTag)
@@ -378,34 +364,23 @@ internal class NcxDocument private constructor(
                 .asSequence()
                 .map { createDocAuthor(it, epub, file) }
                 .filterNotNullTo(ArrayList())
-            val navMap = createNavMap(book, root.child("navMap", epub, file), epub, file)
+            val navMap = createNavMap(root.child("navMap", epub, file), epub, file)
             val pageList = root.getChild("pageList", namespace)?.let { createPageList(it, epub, file) }
             val navList = root.getChildren("navList", namespace)
                 .asSequence()
                 .map { createNavList(it, epub, file) }
                 .filterNotNullTo(ArrayList())
 
-            return NcxDocument(
-                book,
-                file,
-                version,
-                language,
-                direction,
-                head,
-                title,
-                authors,
-                navMap,
-                pageList,
-                navList
-            )
+            return NcxDocument(file, version, language, direction, head, title, authors, navMap, pageList, navList)
         }
 
         private fun createHead(element: Element, epub: Path, container: Path): Head {
             val meta = element.getChildren("meta", element.namespace)
                 .asSequence()
                 .map { createHeadMeta(it, epub, container) }
-                .filterNotNullTo(ArrayList())
+                .filterNotNull()
                 .ifEmpty { malformed(epub, container, "ncx-document 'head' needs to contain at least one entry") }
+                .toNonEmptyList()
             return Head(meta)
         }
 
@@ -450,7 +425,7 @@ internal class NcxDocument private constructor(
             return DocAuthor(text, image, identifier)
         }
 
-        private fun createNavMap(book: Book, element: Element, epub: Path, container: Path): NavMap {
+        private fun createNavMap(element: Element, epub: Path, container: Path): NavMap {
             val identifier = element.getAttributeValue("id")?.let(Identifier.Companion::of)
             val info = element
                 .getChildren("navInfo", element.namespace)
@@ -465,13 +440,14 @@ internal class NcxDocument private constructor(
             val points = element
                 .getChildren("navPoint", element.namespace)
                 .asSequence()
-                .map { createNavPoint(book, it, epub, container) }
-                .filterNotNullTo(ArrayList())
+                .map { createNavPoint(it, epub, container) }
+                .filterNotNull()
                 .ifEmpty { malformed(epub, container, "ncx-document 'navMap' needs to contain at least one nav-point") }
+                .toNonEmptyList()
             return NavMap(info, labels, points, identifier)
         }
 
-        private fun createNavPoint(book: Book, element: Element, epub: Path, container: Path): NavPoint {
+        private fun createNavPoint(element: Element, epub: Path, container: Path): NavPoint {
             val identifier = Identifier.fromElement(element, epub, container)
             val clazz = element.getAttributeValue("class")
             val playOrder = element.getAttributeValue("playOrder")?.toInt()
@@ -479,13 +455,14 @@ internal class NcxDocument private constructor(
                 .getChildren("navLabel", element.namespace)
                 .asSequence()
                 .map { createNavLabel(it, epub, container) }
-                .filterNotNullTo(ArrayList())
+                .filterNotNull()
                 .ifEmpty { malformed(epub, container, "nav-point needs to have at least one nav-label") }
+                .toNonEmptyList()
             val content = createContent(element.child("content", epub, container), epub, container)
             val points = element
                 .getChildren("navPoint", element.namespace)
                 .asSequence()
-                .map { createNavPoint(book, it, epub, container) }
+                .map { createNavPoint(it, epub, container) }
                 .filterNotNullTo(ArrayList())
             return NavPoint(identifier, content, labels, clazz, playOrder, points)
         }
@@ -523,10 +500,11 @@ internal class NcxDocument private constructor(
                 .getChildren("pageTarget", element.namespace)
                 .asSequence()
                 .map { createPageTarget(it, epub, container) }
-                .filterNotNullTo(ArrayList())
+                .filterNotNull()
                 .ifEmpty {
                     malformed(epub, container, "ncx-document 'pageList' needs to contain at least one page-target")
                 }
+                .toNonEmptyList()
             return PageList(info, labels, targets, identifier, clazz)
         }
 
@@ -540,8 +518,9 @@ internal class NcxDocument private constructor(
                 .getChildren("navLabel", element.namespace)
                 .asSequence()
                 .map { createNavLabel(it, epub, container) }
-                .filterNotNullTo(ArrayList())
+                .filterNotNull()
                 .ifEmpty { malformed(epub, container, "page-target needs to have at least one nav-label") }
+                .toNonEmptyList()
             val content = createContent(element.child("content", epub, container), epub, container)
             return PageTarget(identifier, type, labels, content, value, clazz, playOrder)
         }
@@ -558,14 +537,16 @@ internal class NcxDocument private constructor(
                 .getChildren("navLabel", element.namespace)
                 .asSequence()
                 .map { createNavLabel(it, epub, container) }
-                .filterNotNullTo(ArrayList())
+                .filterNotNull()
                 .ifEmpty { malformed(epub, container, "nav-list needs to contain at least one nav-label") }
+                .toNonEmptyList()
             val targets = element
                 .getChildren("navTarget", element.namespace)
                 .asSequence()
                 .map { createNavTarget(it, epub, container) }
-                .filterNotNullTo(ArrayList())
+                .filterNotNull()
                 .ifEmpty { malformed(epub, container, "nav-list needs to contain at least one nav-target") }
+                .toNonEmptyList()
             return NavList(info, labels, targets, identifier, clazz)
         }
 
@@ -578,8 +559,9 @@ internal class NcxDocument private constructor(
                 .getChildren("navLabel", element.namespace)
                 .asSequence()
                 .map { createNavLabel(it, epub, container) }
-                .filterNotNullTo(ArrayList())
+                .filterNotNull()
                 .ifEmpty { malformed(epub, container, "page-target needs to have at least one nav-label") }
+                .toNonEmptyList()
             val content = createContent(element.child("content", epub, container), epub, container)
             return NavTarget(identifier, labels, content, value, clazz, playOrder)
         }

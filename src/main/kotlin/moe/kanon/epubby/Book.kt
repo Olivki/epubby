@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Oliver Berg
+ * Copyright 2019-2020 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@
 
 package moe.kanon.epubby
 
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.toImmutableList
 import moe.kanon.epubby.internal.logger
 import moe.kanon.epubby.metainf.MetaInf
 import moe.kanon.epubby.packages.Manifest
@@ -25,6 +27,7 @@ import moe.kanon.epubby.packages.Spine
 import moe.kanon.epubby.resources.Resources
 import moe.kanon.epubby.resources.pages.Pages
 import moe.kanon.epubby.resources.toc.TableOfContents
+import moe.kanon.epubby.resources.transformers.Transformers
 import java.io.Closeable
 import java.io.IOException
 import java.net.URI
@@ -43,6 +46,9 @@ import java.util.Locale
 //       the api/framework?
 // TODO: Add DTD (or whatever they're called) for validating the EPUB XML files?
 // TODO: Add 'OrNone' functions along with the 'OrNull' functions
+// TODO: Remove the kotlin CSS DSL from this project, create a new small dependency containing only that and some
+//       util functions for making the CSS framework nicer to work with from the kotlin side, so that we're not
+//       cluttering up this library with util functions and the like.
 
 /**
  * Represents the container that makes up an [EPUB](...).
@@ -88,6 +94,8 @@ class Book internal constructor(
 
     val spine: Spine get() = packageDocument.spine
 
+    val transformers: Transformers = Transformers(this)
+
     /**
      * Returns the primary title of `this` book.
      */
@@ -98,6 +106,12 @@ class Book internal constructor(
         }
 
     /**
+     * Returns a list of all the titles defined for `this` book.
+     */
+    val titles: ImmutableList<String>
+        get() = metadata.titles.map { it.content }.toImmutableList()
+
+    /**
      * Returns the primary language of `this` book.
      */
     var language: Locale
@@ -105,6 +119,12 @@ class Book internal constructor(
         set(value) {
             metadata.language.content = value
         }
+
+    /**
+     * Returns a list of all the languages defined for `this` book.
+     */
+    val languages: ImmutableList<Locale>
+        get() = metadata.languages.map { it.content }.toImmutableList()
 
     /*fun getResource(identifier: Identifier): Resource = resources.getResource(identifier)
 

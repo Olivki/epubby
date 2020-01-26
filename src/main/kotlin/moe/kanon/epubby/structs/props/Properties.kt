@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Oliver Berg
+ * Copyright 2019-2020 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +30,19 @@ import kotlin.reflect.KClass
 /**
  * Represents a list of [Property] instances.
  */
-class Properties private constructor(private val delegate: MutableList<Property>) : MutableList<Property> by delegate {
+class Properties private constructor(private val delegate: MutableList<Property>) : AbstractMutableList<Property>() {
+    override val size: Int get() = delegate.size
+
+    override fun add(index: Int, element: Property) {
+        delegate.add(index, element)
+    }
+
+    override fun get(index: Int): Property = delegate[index]
+
+    override fun removeAt(index: Int): Property = delegate.removeAt(index)
+
+    override fun set(index: Int, element: Property): Property = delegate.set(index, element)
+
     /**
      * Returns a string containing all the [property][Property] instances stored in this `properties`, separated by a
      * space.
@@ -43,17 +55,6 @@ class Properties private constructor(private val delegate: MutableList<Property>
     @JvmOverloads
     fun toAttribute(name: String = "properties", namespace: Namespace = Namespace.NO_NAMESPACE): Attribute =
         Attribute(name, toStringForm(), namespace)
-
-    override fun equals(other: Any?): Boolean = when {
-        this === other -> true
-        other !is Properties -> false
-        delegate != other.delegate -> false
-        else -> true
-    }
-
-    override fun hashCode(): Int = delegate.hashCode()
-
-    override fun toString(): String = delegate.toString()
 
     companion object {
         /**

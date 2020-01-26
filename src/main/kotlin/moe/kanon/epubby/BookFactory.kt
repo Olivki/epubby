@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Oliver Berg
+ * Copyright 2019-2020 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -70,7 +70,7 @@ fun readBook(epubFile: Path, mode: BookReadMode = BookReadMode.STRICT): Book {
             version < BookVersion.EPUB_3_0 -> {
                 val tocFile =
                     spine.tableOfContents?.href ?: malformed(epubFile, "book does not have 'toc' entry defined")
-                TableOfContents.fromNcxDocument(NcxDocument.fromFile(this, tocFile))
+                TableOfContents.fromNcxDocument(this, NcxDocument.fromFile(this.file, tocFile))
             }
             version >= BookVersion.EPUB_3_0 -> TODO()
             else -> malformed(epubFile, "unknown book version '$version'")

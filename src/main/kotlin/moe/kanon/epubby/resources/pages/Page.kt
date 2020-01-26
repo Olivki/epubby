@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Oliver Berg
+ * Copyright 2019-2020 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import moe.kanon.epubby.internal.logger
 import moe.kanon.epubby.resources.PageResource
 import moe.kanon.epubby.resources.StyleSheetResource
 import moe.kanon.epubby.utils.applyDefaultOutputSettings
+import moe.kanon.kommons.checkThat
 import moe.kanon.kommons.io.paths.newInputStream
 import moe.kanon.kommons.io.paths.writeString
 import moe.kanon.kommons.requireThat
@@ -106,7 +107,6 @@ class Page private constructor(val book: Book, val document: Document, val resou
      */
     fun removeStyleSheet(styleSheet: StyleSheetResource) {
         head.select("link[rel=stylesheet]")
-            .asSequence()
             .filter { element -> styleSheet.isHrefEqual(element.attr("href")) }
             .forEach { it.remove() }
     }
@@ -131,22 +131,18 @@ class Page private constructor(val book: Book, val document: Document, val resou
     companion object {
         /**
          * Returns a new [Page] instance wrapped around the given [resource].
+         *
+         * @throws [IllegalArgumentException] if [resource] is not part of the [known resources][Book.resources] of the
+         * [book]
          */
         @JvmStatic
         @Throws(IOException::class)
         fun fromResource(resource: PageResource): Page {
+            checkThat(resource in resource.book.resources) { "given 'resource' is not part of the known resources of given book" }
             val file = resource.file
             val document = file.newInputStream().use { Jsoup.parse(it, "UTF-8", file.toAbsolutePath().toString()) }
             document.applyDefaultOutputSettings()
             return Page(resource.book, document, resource)
         }
-
-        @JvmStatic
-        @Throws(IOException::class)
-        fun fromString(contents: String): Page = TODO()
-
-        @JvmStatic
-        @Throws(IOException::class)
-        fun fromHtml(contents: String): Page = TODO()
     }
 }

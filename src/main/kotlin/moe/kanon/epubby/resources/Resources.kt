@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Oliver Berg
+ * Copyright 2019-2020 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package moe.kanon.epubby.resources
 
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.ImmutableMap
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toPersistentHashMap
 import moe.kanon.epubby.Book
@@ -32,6 +33,7 @@ import moe.kanon.kommons.collections.getOrThrow
 import moe.kanon.kommons.func.Option
 import moe.kanon.kommons.func.firstOrNone
 import moe.kanon.kommons.func.getOrNone
+import moe.kanon.kommons.io.paths.createDirectories
 import moe.kanon.kommons.io.paths.delete
 import moe.kanon.kommons.io.paths.exists
 import moe.kanon.kommons.io.paths.getOrCreateDirectory
@@ -41,6 +43,7 @@ import moe.kanon.kommons.requireThat
 import java.io.IOException
 import java.net.URI
 import java.nio.file.CopyOption
+import java.nio.file.FileSystem
 import java.nio.file.Path
 
 class Resources internal constructor(val book: Book) : Iterable<Resource> {
@@ -51,60 +54,62 @@ class Resources internal constructor(val book: Book) : Iterable<Resource> {
      */
     val entries: ImmutableMap<Identifier, Resource> get() = resources.toPersistentHashMap()
 
+    // TODO: Change names back to have the 'Resources' suffix?
+
     /**
      * Returns a map of all the [page-resources][PageResource] that the book has, mapped like `identifier::resource`.
      */
-    val pageResources: ImmutableMap<Identifier, PageResource>
+    val pages: ImmutableMap<Identifier, PageResource>
         get() = resources.filterValuesIsInstance<Identifier, PageResource>().toPersistentHashMap()
 
     /**
      * Returns a map of all the [stylesheet-resources][StyleSheetResource] that the book has, mapped like
      * `identifier::resource`.
      */
-    val styleSheetResources: ImmutableMap<Identifier, StyleSheetResource>
+    val styleSheets: ImmutableMap<Identifier, StyleSheetResource>
         get() = resources.filterValuesIsInstance<Identifier, StyleSheetResource>().toPersistentHashMap()
 
     /**
      * Returns a map of all the [image-resources][ImageResource] that the book has, mapped like `identifier::resource`.
      */
-    val imageResources: ImmutableMap<Identifier, ImageResource>
+    val images: ImmutableMap<Identifier, ImageResource>
         get() = resources.filterValuesIsInstance<Identifier, ImageResource>().toPersistentHashMap()
 
     /**
      * Returns a map of all the [font-resources][FontResource] that the book has, mapped like `identifier::resource`.
      */
-    val fontResources: ImmutableMap<Identifier, FontResource>
+    val fonts: ImmutableMap<Identifier, FontResource>
         get() = resources.filterValuesIsInstance<Identifier, FontResource>().toPersistentHashMap()
 
     /**
      * Returns a map of all the [audio-resources][AudioResource] that the book has, mapped like `identifier::resource`.
      */
-    val audioResources: ImmutableMap<Identifier, AudioResource>
+    val audio: ImmutableMap<Identifier, AudioResource>
         get() = resources.filterValuesIsInstance<Identifier, AudioResource>().toPersistentHashMap()
 
     /**
      * Returns a map of all the [script-resources][ScriptResource] that the book has, mapped like
      * `identifier::resource`.
      */
-    val scriptResources: ImmutableMap<Identifier, ScriptResource>
+    val scripts: ImmutableMap<Identifier, ScriptResource>
         get() = resources.filterValuesIsInstance<Identifier, ScriptResource>().toPersistentHashMap()
 
     /**
      * Returns a map of all the [video-resources][VideoResource] that the book has, mapped like `identifier::resource`.
      */
-    val videoResources: ImmutableMap<Identifier, VideoResource>
+    val videos: ImmutableMap<Identifier, VideoResource>
         get() = resources.filterValuesIsInstance<Identifier, VideoResource>().toPersistentHashMap()
 
     /**
      * Returns a map of all the [misc-resources][MiscResource] that the book has, mapped like `identifier::resource`.
      */
-    val miscResources: ImmutableMap<Identifier, MiscResource>
+    val miscellaneous: ImmutableMap<Identifier, MiscResource>
         get() = resources.filterValuesIsInstance<Identifier, MiscResource>().toPersistentHashMap()
 
     /**
      * Returns the [ncx-resource][NcxResource] that belongs to the [book].
      */
-    val ncxResource: NcxResource get() = resources.values.filterIsInstance<NcxResource>().first()
+    val ncx: NcxResource get() = resources.values.filterIsInstance<NcxResource>().first()
 
     fun <R : Resource> addResource(resource: R): R {
         // TODO: Is this too extreme?
@@ -227,6 +232,7 @@ class Resources internal constructor(val book: Book) : Iterable<Resource> {
      *
      * @throws [IOException] if an i/o error occurs
      */
+    // TODO: Remove?
     @JvmOverloads
     @Throws(IOException::class)
     fun moveToDesiredDirectories(vararg options: CopyOption = arrayOf()) {
@@ -242,23 +248,53 @@ class Resources internal constructor(val book: Book) : Iterable<Resource> {
     }
 
     /**
+     * Returns the [desired directory][Resource.desiredDirectory] of the given [resource].
+     */
+    fun <T : Resource> getDesiredDirectoryOf(resource: Class<T>): Path = when (resource) {
+        NcxResource::class.java -> book.packageRoot
+        PageResource::class.java -> book.packageRoot.resolve("Text/")
+        StyleSheetResource::class.java -> book.packageRoot.resolve("Styles/")
+        ImageResource::class.java -> book.packageRoot.resolve("Images/")
+        FontResource::class.java -> book.packageRoot.resolve("Fonts/")
+        AudioResource::class.java -> book.packageRoot.resolve("Audio/")
+        ScriptResource::class.java -> book.packageRoot.resolve("Scripts/")
+        VideoResource::class.java -> book.packageRoot.resolve("Video/")
+        MiscResource::class.java -> book.packageRoot.resolve("Misc/")
+        else -> throw IllegalArgumentException("Unknown resource class <$resource>")
+    }
+
+    /**
+     * Returns the [desired directory][Resource.desiredDirectory] of the given [resource type][T].
+     */
+    @JvmSynthetic
+    inline fun <reified T : Resource> getDesiredDirectoryOf(): Path = getDesiredDirectoryOf(T::class.java)
+
+    /**
      * Returns a list of all the directories that the underlying [files][Resource.file] of the `resources` are stored
      * in. The list is ordered by frequency of directory, with the highest being first, and lowest being last.
+     *
+     * If there are no resources of the given [type] available in the `book`, then a list containing only the
+     * [desired directory][Resource.desiredDirectory] of the resource type will be returned.
      */
     // TODO: Does this work?
-    fun <T : Resource> getDirectoriesUsedBy(filter: Class<T>): ImmutableList<Path> {
-        val dirs = resources
+    fun <T : Resource> getDirectoriesUsedBy(resource: Class<T>): ImmutableList<Path> {
+        val allDirectories = resources
             .values
             .asSequence()
-            .filterIsInstance(filter)
+            .filterIsInstance(resource)
             .map { it.file.parent }
-        return dirs
+        val sortedDirectories = allDirectories
             .distinct()
-            .map { it to dirs.count { dir -> it == dir } }
+            .map { it to allDirectories.count { dir -> it == dir } }
             .sortedByDescending { it.second }
             .map { it.first }
             .asIterable()
             .toImmutableList()
+        return if (sortedDirectories.isEmpty()) {
+            persistentListOf(getDesiredDirectoryOf(resource).createDirectories())
+        } else {
+            sortedDirectories
+        }
     }
 
     /**
@@ -301,5 +337,19 @@ class Resources internal constructor(val book: Book) : Iterable<Resource> {
         book.manifest.updateManifestItemIdentifier(oldIdentifier, newIdentifier)
         resources -= oldIdentifier
         resources[newIdentifier] = resource
+    }
+
+    @JvmSynthetic
+    internal fun writeResourcesToFile(fileSystem: FileSystem) {
+        logger.debug { "Writing all style-sheets to their respective files.." }
+        book.transformers.transformStyleSheets()
+        for ((_, resource) in styleSheets) {
+            resource.writeToFile(fileSystem)
+        }
+
+        logger.debug { "Writing all images to their respective files.." }
+        for ((_, resource) in images) {
+            resource.writeToFile(fileSystem)
+        }
     }
 }

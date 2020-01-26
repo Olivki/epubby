@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Oliver Berg
+ * Copyright 2019-2020 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,12 +48,8 @@ class Identifier private constructor(val value: String) {
     override fun toString(): String = value
 
     companion object {
-        /**
-         * Returns a new identifier where the `value` is a [random-uuid][UUID.randomUUID].
-         */
-        @JvmStatic
-        fun createUnique(): Identifier = Identifier(UUID.randomUUID().toString())
-
+        // TODO: Some sort of validation? As this class is originally based on the 'id' attribute defined in the XML
+        //       spec, they might actually only accept certain kinds of characters and the like.
         /**
          * Returns a new identifier where the `value` is the given [value].
          */
@@ -61,13 +57,20 @@ class Identifier private constructor(val value: String) {
         fun of(value: String): Identifier = Identifier(value)
 
         /**
-         * Returns a new identifier where the [name][Path.name] of the given [file] is used as the value.
+         * Returns a new identifier where the `value` is a [random-uuid][UUID.randomUUID].
          */
         @JvmStatic
-        fun fromFile(file: Path): Identifier = Identifier(file.name)
+        fun createUnique(): Identifier = of(UUID.randomUUID().toString())
+
+        /**
+         * Returns a new identifier that is formatted where the name of the given [file] is used, but its prefixed with
+         * `"x_"`.
+         */
+        @JvmStatic
+        fun fromFile(file: Path): Identifier = of("x_${file.name}")
 
         @JvmSynthetic
         internal fun fromElement(element: Element, container: Path, current: Path): Identifier =
-            Identifier(element.attr("id", container, current))
+            of(element.attr("id", container, current))
     }
 }

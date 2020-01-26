@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Oliver Berg
+ * Copyright 2019-2020 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,8 +35,6 @@ import java.nio.file.FileSystem
 
 class Pages internal constructor(val book: Book) : Iterable<Page> {
     private val pages: MutableList<Page> = mutableListOf()
-
-    val transformers: PageTransformers = PageTransformers(book)
 
     /**
      * Returns a linked-map containing all the [pages][Page] used by the [book].
@@ -193,7 +191,7 @@ class Pages internal constructor(val book: Book) : Iterable<Page> {
     // -- INTERNAL -- \\
     @JvmSynthetic
     internal fun writePagesToFile(fileSystem: FileSystem) {
-        transformers.transformPages()
+        book.transformers.transformPages()
         logger.debug { "Starting the writing process of all pages to their respective files.." }
         for (page in pages) {
             page.writeToFile(fileSystem)

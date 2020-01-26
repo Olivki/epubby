@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Oliver Berg
+ * Copyright 2019-2020 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,7 +47,9 @@ import java.net.URI
 import java.nio.charset.Charset
 import java.nio.file.Path
 import java.time.LocalDateTime
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
 import java.util.Locale
 
 /**
@@ -266,11 +268,14 @@ class Metadata private constructor(
      * [ISO_LOCAL_DATE_TIME][DateTimeFormatter.ISO_LOCAL_DATE_TIME].
      *
      * This will create a new `last-modified` meta entry if none can be found.
+     *
+     * The resulting text will use the given [date], with its offset set to [UTC][ZoneOffset.UTC], and formatted with
+     * the pattern `"CCYY-MM-DDThh:mm:ssZ"`, as per the EPUB specification.
      */
     @JvmOverloads
     fun setLastModifiedDate(date: LocalDateTime = LocalDateTime.now()) {
-        val currentDateTime = date.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-        logger.debug { "Updating last-modified date of book <$book> to '$currentDateTime'.." }
+        val currentDateTime = date.atOffset(ZoneOffset.UTC).format(LAST_MODIFIED_FORMAT)
+        logger.info { "Updating last-modified date of book <$book> to '$currentDateTime'.." }
 
         if (book.version > BookVersion.EPUB_2_0) {
             val property = Property.of(PackagePrefix.DC_TERMS, "modified")
@@ -296,7 +301,29 @@ class Metadata private constructor(
         }
     }
 
-    fun getLastModifiedDateOrNull(): String? = when {
+    /**
+     * @throws [DateTimeParseException] if the found meta elements value can not be parsed into a date properly
+     */
+    // TODO: Change return value to 'OffsetDateTime?'
+    fun getLastModifiedDate(): LocalDateTime = when {
+        book.version > BookVersion.EPUB_2_0 -> {
+            val property = Property.of(PackagePrefix.DC_TERMS, "modified")
+            metaElements
+                .filterIsInstance<Meta.OPF3>()
+                .firstOrNull { it.property == property }
+                ?.value
+                ?.let { LocalDateTime.parse(it, LAST_MODIFIED_FORMAT)/*.atOffset(ZoneOffset.UTC)*/ }
+                ?: throw NoSuchElementException("Could not find an element describing the last-modified time.")
+        }
+        else -> dublinCoreElements
+            .filterIsInstance<DublinCore.Date>()
+            .firstOrNull { it.hasAttribute("event", "modification") }
+            ?.content
+            ?.let { LocalDateTime.parse(it, LAST_MODIFIED_FORMAT)/*.atOffset(ZoneOffset.UTC)*/ }
+            ?: throw NoSuchElementException("Could not find an element describing the last-modified time.") // this shouldn't happen
+    }
+
+    fun getLastModifiedDateAsString(): String? = when {
         book.version > BookVersion.EPUB_2_0 -> TODO()
         else -> dublinCoreElements
             .filterIsInstance<DublinCore.Date>()
@@ -518,6 +545,9 @@ class Metadata private constructor(
     }
 
     internal companion object {
+        @JvmField
+        internal val LAST_MODIFIED_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("CCYY-MM-DDThh:mm:ssZ")
+
         private val DC_NAMES = persistentHashSetOf("identifier", "title", "language")
         private val META_OPF2_ATTRIBUTES = persistentHashSetOf("charset", "content", "http-equiv", "name", "scheme")
         private val META_OPF3_ATTRIBUTES = persistentHashSetOf("property", "id", "dir", "refines", "scheme", "lang")

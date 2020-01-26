@@ -1,6 +1,21 @@
+/*
+ * Copyright 2019-2020 Oliver Berg
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import name.remal.gradle_plugins.dsl.extensions.convention
 import name.remal.gradle_plugins.dsl.extensions.get
-import name.remal.gradle_plugins.dsl.extensions.implementation
 import name.remal.gradle_plugins.plugins.publish.bintray.RepositoryHandlerBintrayExtension
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
@@ -40,12 +55,12 @@ dependencies {
     implementation(kotlin("stdlib-jdk8"))
     implementation(kotlin("reflect"))
     implementation(group = "org.jetbrains.kotlinx", name = "kotlinx-html-jvm", version = "0.6.12")
-    implementation(group = "org.jetbrains.kotlinx", name = "kotlinx-collections-immutable-jvm", version = "0.3")
+    api(group = "org.jetbrains.kotlinx", name = "kotlinx-collections-immutable-jvm", version = "0.3")
 
     // Kanon
     implementation(group = "moe.kanon.kommons", name = "kommons.func", version = "1.6.1")
     implementation(group = "moe.kanon.kommons", name = "kommons.reflection", version = "0.5.0")
-    implementation(group = "moe.kanon.kommons", name = "kommons.io", version = "1.4.1")
+    implementation(group = "moe.kanon.kommons", name = "kommons.io", version = "1.4.2")
     implementation(group = "moe.kanon.kommons", name = "kommons.lang", version = "0.4.1")
     implementation(group = "moe.kanon.kommons", name = "kommons.collections", version = "0.10.3")
 
@@ -55,20 +70,20 @@ dependencies {
     // Apache
     implementation(group = "commons-validator", name = "commons-validator", version = "1.6")
     implementation(group = "org.apache.logging.log4j", name = "log4j-api-kotlin", version = "1.0.0")
-    implementation(group = "org.apache.commons", name = "commons-collections4", version = "4.4")
+    api(group = "org.apache.commons", name = "commons-collections4", version = "4.4")
 
     // css handler
-    //implementation(group = "com.helger", name = "ph-css", version = "6.2.0")
-    implementation(group = "net.sf.cssbox", name = "jstyleparser", version = "3.5")
+    api(group = "com.helger", name = "ph-css", version = "6.2.0")
+    //implementation(group = "net.sf.cssbox", name = "jstyleparser", version = "3.5")
 
     // JSoup
-    implementation(group = "org.jsoup", name = "jsoup", version = "1.12.1")
+    api(group = "org.jsoup", name = "jsoup", version = "1.12.1")
 
     // css dsl
-    implementation(group = "azadev.kotlin", name = "aza-kotlin-css", version = "1.0")
+    api(group = "azadev.kotlin", name = "aza-kotlin-css", version = "1.0")
 
     // Google
-    implementation(group = "com.google.guava", name = "guava", version = "28.1-jre")
+    api(group = "com.google.guava", name = "guava", version = "28.1-jre")
     compileOnly(group = "com.google.auto.service", name = "auto-service", version = "1.0-rc4")
     kapt(group = "com.google.auto.service", name = "auto-service", version = "1.0-rc4")
 

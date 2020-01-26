@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Oliver Berg
+ * Copyright 2019-2020 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -95,6 +95,7 @@ class PackageDocument private constructor(
 ) {
     var uniqueIdentifier: Identifier by Delegates.vetoable(uniqueIdentifier) { _, _, new ->
         requireThat(new.value.isNotBlank()) { "unique-identifier for package-document should not be blank" }
+        // TODO: Make sure that this identifier actually points towards an existing element
         true
     }
 

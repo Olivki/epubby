@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Oliver Berg
+ * Copyright 2019-2020 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,5 +14,17 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.resources.css
+package moe.kanon.epubby.resources.transformers
 
+import moe.kanon.epubby.resources.pages.Page
+import org.jsoup.nodes.Document
+import org.jsoup.nodes.Element
+
+interface PageTransformer : Transformer {
+    /**
+     * Gets invoked when the [book] is saving the given [page] to its file.
+     *
+     * This function allows `this` transformer to modify the contents of the given `page`.
+     */
+    fun transformPage(page: Page, document: Document, body: Element)
+}

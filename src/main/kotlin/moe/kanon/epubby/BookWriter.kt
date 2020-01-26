@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Oliver Berg
+ * Copyright 2019-2020 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -85,11 +85,12 @@ class BookWriter @JvmOverloads constructor(
                 book.metaInf.writeToFiles(it)
                 book.packageDocument.writeToFile(it)
                 book.pages.writePagesToFile(it)
+                book.resources.writeResourcesToFile(it)
                 book.tableOfContents.writeToFile(it)
                 for (setting in options) setting.modifyBook(book, it, it.getPath("/"))
             }
         } catch (e: IOException) {
-            // something went wrong when trying to create the new file-system, so we want to rethrow a the exception
+            // something went wrong when trying to create the new file-system, so we want to rethrow the exception
             // wrapped in an epubby-exception, this is to notify the user that *we* know that this happened
             malformed(file, "Could not create a file-system for '${file.name}'", e)
         }
