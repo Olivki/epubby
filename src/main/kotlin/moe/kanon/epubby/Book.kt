@@ -49,6 +49,9 @@ import java.util.Locale
 // TODO: Remove the kotlin CSS DSL from this project, create a new small dependency containing only that and some
 //       util functions for making the CSS framework nicer to work with from the kotlin side, so that we're not
 //       cluttering up this library with util functions and the like.
+// TODO: Create individual parser/reader classes for handling the parsing of the 'packages' classes rather than having
+//       all the functions located inside of the companion object of it, this is to clean up the code more.
+// TODO: Do not serialize 'properties'/'property' attributes on 2.x EPUB files, as they were added in 3.x
 
 /**
  * Represents the container that makes up an [EPUB](...).

@@ -21,6 +21,7 @@ import kotlinx.collections.immutable.toImmutableList
 import moe.kanon.epubby.Book
 import moe.kanon.epubby.internal.Patterns
 import moe.kanon.epubby.internal.logger
+import moe.kanon.epubby.resources.NcxResource
 import moe.kanon.epubby.resources.PageResource
 import moe.kanon.epubby.resources.pages.Page
 import moe.kanon.epubby.structs.Identifier
@@ -34,7 +35,6 @@ import org.jsoup.nodes.Attributes
 import org.jsoup.nodes.Element
 import java.net.URI
 import java.nio.file.FileSystem
-import java.nio.file.Path
 import moe.kanon.epubby.resources.toc.NavigationDocument.Content.Link as NavContentLink
 import moe.kanon.epubby.resources.toc.NavigationDocument.Content.Span as NavContentSpan
 import moe.kanon.epubby.resources.toc.NavigationDocument.ListItem as NavListItem
@@ -43,10 +43,9 @@ import moe.kanon.epubby.resources.toc.NavigationDocument.OrderedList as NavOrder
 class TableOfContents private constructor(
     val book: Book,
     val entries: NonEmptyList<Entry>,
+    val ncxDocument: NcxDocument,
     val navigationDocument: NavigationDocument? = null // TODO: Make it not be 'null'?
 ) : Iterable<TableOfContents.Entry> {
-    lateinit var ncxDocument: NcxDocument
-        @JvmSynthetic internal set
 
     fun getOrCreatePage(): Page {
         TODO(
@@ -70,7 +69,7 @@ class TableOfContents private constructor(
                 clear()
                 addAll(book.metadata.authors.map { NcxDocument.DocAuthor(NcxDocument.Text(it.content)) })
             }
-            navMap.points.clear()
+            navMap.points.tail.clear()
             navMap.points.addAll(entries.mapNotNull(::createNcxNavPoint))
         }
     }
@@ -198,11 +197,10 @@ class TableOfContents private constructor(
         internal fun fromNcxDocument(book: Book, ncx: NcxDocument): TableOfContents {
             val entries = ncx.navMap.points
                 .asSequence()
-                .map { createEntryFromNcx(book, null, it) }
-                .filterNotNull()
+                .mapNotNull { createEntryFromNcx(book, null, it) }
                 // TODO: .ifEmpty {  }
                 .toNonEmptyList()
-            return TableOfContents(book, entries).apply { ncxDocument = ncx }
+            return TableOfContents(book, entries, ncx)
         }
 
         private fun createNcxNavPoint(entry: Entry): NcxDocument.NavPoint? {
@@ -234,10 +232,18 @@ class TableOfContents private constructor(
         @JvmSynthetic
         internal fun fromNavigationDocument(book: Book, nav: NavigationDocument): TableOfContents {
             val entries = nav.tocNav.orderedList.entries.map { createEntryFromNav(book, null, it) }.toNonEmptyList()
-            return TableOfContents(book, entries, nav).apply {
-                val file: Path = book.packageRoot.resolve("toc.ncx").touch()
-                ncxDocument = NcxDocument.create(book, file, entries.mapNotNull(::createNcxNavPoint).toNonEmptyList())
+            val ncx = createNcxDocument(book, entries)
+            return TableOfContents(book, entries, ncx, nav)
+        }
+
+        private fun createNcxDocument(book: Book, entries: NonEmptyList<Entry>): NcxDocument {
+            val file = book.resources.getTableOfContentsNcx() ?: run {
+                logger.info { "No ncx-resource found, creating one for backwards compatibility.." }
+                val file = book.packageRoot.resolve("toc.ncx").touch()
+                val resource = NcxResource.fromFile(file, book, Identifier.of("table-of-contents"))
+                book.resources.addResource(resource)
             }
+            return NcxDocument.create(book, file.file, entries.mapNotNull(::createNcxNavPoint).toNonEmptyList())
         }
 
         // TODO: maybe filter through the available 'Content.Link' instances and match any known 'href' attributes and

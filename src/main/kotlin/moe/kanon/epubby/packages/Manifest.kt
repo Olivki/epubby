@@ -195,6 +195,7 @@ class Manifest private constructor(
          */
         data class Local internal constructor(
             override val identifier: Identifier,
+            // TODO: this can probably be a IRI, so a path might actually fail here
             override val href: Path,
             override val mediaType: MediaType? = null,
             override val fallback: Identifier? = null,

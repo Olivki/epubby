@@ -25,7 +25,7 @@ import moe.kanon.kommons.io.paths.pathOf
 import java.nio.file.Path
 
 const val FILE_NAME = "test_1.epub"
-const val DIR = "!EPUB2"
+const val DIR = "!EPUB3"
 
 val input: Path = pathOf("H:", "Programming", "JVM", "Kotlin", "Data", "epubby", "reader")
     .resolve(DIR)
@@ -39,7 +39,6 @@ fun main() {
     output.deleteIfExists()
 
     val book = readBook(createBackup(input)).use {
-        it.pages.transformers.registerInstalled()
         it.resources.moveToDesiredDirectories()
         return@use it
     }

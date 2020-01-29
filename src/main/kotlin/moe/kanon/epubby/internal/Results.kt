@@ -16,6 +16,7 @@
 
 package moe.kanon.epubby.internal
 
+import moe.kanon.epubby.BookVersion
 import moe.kanon.epubby.EpubbyException
 import moe.kanon.epubby.MalformedBookException
 import moe.kanon.kommons.func.Failure
@@ -26,6 +27,9 @@ typealias BookResult<T> = Try<T>
 
 @PublishedApi
 internal fun fail(message: String, cause: Throwable? = null): Nothing = throw EpubbyException(message, cause)
+
+@PublishedApi
+internal fun unknownVersion(version: BookVersion): Nothing = throw EpubbyException("Unknown book version '$version'")
 
 @PublishedApi
 internal fun malformed(epub: Path, message: String, cause: Throwable? = null): Nothing =

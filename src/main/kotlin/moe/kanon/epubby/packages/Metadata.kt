@@ -324,7 +324,10 @@ class Metadata private constructor(
     }
 
     fun getLastModifiedDateAsString(): String? = when {
-        book.version > BookVersion.EPUB_2_0 -> TODO()
+        book.version > BookVersion.EPUB_2_0 -> metaElements
+            .filterIsInstance<Meta.OPF3>()
+            .firstOrNull { it.property == Property.of(PackagePrefix.DC_TERMS, "modified") }
+            ?.value
         else -> dublinCoreElements
             .filterIsInstance<DublinCore.Date>()
             .firstOrNull { it.hasAttribute("event", "modification") }?.content
@@ -546,7 +549,12 @@ class Metadata private constructor(
 
     internal companion object {
         @JvmField
-        internal val LAST_MODIFIED_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("CCYY-MM-DDThh:mm:ssZ")
+        // TODO: 'DateTimeFormatter.ofPattern("CCYY-MM-DDThh:mm:ssZ")' the format that's given in the EPUB spec seems
+        //       can not just be directly thrown into a 'ofPattern' function, as it fails on the 'CC' characters,
+        //       but when looking at the spec for the 'dateTime' object in XML-SCHEMA there is no mention of the 'CC'
+        //       characters either, so I don't know what's actually wrong here? This will just use standard ISO time
+        //       until I figure out the correct format here.
+        internal val LAST_MODIFIED_FORMAT: DateTimeFormatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
 
         private val DC_NAMES = persistentHashSetOf("identifier", "title", "language")
         private val META_OPF2_ATTRIBUTES = persistentHashSetOf("charset", "content", "http-equiv", "name", "scheme")

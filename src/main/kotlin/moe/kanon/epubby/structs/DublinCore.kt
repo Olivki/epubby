@@ -18,16 +18,14 @@
 
 package moe.kanon.epubby.structs
 
+import au.com.console.kassava.kotlinEquals
+import au.com.console.kassava.kotlinHashCode
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import moe.kanon.epubby.Book
 import moe.kanon.epubby.BookVersion
 import moe.kanon.epubby.internal.Namespaces
 import moe.kanon.epubby.packages.Metadata
-import moe.kanon.epubby.packages.OPF3Meta
-import moe.kanon.epubby.structs.props.Property
-import moe.kanon.kommons.checkThat
-import moe.kanon.kommons.requireThat
 import org.jdom2.Attribute
 import org.jdom2.Element
 import org.jdom2.Namespace
@@ -45,36 +43,14 @@ import moe.kanon.epubby.structs.Identifier as EpubbyIdentifier
  *
  * @property [book] The book instance that `this` dublin-core element is tied to.
  * @property [label] The string to use when converting this dublin-core back into its XML form.
- * @property [isLocaleDependant] Whether or not `this` dublin-core element supports the [direction] and [language]
- * properties.
  */
-sealed class DublinCore<T : Any>(val label: String, val isLocaleDependant: Boolean) {
+sealed class DublinCore<T : Any>(val label: String) {
     abstract var identifier: EpubbyIdentifier?
 
     /**
      * The value of `this` dublin-core element.
      */
     abstract var content: T
-
-    /**
-     * The direction in which the contents should be read in.
-     *
-     * If this dublin-core element is not [locale-dependant][isLocaleDependant] then this will always return `null` and
-     * setting it will have no effect.
-     */
-    open var direction: Direction?
-        get() = null
-        set(value) {}
-
-    /**
-     * The language that the contents is written in.
-     *
-     * If this dublin-core element is not [locale-dependant][isLocaleDependant] then this will always return `null` and
-     * setting it will have no effect.
-     */
-    open var language: Locale?
-        get() = null
-        set(value) {}
 
     // for EPUB 2.0 compliance, as the 'meta' element wasn't defined back then, so 'opf:property' attributes were used,
     // which means we need to catch them and then just throw them back onto the element during 'toElement' invocation
@@ -136,55 +112,23 @@ sealed class DublinCore<T : Any>(val label: String, val isLocaleDependant: Boole
      */
     fun hasAttribute(name: String): Boolean = _attributes.any { it.name == name }
 
-    // TODO: Documentation
-    @JvmOverloads
-    fun refine(
-        book: Book,
-        value: String,
-        property: Property,
-        identifier: EpubbyIdentifier? = null,
-        scheme: String? = null,
-        language: Locale? = null,
-        direction: Direction? = null
-    ): Metadata.Meta.OPF3 {
-        requireThat(book.version >= BookVersion.EPUB_3_0) { "refining is only available in EPUB 3.0 and up" }
-        checkThat(this.identifier != null) { "can't refine a dublin-core element without an identifier" }
-        if (this !in book.metadata.dublinCoreElements) book.metadata.addDublinCore(this)
-        return OPF3Meta(value, property, identifier, direction, this, scheme, language).also {
-            book.metadata.addMeta(it)
-        }
-    }
-
     /**
      * Returns a `String` version of the [content] of `this` dublin-core metadata element.
      */
     protected abstract fun stringify(): String
 
-    override fun equals(other: Any?): Boolean = when {
-        this === other -> true
-        other !is DublinCore<*> -> false
-        label != other.label -> false
-        identifier != other.identifier -> false
-        content != other.content -> false
-        direction != other.direction -> false
-        language != other.language -> false
-        else -> true
-    }
+    // TODO: Do these work properly?
+    override fun equals(other: Any?): Boolean = kotlinEquals(other, PROPERTIES)
 
-    override fun hashCode(): Int {
-        var result = label.hashCode()
-        result = 31 * result + (identifier?.hashCode() ?: 0)
-        result = 31 * result + content.hashCode()
-        result = 31 * result + (direction?.hashCode() ?: 0)
-        result = 31 * result + (language?.hashCode() ?: 0)
-        return result
-    }
+    override fun hashCode(): Int = kotlinHashCode(PROPERTIES)
 
     override fun toString(): String = buildString {
         append("DublinCore.$label(value='$content'")
         identifier?.also { append(", identifier='$identifier'") }
-        direction?.also { append(", direction=$direction") }
-        language?.also { append(", language='$language'") }
+        if (this@DublinCore is Localizable) {
+            direction?.also { append(", direction=$direction") }
+            language?.also { append(", language='$language'") }
+        }
         append(")")
     }
 
@@ -194,7 +138,7 @@ sealed class DublinCore<T : Any>(val label: String, val isLocaleDependant: Boole
         Element(label.toLowerCase(), namespace).apply {
             identifier?.also { setAttribute("id", it.value) }
 
-            if (isLocaleDependant) {
+            if (this is Localizable) {
                 direction?.also { setAttribute("dir", it.toString()) }
                 language?.also { setAttribute("lang", it.toLanguageTag(), Namespace.XML_NAMESPACE) }
             }
@@ -205,6 +149,21 @@ sealed class DublinCore<T : Any>(val label: String, val isLocaleDependant: Boole
         }
 
     /**
+     * Represents a [DublinCore] element whose content can be localized to a different language.
+     */
+    interface Localizable {
+        /**
+         * The direction in which the contents should be read in, may be `null`.
+         */
+        var direction: Direction?
+
+        /**
+         * The language that the contents is written in, may be `null`.
+         */
+        var language: Locale?
+    }
+
+    /**
      * A point or period of time associated with an event in the lifecycle of the resource.
      *
      * `Date` may be used to express temporal information at any level of granularity.
@@ -212,7 +171,7 @@ sealed class DublinCore<T : Any>(val label: String, val isLocaleDependant: Boole
     class Date internal constructor(
         override var content: String,
         override var identifier: EpubbyIdentifier? = null
-    ) : DublinCore<String>("Date", false) {
+    ) : DublinCore<String>("Date") {
         @JvmOverloads
         constructor(
             value: LocalDateTime,
@@ -231,7 +190,7 @@ sealed class DublinCore<T : Any>(val label: String, val isLocaleDependant: Boole
     class Format @JvmOverloads constructor(
         override var content: String,
         override var identifier: EpubbyIdentifier? = null
-    ) : DublinCore<String>("Format", false) {
+    ) : DublinCore<String>("Format") {
         override fun stringify(): String = content
     }
 
@@ -244,7 +203,7 @@ sealed class DublinCore<T : Any>(val label: String, val isLocaleDependant: Boole
     class Identifier @JvmOverloads constructor(
         override var content: String,
         override var identifier: EpubbyIdentifier? = null
-    ) : DublinCore<String>("Identifier", false) {
+    ) : DublinCore<String>("Identifier") {
         override fun stringify(): String = content
     }
 
@@ -256,7 +215,7 @@ sealed class DublinCore<T : Any>(val label: String, val isLocaleDependant: Boole
     class Language @JvmOverloads constructor(
         override var content: Locale,
         override var identifier: EpubbyIdentifier? = null
-    ) : DublinCore<Locale>("Language", false) {
+    ) : DublinCore<Locale>("Language") {
         override fun stringify(): String = content.toLanguageTag()
     }
 
@@ -269,7 +228,7 @@ sealed class DublinCore<T : Any>(val label: String, val isLocaleDependant: Boole
     class Source @JvmOverloads constructor(
         override var content: String,
         override var identifier: EpubbyIdentifier? = null
-    ) : DublinCore<String>("Source", false) {
+    ) : DublinCore<String>("Source") {
         override fun stringify(): String = content
     }
 
@@ -282,7 +241,7 @@ sealed class DublinCore<T : Any>(val label: String, val isLocaleDependant: Boole
     class Type @JvmOverloads constructor(
         override var content: String,
         override var identifier: EpubbyIdentifier? = null
-    ) : DublinCore<String>("Type", false) {
+    ) : DublinCore<String>("Type") {
         override fun stringify(): String = content
     }
 
@@ -297,8 +256,12 @@ sealed class DublinCore<T : Any>(val label: String, val isLocaleDependant: Boole
         override var identifier: EpubbyIdentifier? = null,
         override var direction: Direction? = null,
         override var language: Locale? = null
-    ) : DublinCore<String>("Contributor", true) {
+    ) : DublinCore<String>("Contributor"), Localizable {
         override fun stringify(): String = content
+
+        override fun equals(other: Any?): Boolean = kotlinEquals(other, PROPERTIES) { super.equals(other) }
+
+        override fun hashCode(): Int = kotlinHashCode(PROPERTIES) { super.hashCode() }
     }
 
     /**
@@ -317,8 +280,12 @@ sealed class DublinCore<T : Any>(val label: String, val isLocaleDependant: Boole
         override var identifier: EpubbyIdentifier? = null,
         override var direction: Direction? = null,
         override var language: Locale? = null
-    ) : DublinCore<String>("Coverage", true) {
+    ) : DublinCore<String>("Coverage"), Localizable {
         override fun stringify(): String = content
+
+        override fun equals(other: Any?): Boolean = kotlinEquals(other, PROPERTIES) { super.equals(other) }
+
+        override fun hashCode(): Int = kotlinHashCode(PROPERTIES) { super.hashCode() }
     }
 
     /**
@@ -335,8 +302,14 @@ sealed class DublinCore<T : Any>(val label: String, val isLocaleDependant: Boole
         override var identifier: EpubbyIdentifier? = null,
         override var direction: Direction? = null,
         override var language: Locale? = null
-    ) : DublinCore<String>("Creator", true) {
+    ) : DublinCore<String>("Creator"), Localizable {
+        // TODO: Implement stuff like "setRole" in some manner
+
         override fun stringify(): String = content
+
+        override fun equals(other: Any?): Boolean = kotlinEquals(other, PROPERTIES) { super.equals(other) }
+
+        override fun hashCode(): Int = kotlinHashCode(PROPERTIES) { super.hashCode() }
     }
 
     /**
@@ -350,8 +323,12 @@ sealed class DublinCore<T : Any>(val label: String, val isLocaleDependant: Boole
         override var identifier: EpubbyIdentifier? = null,
         override var direction: Direction? = null,
         override var language: Locale? = null
-    ) : DublinCore<String>("Description", true) {
+    ) : DublinCore<String>("Description"), Localizable {
         override fun stringify(): String = content
+
+        override fun equals(other: Any?): Boolean = kotlinEquals(other, PROPERTIES) { super.equals(other) }
+
+        override fun hashCode(): Int = kotlinHashCode(PROPERTIES) { super.hashCode() }
     }
 
     /**
@@ -365,8 +342,12 @@ sealed class DublinCore<T : Any>(val label: String, val isLocaleDependant: Boole
         override var identifier: EpubbyIdentifier? = null,
         override var direction: Direction? = null,
         override var language: Locale? = null
-    ) : DublinCore<String>("Publisher", true) {
+    ) : DublinCore<String>("Publisher"), Localizable {
         override fun stringify(): String = content
+
+        override fun equals(other: Any?): Boolean = kotlinEquals(other, PROPERTIES) { super.equals(other) }
+
+        override fun hashCode(): Int = kotlinHashCode(PROPERTIES) { super.hashCode() }
     }
 
     /**
@@ -380,8 +361,12 @@ sealed class DublinCore<T : Any>(val label: String, val isLocaleDependant: Boole
         override var identifier: EpubbyIdentifier? = null,
         override var direction: Direction? = null,
         override var language: Locale? = null
-    ) : DublinCore<String>("Relation", true) {
+    ) : DublinCore<String>("Relation"), Localizable {
         override fun stringify(): String = content
+
+        override fun equals(other: Any?): Boolean = kotlinEquals(other, PROPERTIES) { super.equals(other) }
+
+        override fun hashCode(): Int = kotlinHashCode(PROPERTIES) { super.hashCode() }
     }
 
     /**
@@ -395,8 +380,12 @@ sealed class DublinCore<T : Any>(val label: String, val isLocaleDependant: Boole
         override var identifier: EpubbyIdentifier? = null,
         override var direction: Direction? = null,
         override var language: Locale? = null
-    ) : DublinCore<String>("Rights", true) {
+    ) : DublinCore<String>("Rights"), Localizable {
         override fun stringify(): String = content
+
+        override fun equals(other: Any?): Boolean = kotlinEquals(other, PROPERTIES) { super.equals(other) }
+
+        override fun hashCode(): Int = kotlinHashCode(PROPERTIES) { super.hashCode() }
     }
 
     /**
@@ -410,8 +399,12 @@ sealed class DublinCore<T : Any>(val label: String, val isLocaleDependant: Boole
         override var identifier: EpubbyIdentifier? = null,
         override var direction: Direction? = null,
         override var language: Locale? = null
-    ) : DublinCore<String>("Subject", true) {
+    ) : DublinCore<String>("Subject"), Localizable {
         override fun stringify(): String = content
+
+        override fun equals(other: Any?): Boolean = kotlinEquals(other, PROPERTIES) { super.equals(other) }
+
+        override fun hashCode(): Int = kotlinHashCode(PROPERTIES) { super.hashCode() }
     }
 
     /**
@@ -422,7 +415,17 @@ sealed class DublinCore<T : Any>(val label: String, val isLocaleDependant: Boole
         override var identifier: EpubbyIdentifier? = null,
         override var direction: Direction? = null,
         override var language: Locale? = null
-    ) : DublinCore<String>("Title", true) {
+    ) : DublinCore<String>("Title"), Localizable {
         override fun stringify(): String = content
+
+        override fun equals(other: Any?): Boolean = kotlinEquals(other, PROPERTIES) { super.equals(other) }
+
+        override fun hashCode(): Int = kotlinHashCode(PROPERTIES) { super.hashCode() }
+    }
+
+    internal companion object {
+        private val PROPERTIES = arrayOf(DublinCore<*>::label, DublinCore<*>::identifier, DublinCore<*>::content)
+
+        private val LOCALIZABLE_PROPERTIES = arrayOf(Localizable::direction, Localizable::language)
     }
 }

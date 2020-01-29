@@ -23,6 +23,7 @@ import com.helger.css.reader.CSSReader
 import com.helger.css.reader.CSSReaderSettings
 import com.helger.css.reader.errorhandler.ThrowingCSSParseErrorHandler
 import com.helger.css.writer.CSSWriter
+import com.helger.css.writer.CSSWriterSettings
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.ImmutableSet
 import kotlinx.collections.immutable.persistentHashSetOf
@@ -32,10 +33,13 @@ import moe.kanon.epubby.BookVersion
 import moe.kanon.epubby.EpubbyException
 import moe.kanon.epubby.internal.logger
 import moe.kanon.epubby.internal.mediaType
+import moe.kanon.epubby.internal.unknownVersion
+import moe.kanon.epubby.packages.Guide
 import moe.kanon.epubby.packages.Manifest
 import moe.kanon.epubby.packages.OPF2Meta
 import moe.kanon.epubby.packages.PackageDocument
 import moe.kanon.epubby.packages.Spine
+import moe.kanon.epubby.resources.PageResource.Companion.MEDIA_TYPES
 import moe.kanon.epubby.resources.pages.Page
 import moe.kanon.epubby.resources.pages.contains
 import moe.kanon.epubby.structs.Identifier
@@ -419,6 +423,10 @@ sealed class Resource(file: Path, identifier: Identifier, desiredDirectory: Stri
     }
 }
 
+// TODO: make it so that you can't create/add resources when there already exists a resource with the same file?
+
+// TODO: Change the 'file' of 'NcxDocument' if the file of this one gets changed, make sure to validate that this is the
+//       one defined inside of the 'toc' attribute too
 class NcxResource internal constructor(override val book: Book, file: Path, identifier: Identifier) :
     Resource(file, identifier, "/") {
     override val mediaTypes: ImmutableSet<MediaType> get() = MEDIA_TYPES
@@ -427,11 +435,35 @@ class NcxResource internal constructor(override val book: Book, file: Path, iden
 
     override fun toString(): String = "TableOfContentsResource(identifier='$identifier', href='$href', book=$book)"
 
-    internal companion object {
-        @JvmField internal val MEDIA_TYPES: ImmutableSet<MediaType> = persistentHashSetOf(
+    companion object {
+        @JvmField
+        val MEDIA_TYPES: ImmutableSet<MediaType> = persistentHashSetOf(
             MediaType.create("application", "x-dtbncx+xml"),
             MediaType.create("application", "oebps-package+xml")
         )
+
+        /**
+         * TODO
+         *
+         * @throws [IOException] if an i/o error occurred
+         * @throws [IllegalArgumentException]
+         * - if [book] already contains a resource with the given [identifier]
+         * - if the [media-type][Path.mediaType] of [file] does not match any of the [known media-types][MEDIA_TYPES]
+         * for ncx-resources
+         */
+        @JvmStatic
+        @JvmOverloads
+        @Throws(IOException::class)
+        fun fromFile(
+            file: Path,
+            book: Book,
+            identifier: Identifier = Identifier.fromFile(file)
+        ): NcxResource {
+            requireThat(identifier !in book.resources) { "expected 'identifier' to be unique, but there already exists a resource with the same identifier '$identifier'" }
+            val mediaType = file.mediaType
+            requireThat(mediaType in MEDIA_TYPES) { "expected 'file' to have a media-type that matches any of ${MEDIA_TYPES}, got '$mediaType'" }
+            return NcxResource(book, file, identifier)
+        }
     }
 }
 
@@ -439,9 +471,50 @@ class PageResource internal constructor(override val book: Book, file: Path, ide
     Resource(file, identifier, "Text/") {
     override val mediaTypes: ImmutableSet<MediaType> get() = MEDIA_TYPES
 
-    // TODO: See if one can make this return true even if the book is 2.x but the page is a a generated ToC based on
+    // TODO: See if one can make this return true even if the book is 2.x but the page is a generated ToC based on
     //       the NCX file?
-    val isNavigationDocument: Boolean get() = TODO()
+    // TODO: Documentation
+    // TODO: Check so that there is ONLY ONE page-resource marked as the 'nav' document
+    // TODO: pretty the code up for this one? it looks pretty nasty (mainly the 'set' part)
+    var isNavigationDocument: Boolean
+        get() = when {
+            book.version < BookVersion.EPUB_3_0 -> TODO()
+            book.version >= BookVersion.EPUB_3_0 -> ManifestVocabulary.NAV in properties
+            else -> unknownVersion(book.version)
+        }
+        set(value) {
+            when {
+                book.version < BookVersion.EPUB_3_0 -> {
+                    // TODO: Maybe create a new 'guide' instance when this gets invoked under epub 2.x?
+                    book.packageDocument.guide?.also {
+                        if (value) {
+                            it.setTableOfContentsPage(this)
+                        } else {
+                            if (it.isTableOfContentsPage(this)) {
+                                it.removeReference(Guide.Type.TABLE_OF_CONTENTS)
+                            }
+                        }
+                    }
+                }
+                book.version >= BookVersion.EPUB_3_0 -> {
+                    book.resources.pages.values
+                        .filter { it != this }
+                        .filter { it.isNavigationDocument }
+                        .forEach { it.properties -= ManifestVocabulary.NAV }
+                    if (value) {
+                        properties += ManifestVocabulary.NAV
+                        book.packageDocument.guide?.also { it.setTableOfContentsPage(this) }
+                    } else {
+                        properties -= ManifestVocabulary.NAV
+                        book.packageDocument.guide?.also {
+                            if (it.isTableOfContentsPage(this)) {
+                                it.removeReference(Guide.Type.TABLE_OF_CONTENTS)
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
     /**
      * Returns the page tied to `this` page-resource, or throws a [NoSuchElementException] if `this` page-resource has
@@ -492,6 +565,8 @@ class PageResource internal constructor(override val book: Book, file: Path, ide
 
         // TODO: Documentation
         /**
+         * TODO
+         *
          * @throws [IOException] if an i/o error occurred
          * @throws [IllegalArgumentException]
          * - if [book] already contains a resource with the given [identifier]
@@ -581,7 +656,11 @@ class StyleSheetResource private constructor(
     @JvmSynthetic
     internal fun writeToFile(fileSystem: FileSystem) {
         logger.trace { "Writing style-sheet contents to file <$file>.." }
-        fileSystem.getPath(file.toString()).newBufferedWriter().use { CSSWriter().writeCSS(styleSheet, it) }
+        fileSystem.getPath(file.toString()).newBufferedWriter().use {
+            val settings = CSSWriterSettings()
+                .setRemoveUnnecessaryCode(true)
+            CSSWriter(settings).writeCSS(styleSheet, it)
+        }
     }
 
     companion object {

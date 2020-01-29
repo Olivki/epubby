@@ -173,7 +173,7 @@ class BookWriter @JvmOverloads constructor(
                     if (name !in KNOWN_ROOT_FILES && name != packageRootName) {
                         if (file.isDirectory) {
                             logger.debug { "Encountered unknown directory '$name' in root level of book <$book>, removing all files.." }
-                            file.toFile().deleteRecursively()
+                            //file.toFile().deleteRecursively() // TODO: fix
                         } else {
                             logger.debug { "Encountered unknown file '$name' in root level of book <$book>, removing.." }
                             file.deleteIfExists()

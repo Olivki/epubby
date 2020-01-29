@@ -50,7 +50,7 @@ val Element.isOwnTextBlank: Boolean get() = this.ownText().isBlank()
 val Element.isOwnTextNotBlank: Boolean get() = this.ownText().isNotBlank()
 
 /**
- * Infix function for [Element. is].
+ * Infix function for [Element.is].
  *
  * This is mainly because `is` *is* a keyword in Kotlin, so every time that function needs to be used, you have to do
  * `` `is` `` to actually use it, which is just ugly.

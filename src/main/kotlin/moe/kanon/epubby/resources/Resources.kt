@@ -22,7 +22,9 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toPersistentHashMap
 import moe.kanon.epubby.Book
+import moe.kanon.epubby.BookVersion
 import moe.kanon.epubby.EpubbyException
+import moe.kanon.epubby.LegacyFeature
 import moe.kanon.epubby.internal.logger
 import moe.kanon.epubby.packages.Manifest
 import moe.kanon.epubby.structs.Identifier
@@ -107,18 +109,48 @@ class Resources internal constructor(val book: Book) : Iterable<Resource> {
         get() = resources.filterValuesIsInstance<Identifier, MiscResource>().toPersistentHashMap()
 
     /**
-     * Returns the [ncx-resource][NcxResource] that belongs to the [book].
+     * Returns a map of all the [ncx-resources][NcxResource]  that the book has [book], mapped like
+     * `identifier::resource`.
      */
-    val ncx: NcxResource get() = resources.values.filterIsInstance<NcxResource>().first()
+    val ncx: ImmutableMap<Identifier, NcxResource>
+        get() = resources.filterValuesIsInstance<Identifier, NcxResource>().toPersistentHashMap()
+
+    /**
+     * Returns the [NcxResource] that represents the main ncx document used as the
+     * [tableOfContents][Book.tableOfContents] for the book.
+     *
+     * Note that the `toc` attribute that this relies on is marked as a **LEGACY** feature as of
+     * [EPUB 3.0][BookVersion.EPUB_3_0], so there is no guarantee that this will return anything.
+     */
+    @LegacyFeature(since = "3.0")
+    fun getTableOfContentsNcx(): NcxResource? =
+        when (val item = book.spine.tableOfContents?.let { getResourceByFileOrNull(it.href) }) {
+            null -> null
+            !is NcxResource -> {
+                logger.warn { "Book spine 'toc' attribute does NOT point towards a ncx-resource <$item>" }
+                null
+            }
+            else -> item
+        }
+
+    // TODO: documentation
+    @LegacyFeature(since = "3.0")
+    fun setTableOfContentsNcx(resource: NcxResource) {
+        book.spine.tableOfContents = resource.manifestItem
+    }
 
     fun <R : Resource> addResource(resource: R): R {
-        // TODO: Is this too extreme?
-        requireThat(resource !is NcxResource) { "there can only be one ncx-resource per book" }
+        // TODO: unsure if there really can only be one ncx per book, as the 'toc' attribute seems to be there to
+        //       indicate which one to actually use, otherwise the 'toc' attribute shouldn't be needed, so this is
+        //       removed for now
+        //requireThat(resource !is NcxResource) { "there can only be one ncx-resource per book" }
         requireThat(resource.identifier !in resources) { "there already exists a resource with the identifier '${resource.identifier}'" }
         resources[resource.identifier] = resource
+
         if (!book.manifest.hasItemFor(resource)) {
             book.manifest.addItemForResource(resource, resource.properties)
         }
+
         return resource
     }
 

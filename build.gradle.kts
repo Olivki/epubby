@@ -64,6 +64,9 @@ dependencies {
     implementation(group = "moe.kanon.kommons", name = "kommons.lang", version = "0.4.1")
     implementation(group = "moe.kanon.kommons", name = "kommons.collections", version = "0.10.3")
 
+    // kassava
+    implementation(group = "au.com.console", name = "kassava", version = "2.1.0-rc.1")
+
     // XML
     implementation(group = "org.jdom", name = "jdom2", version = "2.0.6")
 
@@ -80,7 +83,7 @@ dependencies {
     api(group = "org.jsoup", name = "jsoup", version = "1.12.1")
 
     // css dsl
-    api(group = "azadev.kotlin", name = "aza-kotlin-css", version = "1.0")
+    implementation(group = "azadev.kotlin", name = "aza-kotlin-css", version = "1.0")
 
     // Google
     api(group = "com.google.guava", name = "guava", version = "28.1-jre")

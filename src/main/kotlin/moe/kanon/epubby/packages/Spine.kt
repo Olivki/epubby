@@ -71,9 +71,6 @@ class Spine(
         get() = tableOfContentsIdentifier?.let { book.manifest.getLocalItemOrNull(it) }
         set(value) {
             logger.debug { "Setting the spine table-of-contents to $tableOfContents." }
-            if (book.version > BookVersion.EPUB_2_0 && value != null) {
-                logger.warn { "The spine table-of-contents is marked as a legacy feature since 3.0, current book format is set to ${book.version}. It is not recommended to use legacy features." }
-            }
             tableOfContentsIdentifier = value?.identifier
         }
 

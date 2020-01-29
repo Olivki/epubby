@@ -22,6 +22,7 @@ import moe.kanon.epubby.internal.logger
 import moe.kanon.epubby.internal.malformed
 import moe.kanon.epubby.metainf.MetaInf
 import moe.kanon.epubby.packages.PackageDocument
+import moe.kanon.epubby.resources.toc.NavigationDocument
 import moe.kanon.epubby.resources.toc.NcxDocument
 import moe.kanon.epubby.resources.toc.TableOfContents
 import moe.kanon.kommons.io.paths.exists
@@ -66,16 +67,24 @@ fun readBook(epubFile: Path, mode: BookReadMode = BookReadMode.STRICT): Book {
     val packageDocument = PackageDocument.fromMetaInf(metaInf, fileSystem, mode)
 
     return packageDocument.book.apply {
-        tableOfContents = when {
-            version < BookVersion.EPUB_3_0 -> {
-                val tocFile =
-                    spine.tableOfContents?.href ?: malformed(epubFile, "book does not have 'toc' entry defined")
-                TableOfContents.fromNcxDocument(this, NcxDocument.fromFile(this.file, tocFile))
-            }
-            version >= BookVersion.EPUB_3_0 -> TODO()
-            else -> malformed(epubFile, "unknown book version '$version'")
-        }
+        tableOfContents = createTableOfContents(this)
     }
+}
+
+private fun createTableOfContents(book: Book): TableOfContents = when {
+    book.version < BookVersion.EPUB_3_0 -> {
+        val tocFile =
+            book.spine.tableOfContents?.href ?: malformed(book.file, "book does not have 'toc' entry defined")
+        TableOfContents.fromNcxDocument(book, NcxDocument.fromFile(book.file, tocFile))
+    }
+    // TODO: 'version in BookVersion.EPUB_3_0..BookVersion.EPUB_3_2'
+    book.version >= BookVersion.EPUB_3_0 -> {
+        val tocPage = book.resources.pages.values.firstOrNull { it.isNavigationDocument }
+            ?: malformed(book.file, "book does not have a 'nav' page-resource defined")
+        val navDoc = NavigationDocument.fromFile(book.file, tocPage.file)
+        TableOfContents.fromNavigationDocument(book, navDoc)
+    }
+    else -> malformed(book.file, "unknown book version '${book.version}'")
 }
 
 // validates that the required parts of an EPUB is available in the epub file

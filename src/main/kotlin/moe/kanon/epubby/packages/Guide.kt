@@ -214,6 +214,51 @@ class Guide private constructor(val book: Book, private val _references: CaseIns
     fun setTextPage(page: PageResource, title: String? = "Begin Reading"): Reference =
         addReference(Type.TEXT, page, title)
 
+    // is..
+    fun isCoverPage(page: PageResource): Boolean = hasType(Type.COVER) && getReference(Type.COVER).reference == page
+
+    fun isTitlePage(page: PageResource): Boolean =
+        hasType(Type.TITLE_PAGE) && getReference(Type.TITLE_PAGE).reference == page
+
+    fun isTableOfContentsPage(page: PageResource): Boolean =
+        hasType(Type.TABLE_OF_CONTENTS) && getReference(Type.TABLE_OF_CONTENTS).reference == page
+
+    fun isIndexPage(page: PageResource): Boolean = hasType(Type.INDEX) && getReference(Type.INDEX).reference == page
+
+    fun isGlossaryPage(page: PageResource): Boolean =
+        hasType(Type.GLOSSARY) && getReference(Type.GLOSSARY).reference == page
+
+    fun isBibliographyPage(page: PageResource): Boolean =
+        hasType(Type.BIBLIOGRAPHY) && getReference(Type.BIBLIOGRAPHY).reference == page
+
+    fun isColophonPage(page: PageResource): Boolean =
+        hasType(Type.COLOPHON) && getReference(Type.COLOPHON).reference == page
+
+    fun isCopyrightPage(page: PageResource): Boolean =
+        hasType(Type.COPYRIGHT_PAGE) && getReference(Type.COPYRIGHT_PAGE).reference == page
+
+    fun isDedicationPage(page: PageResource): Boolean =
+        hasType(Type.DEDICATION) && getReference(Type.DEDICATION).reference == page
+
+    fun isEpigraphPage(page: PageResource): Boolean =
+        hasType(Type.EPIGRAPH) && getReference(Type.EPIGRAPH).reference == page
+
+    fun isForewordPage(page: PageResource): Boolean =
+        hasType(Type.FOREWORD) && getReference(Type.FOREWORD).reference == page
+
+    fun isListOfIllustrationsPage(page: PageResource): Boolean =
+        hasType(Type.LIST_OF_ILLUSTRATIONS) && getReference(Type.LIST_OF_ILLUSTRATIONS).reference == page
+
+    fun isListOfTablesPage(page: PageResource): Boolean =
+        hasType(Type.LIST_OF_TABLES) && getReference(Type.LIST_OF_TABLES).reference == page
+
+    fun isNotesPage(page: PageResource): Boolean = hasType(Type.NOTES) && getReference(Type.NOTES).reference == page
+
+    fun isPrefacePage(page: PageResource): Boolean =
+        hasType(Type.PREFACE) && getReference(Type.PREFACE).reference == page
+
+    fun isTextPage(page: PageResource): Boolean = hasType(Type.TEXT) && getReference(Type.TEXT).reference == page
+
     // -- CUSTOM REFERENCES -- \\
     /**
      * Adds a new [reference][Reference] instance based on the given [customType], [reference] and [title] to this guide.

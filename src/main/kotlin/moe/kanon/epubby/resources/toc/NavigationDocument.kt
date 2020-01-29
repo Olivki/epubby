@@ -23,11 +23,13 @@ import moe.kanon.epubby.internal.malformed
 import moe.kanon.epubby.resources.Resource
 import moe.kanon.epubby.structs.NonEmptyList
 import moe.kanon.epubby.structs.toNonEmptyList
+import moe.kanon.epubby.utils.matches
 import moe.kanon.epubby.utils.parseHtmlFile
 import moe.kanon.kommons.io.paths.writeString
 import org.jsoup.nodes.Attributes
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
+import org.jsoup.nodes.TextNode
 import java.net.URI
 import java.nio.file.FileSystem
 import java.nio.file.Path
@@ -132,7 +134,8 @@ class NavigationDocument private constructor(
                 // TODO: Change to hard-link to a resource? Remember that this can contain fragment-identifiers
                 attr("href", href.toString())
                 attributes().addAll(attributes)
-                insertChildren(0, phrasingContent.children()) // TODO: does this work properly?
+                appendChild(phrasingContent.unwrap() ?: TextNode(""))
+                //insertChildren(0, phrasingContent.children()) // TODO: does this work properly?
             }
         }
 
@@ -143,7 +146,8 @@ class NavigationDocument private constructor(
             @JvmSynthetic
             override fun toElement(): Element = Element("span").apply {
                 attributes().addAll(attributes)
-                insertChildren(0, phrasingContent.children()) // TODO: does this work properly?
+                appendChild(phrasingContent.unwrap() ?: TextNode(""))
+                //insertChildren(0, phrasingContent.children()) // TODO: does this work properly?
             }
         }
     }
@@ -152,12 +156,12 @@ class NavigationDocument private constructor(
         @JvmSynthetic
         fun fromFile(epub: Path, file: Path): NavigationDocument = parseHtmlFile(file) { doc ->
             with(doc.body()) {
-                val tocNav = selectFirst("[epub:type=toc]")
+                val tocNav = selectFirst("nav[epub:type=toc]")
                     ?.let { createNavigation(it, epub, file) }
                     ?: malformed(epub, file, "missing required 'toc' nav type")
-                val pageListNav = selectFirst("[epub:type=page-list]")?.let { createNavigation(it, epub, file) }
-                val landmarksNav = selectFirst("[epub:type=landmarks]")?.let { createNavigation(it, epub, file) }
-                val customNavs = select("[epub:type]")
+                val pageListNav = selectFirst("nav[epub:type=page-list]")?.let { createNavigation(it, epub, file) }
+                val landmarksNav = selectFirst("nav[epub:type=landmarks]")?.let { createNavigation(it, epub, file) }
+                val customNavs = select("nav[epub:type]")
                     .map { createNavigation(it, epub, file) }
                     .filterNotTo(mutableListOf()) { it.type == "toc" || it.type == "page-list" || it.type == "landmarks" }
                 return NavigationDocument(file, doc, tocNav, pageListNav, landmarksNav, customNavs)
@@ -168,7 +172,7 @@ class NavigationDocument private constructor(
             val header = element.selectFirst("h1, h2, h3, h4, h5, h6")
             val orderedList = element.selectFirst("ol")
                 ?.let { createOrderedList(element, epub, file) }
-                ?: malformed(epub, file, "missing required 'ol' element")
+                ?: malformed(epub, file, "missing required 'ol' element; '$element'")
             val type = element.attr("epub:type") ?: malformed(epub, file, "missing required 'epub:type' attribute")
             val isHidden = element.hasAttr("hidden")
             val attributes = element.attributes().clone().apply { remove("epub:type") }
@@ -178,14 +182,44 @@ class NavigationDocument private constructor(
         private fun createOrderedList(element: Element, epub: Path, file: Path): OrderedList {
             val entries = element
                 .select("li")
-                .map { createListItem(it, epub, file) }
+                .mapNotNull { createListItem(it, epub, file) }
                 .ifEmpty { malformed(epub, file, "missing required 'li' elements") }
                 .toNonEmptyList()
             return OrderedList(entries, element.attributes())
         }
 
-        private fun createListItem(element: Element, epub: Path, file: Path): ListItem = TODO()
+        private fun createListItem(element: Element, epub: Path, file: Path): ListItem? {
+            val content: Content? = try {
+                val firstChild = element.children()[0]
+                when {
+                    firstChild matches "a" -> createContentLink(firstChild, epub, file)
+                    firstChild matches "span" -> createContentSpan(firstChild)
+                    else -> {
+                        logger.error { "First child of 'li' element in 'nav' document '$element' is not 'a' or 'span'" }
+                        null
+                    }
+                }
+            } catch (e: IndexOutOfBoundsException) {
+                logger.error { "'li' element in 'nav' document '$element' has no children" }
+                null
+            }
+            val orderedList = element.selectFirst("ol")?.let { createOrderedList(it, epub, file) }
+            val attributes = element.attributes()
+            return content?.let { ListItem(content, orderedList, attributes) }
+        }
 
-        private fun createContent(element: Element, epub: Path, file: Path): Content = TODO()
+        private fun createContentLink(element: Element, epub: Path, file: Path): Content.Link {
+            val rawHref = element.attr("href") ?: malformed(epub, file, "nav document 'a' element is missing required 'href' attribute")
+            val href = URI(rawHref)
+            // TODO: Do some error handling in case 'element' does not have any children
+            val attributes = element.attributes()
+            return Content.Link(href, element.clone(), attributes)
+        }
+
+        private fun createContentSpan(element: Element): Content.Span {
+            // TODO: Do some error handling in case 'element' does not have any children
+            val attributes = element.attributes()
+            return Content.Span(element.clone(), attributes)
+        }
     }
 }
