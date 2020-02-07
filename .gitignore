@@ -103,4 +103,5 @@ fabric.properties
 !/appender.jar
 src/test/kotlin/Ugly.kt
 /.ignore.throws
-/src/test/kotlin/ClassroomElite.kt
+/src/test/kotlin/moe/kanon/epubby/Stuff.kt
+/src/test/kotlin/moe/kanon/epubby/StuffExtensions.kt

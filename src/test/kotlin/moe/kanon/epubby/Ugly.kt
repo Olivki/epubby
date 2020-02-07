@@ -18,9 +18,9 @@
 
 package moe.kanon.epubby
 
+import moe.kanon.epubby.structs.ISBN
 import moe.kanon.kommons.io.paths.copyTo
 import moe.kanon.kommons.io.paths.createTmpDirectory
-import moe.kanon.kommons.io.paths.deleteIfExists
 import moe.kanon.kommons.io.paths.pathOf
 import java.nio.file.Path
 
@@ -36,14 +36,19 @@ val output: Path = pathOf("H:", "Programming", "JVM", "Kotlin", "Data", "epubby"
 val writer = BookWriter()
 
 fun main() {
-    output.deleteIfExists()
+    /*output.deleteIfExists()
 
     val book = readBook(createBackup(input)).use {
         it.resources.moveToDesiredDirectories()
         return@use it
     }
 
-    writer.writeToFile(book, output)
+    writer.writeToFile(book, output)*/
+
+    val ej = ISBN.parse("978-4-621-06605-8")
+    val ej2 = ISBN.parse("9784621066058")
+    println("$ej: ${ej.linguisticArea}")
+    println("$ej2: ${ej2.bookName}")
 }
 
 private fun createBackup(original: Path): Path =

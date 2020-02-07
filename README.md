@@ -6,6 +6,9 @@ epubby is a framework for working with the EPUB file format for Kotlin and Java.
 
 - The `TableOfContents`class does not currently properly keep all attributes defined by certain elements in the XHTML nav document for 3.x EPUB files.
 
+## Credits
+
+The `ISBN` class is taken from the [ISBN](https://github.com/kymmt90/ISBN) GitHub repository by [kymmt90](https://github.com/kymmt90), it is available under the Apache 2.0 license.
 
 ## Installation
 
