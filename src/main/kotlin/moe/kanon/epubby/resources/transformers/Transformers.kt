@@ -37,6 +37,7 @@ class Transformers(val book: Book) : Iterable<Transformer> {
 
     fun registerTransformer(transformer: Transformer) {
         entries += transformer
+        transformer.onRegistration()
     }
 
     fun unregisterTransformer(transformer: Transformer): Boolean = entries.remove(transformer)

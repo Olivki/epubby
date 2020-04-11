@@ -23,10 +23,10 @@ import moe.kanon.epubby.Book
 import moe.kanon.epubby.BookVersion
 import moe.kanon.epubby.NewFeature
 import moe.kanon.epubby.internal.Namespaces
+import moe.kanon.epubby.internal.requireMinimumVersion
 import moe.kanon.epubby.structs.Direction
 import moe.kanon.epubby.structs.DublinCore
 import moe.kanon.epubby.structs.Identifier
-import moe.kanon.kommons.requireThat
 import org.jdom2.Element
 import org.jdom2.Namespace
 import java.nio.file.Path
@@ -36,19 +36,19 @@ import java.util.Locale
  * Represents the [collection](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#sec-pkg-collections)
  * element in the [package-document][PackageDocument].
  */
-@NewFeature(since = "3.0")
-class Collection private constructor(
+@NewFeature(since = BookVersion.EPUB_3_0)
+class PackageCollection private constructor(
     val book: Book,
     val role: String,
     var direction: Direction?,
     var identifier: Identifier?,
     var language: Locale?,
     var metadata: Metadata?,
-    private val _children: MutableList<Collection>,
+    private val _children: MutableList<PackageCollection>,
     private val _links: MutableList<Link>
 ) {
     init {
-        requireThat(book.version > BookVersion.EPUB_2_0) { "expected version of 'book' to be 3.0 or greater, was ${book.version}" }
+        requireMinimumVersion(book.version, BookVersion.EPUB_3_0, "package-collection")
     }
 
     // TODO: if a collection has no children, then it NEEDS to have at least one link element
@@ -84,9 +84,7 @@ class Collection private constructor(
         internal fun toElement(namespace: Namespace = Namespaces.OPF): Element = Element("metadata", namespace).apply {
             addNamespaceDeclaration(Namespaces.DUBLIN_CORE)
 
-            if (book.version < BookVersion.EPUB_3_0) {
-                addNamespaceDeclaration(Namespaces.OPF_WITH_PREFIX)
-            }
+            TODO()
         }
 
         class Meta internal constructor()
@@ -98,6 +96,6 @@ class Collection private constructor(
 
     internal companion object {
         @JvmSynthetic
-        internal fun fromElement(book: Book, element: Element, file: Path): Collection = TODO()
+        internal fun fromElement(book: Book, element: Element, file: Path): PackageCollection = TODO()
     }
 }

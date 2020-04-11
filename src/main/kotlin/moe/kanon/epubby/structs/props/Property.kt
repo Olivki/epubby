@@ -16,10 +16,12 @@
 
 package moe.kanon.epubby.structs.props
 
+import moe.kanon.epubby.BookVersion
+import moe.kanon.epubby.NewFeature
 import moe.kanon.epubby.metainf.MetaInfContainer
-import moe.kanon.epubby.packages.Manifest
-import moe.kanon.epubby.packages.Metadata
-import moe.kanon.epubby.packages.Spine
+import moe.kanon.epubby.packages.PackageManifest
+import moe.kanon.epubby.packages.PackageMetadata
+import moe.kanon.epubby.packages.PackageSpine
 import moe.kanon.epubby.structs.prefixes.PackagePrefix
 import moe.kanon.epubby.structs.prefixes.Prefix
 import moe.kanon.epubby.structs.prefixes.Prefixes
@@ -45,6 +47,7 @@ import kotlin.reflect.KClass
  */
 // this is kept as an interface in case a user wants to create their own vocabulary implementation with an enum in Java
 // as Java does not allow enums to extend abstract classes
+@NewFeature(since = BookVersion.EPUB_3_0)
 interface Property {
     /**
      * The prefix that this property is prefixed with.
@@ -89,13 +92,13 @@ interface Property {
                 // meta-inf
                 MetaInfContainer.Link::class -> MetadataLinkRelVocabulary.fromReference(input) as Property
                 // package-documents
-                Manifest::class -> ManifestVocabulary.fromReference(input) as Property
-                Metadata.Link::class -> when (mode) {
+                PackageManifest::class -> ManifestVocabulary.fromReference(input) as Property
+                PackageMetadata.Link::class -> when (mode) {
                     VocabularyParseMode.PROPERTY -> MetadataLinkVocabulary.fromReference(input) as Property
                     VocabularyParseMode.RELATION -> MetadataLinkRelVocabulary.fromReference(input) as Property
                 }
-                Metadata.Meta::class -> MetadataMetaVocabulary.fromReference(input) as Property
-                Spine.ItemReference::class -> SpineVocabulary.fromReference(input) as Property
+                PackageMetadata.OPF3Meta::class -> MetadataMetaVocabulary.fromReference(input) as Property
+                PackageSpine.ItemReference::class -> SpineVocabulary.fromReference(input) as Property
                 else -> throw IllegalArgumentException("Caller <$caller> does not have any known vocabularies")
             }
         }

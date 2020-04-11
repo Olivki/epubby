@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Oliver Berg
+ * Copyright 2019-2020 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,23 +14,59 @@
  * limitations under the License.
  */
 
-@file:Suppress("DataClassPrivateConstructor")
-
 package moe.kanon.epubby
 
 import moe.kanon.kommons.requireThat
 
-// TODO: EPUB has actually used a patch version before, with 2.0.1, this system will fail on parsing that version
-//       Look into changing how this is done?
-// because EPUB format versions do not adhere to semantic versioning (as they do not have a patch version) I've opted
-// to create my own simple version implementation just for EPUB format versions.
-class BookVersion private constructor(val major: Int, val minor: Int) : Comparable<BookVersion> {
-    init {
-        requireThat(major >= 0) { "major should be positive" }
-        requireThat(minor >= 0) { "minor should be positive" }
-    }
+enum class BookVersion(val major: Int, val minor: Int) {
+    /**
+     * Represents the [EPUB 2.0](http://www.idpf.org/epub/dir/#epub201) format.
+     */
+    EPUB_2_0(2, 0),
+    /**
+     * Represents the [EPUB 3.0](http://www.idpf.org/epub/dir/#epub301) format.
+     */
+    EPUB_3_0(3, 0),
+    /**
+     * Represents the [EPUB 3.1](http://www.idpf.org/epub/dir/#epub31) format.
+     *
+     * The EPUB 3.1 format is [officially discouraged](http://www.idpf.org/epub/dir/#epub31) from use, and as such
+     * the format is explicitly ***not*** supported by epubby, and it should never be used.
+     */
+    EPUB_3_1(3, 1), // TODO: log that this version is officially discouraged from use by the maintainers if a book uses
+    //                       this version
+    /**
+     * Represents the [EPUB 3.2](http://www.idpf.org/epub/dir/#epub32) format.
+     */
+    EPUB_3_2(3, 2);
 
-    override fun compareTo(other: BookVersion): Int = when {
+    /**
+     * Returns `true` if `this` version is the oldest version supported by epubby, otherwise `false`.
+     */
+    val isOldest: Boolean
+        get() = this == values().first()
+
+    /**
+     * Returns `true` if `this` version is the newest version supported by epubby, otherwise `false`.
+     */
+    val isNewest: Boolean
+        get() = this == values().last()
+
+    /**
+     * Returns `true` if `this` version is newer than the [other] version, otherwise `false`.
+     */
+    infix fun isNewerThan(other: BookVersion): Boolean = compareAgainst(other) > 0
+
+    /**
+     * Returns `true` if `this` version is older than the [other] version, otherwise `false`.
+     */
+    infix fun isOlderThan(other: BookVersion): Boolean = compareAgainst(other) < 0
+
+    /**
+     * Acts the same as the [compareTo] function, except that it works on the [major] & [minor] versions of the
+     * version instances.
+     */
+    fun compareAgainst(other: BookVersion): Int = when {
         major > other.major -> 1
         major < other.major -> -1
         minor > other.minor -> 1
@@ -38,142 +74,41 @@ class BookVersion private constructor(val major: Int, val minor: Int) : Comparab
         else -> 0
     }
 
-    override fun equals(other: Any?): Boolean = when {
-        this === other -> true
-        other !is BookVersion -> false
-        major != other.major -> false
-        minor != other.minor -> false
-        else -> true
-    }
-
-    override fun hashCode(): Int {
-        var result = major
-        result = 31 * result + minor
-        return result
-    }
-
+    // TODO: this explanation is awkward, make a better one
+    /**
+     * Returns a string representing this version where [major] is the prefix, and [minor] is the suffix, they're
+     * separated by a `'.'`.
+     */
     override fun toString(): String = "$major.$minor"
 
-    class FaultyVersionException internal constructor(val version: String, message: String, cause: Throwable? = null) :
-        EpubbyException(message, cause)
-
-    class UnsupportedVersionException internal constructor(val version: String) :
-        EpubbyException("Epubby does not know how to handle version '$version' of the EPUB format")
-
-    companion object {
-        private val KNOWN_VERSIONS = HashMap<String, BookVersion>()
-
-        /**
-         * Represents the [EPUB 2.0](http://www.idpf.org/epub/dir/#epub201) format.
-         */
-        @JvmField val EPUB_2_0 = getOrCache(2, 0)
-
-        /**
-         * Represents the [EPUB 3.0](http://www.idpf.org/epub/dir/#epub301) format.
-         */
-        @JvmField val EPUB_3_0 = getOrCache(3, 0)
-
-        /**
-         * Represents the [EPUB 3.1](http://www.idpf.org/epub/dir/#epub31) format.
-         *
-         * The EPUB 3.1 format is [officially discouraged](http://www.idpf.org/epub/dir/#epub31) from use, and as such
-         * the format is explicitly ***not*** supported by epubby, and it should never be used.
-         */
-        @JvmField val EPUB_3_1 = getOrCache(3, 1) // TODO: Crash if the EPUB version is this lol
-
-        /**
-         * Represents the [EPUB 3.2](http://www.idpf.org/epub/dir/#epub32) format.
-         */
-        @JvmField val EPUB_3_2 = getOrCache(3, 2)
-
-        private fun getOrCache(major: Int, minor: Int): BookVersion =
-            KNOWN_VERSIONS.getOrPut("$major.$minor") { BookVersion(major, minor) }
+    internal companion object {
+        private fun fromInteger(major: Int, minor: Int): BookVersion =
+            values().firstOrNull { it.major == major && it.minor == minor }
+                ?: throw UnknownBookVersionException("$major.$minor")
 
         @JvmSynthetic
-        internal fun fromInteger(major: Int, minor: Int): BookVersion =
-            KNOWN_VERSIONS["$major.$minor"] ?: throw UnsupportedVersionException("$major.$minor")
+        internal fun fromString(version: String): _BookVersion {
+            requireThat(version.isNotBlank()) { "expected 'version' to not be blank" }
+            requireThat(version.first().isDigit()) { "expected 'version' to start with a digit (0-9); '$version'" }
+            requireThat(version.last().isDigit()) { "expected 'version' to end with a digit (0-9); '$version'" }
+            requireThat(version.count { it == '.' } == 1) { "expected 'version' to contain exactly one '.' character; '$version'" }
+            requireThat(version.all { it in '0'..'9' || it == '.' }) { "'version' contains illegal character, allowed characters are '0'..'9' and '.'; $version" }
 
-        @JvmSynthetic
-        internal fun parse(version: String): BookVersion {
-            validateThat(version, version.isNotBlank()) { "can't be blank / empty" }
-            validateThat(version, version.first().isDigit()) { "needs to start with a digit" }
-            validateThat(version, '.' in version) { "needs to contain exactly one '.' character" }
-            validateThat(version, version.count { it == '.' } == 1) { "can't contain more than one '.' character" }
-            validateThat(version, version.last().isDigit()) { "needs to end with a digit" }
-
-            fun unknownChar(char: Char, index: Int): Nothing =
-                fail(version, "contains an unknown character '$char' at index $index")
-
-            var state = ParseState.UNINITIALIZED
-            val builder = StringBuilder()
-            lateinit var majorString: String
-            lateinit var minorString: String
-
-            for ((i, char) in version.withIndex()) {
-                state = when (state) {
-                    ParseState.UNINITIALIZED -> {
-                        builder.append(char)
-                        ParseState.NUMBER
-                    }
-                    ParseState.NUMBER -> when {
-                        char == '.' -> {
-                            majorString = builder.toString()
-                            builder.clear()
-                            ParseState.DOT
-                        }
-                        char.isDigit() -> {
-                            builder.append(char)
-                            ParseState.NUMBER
-                        }
-                        else -> unknownChar(char, i)
-                    }
-                    ParseState.DOT -> when {
-                        char.isDigit() -> {
-                            builder.append(char)
-                            ParseState.NUMBER
-                        }
-                        else -> unknownChar(char, i)
-                    }
-                }
-            }
-
-            minorString = builder.toString()
-            builder.clear()
+            val parts = version.split('.')
 
             val major = try {
-                majorString.toInt()
-            } catch (e: Exception) {
-                fail(
-                    version,
-                    "'major' version can't be converted to an integer'",
-                    e
-                )
+                parts[0].toInt()
+            } catch (e: NumberFormatException) {
+                throw IllegalArgumentException("'major' part <${parts[0]}> of version <$version> is not an integer", e)
             }
 
             val minor = try {
-                minorString.toInt()
-            } catch (e: Exception) {
-                fail(
-                    version,
-                    "'minor' version can't be converted to an integer",
-                    e
-                )
+                parts[1].toInt()
+            } catch (e: NumberFormatException) {
+                throw IllegalArgumentException("'minor' part <${parts[1]}> of version <$version> is not an integer", e)
             }
 
-            return fromInteger(major, minor)
+            return _BookVersion.fromInteger(major, minor)
         }
-
-        private inline fun validateThat(version: String, condition: Boolean, message: () -> Any) {
-            if (!condition) fail(version, message().toString())
-        }
-
-        private fun fail(version: String, info: String, cause: Throwable? = null): Nothing =
-            throw FaultyVersionException(
-                version,
-                "Given version '$version' $info",
-                cause
-            )
-
-        private enum class ParseState { UNINITIALIZED, NUMBER, DOT }
     }
 }

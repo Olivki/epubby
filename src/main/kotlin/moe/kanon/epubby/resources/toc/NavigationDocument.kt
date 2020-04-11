@@ -17,7 +17,6 @@
 package moe.kanon.epubby.resources.toc
 
 import moe.kanon.epubby.Book
-import moe.kanon.epubby.BookVersion
 import moe.kanon.epubby.internal.logger
 import moe.kanon.epubby.internal.malformed
 import moe.kanon.epubby.resources.Resource
@@ -36,7 +35,7 @@ import java.nio.file.Path
 
 /**
  * Represents the [navigation document](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#sec-package-nav)
- * introduced in [EPUB 3.0][BookVersion.EPUB_3_0].
+ * introduced in [EPUB 3.0][_BookVersion.EPUB_3_0].
  */
 class NavigationDocument private constructor(
     var file: Path,
@@ -125,9 +124,11 @@ class NavigationDocument private constructor(
             override var phrasingContent: Element,
             override val attributes: Attributes
         ) : Content() {
-            fun getPath(book: Book): Path = book.packageRoot.resolve(href.path)
+            //fun getPath(book: Book): Path = book.packageRoot.resolve(href.path)
 
-            fun toResource(book: Book): Resource = book.resources.getResourceByFile(getPath(book))
+            //fun toResource(book: Book): Resource = book.resources.getResourceByFile(getPath(book))
+
+            fun toResource(book: Book): Resource = book.resources.getResourceByHref(href.path)
 
             @JvmSynthetic
             override fun toElement(): Element = Element("a").apply {

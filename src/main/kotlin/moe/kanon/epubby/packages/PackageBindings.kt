@@ -22,9 +22,9 @@ import moe.kanon.epubby.DeprecatedFeature
 import moe.kanon.epubby.NewFeature
 import moe.kanon.epubby.internal.Namespaces
 import moe.kanon.epubby.internal.logger
+import moe.kanon.epubby.internal.requireMinimumVersion
 import moe.kanon.epubby.structs.Identifier
 import moe.kanon.epubby.utils.attr
-import moe.kanon.kommons.requireThat
 import org.jdom2.Element
 import org.jdom2.Namespace
 import java.nio.file.Path
@@ -39,14 +39,13 @@ import com.google.common.net.MediaType as MediaTypeModel
  * Note that as the `bindings` element was introduced in 3.0 and then deprecated in 3.2 this means that the only
  * version that this feature is *actually* supported for is 3.0, as the usage of 3.1 is officially discouraged.
  */
-@NewFeature(since = "3.0")
-@DeprecatedFeature(since = "3.2")
-class Bindings private constructor(val book: Book, val mediaTypes: MutableList<MediaType>) {
-    // TODO: Maybe just completely disallow the user to create a bindings instance if the version is not 3.0?
+@NewFeature(since = BookVersion.EPUB_3_0)
+@DeprecatedFeature(since = BookVersion.EPUB_3_2)
+class PackageBindings private constructor(val book: Book, val mediaTypes: MutableList<MediaType>) {
     init {
-        requireThat(book.version > BookVersion.EPUB_2_0) { "expected version of 'book' to be 3.0 or greater, was ${book.version}" }
-        if (book.version > BookVersion.EPUB_3_0) {
-            logger.warn { "'bindings' are deprecated as of EPUB 3.2, usage of it is highly discouraged." }
+        requireMinimumVersion(book.version, BookVersion.EPUB_3_0, "package-bindings")
+        if (book.version.isNewerThan(BookVersion.EPUB_3_0)) {
+            logger.warn { "'package-bindings' is deprecated as of EPUB 3.2, usage of it is highly discouraged." }
         }
     }
 
@@ -71,10 +70,10 @@ class Bindings private constructor(val book: Book, val mediaTypes: MutableList<M
 
     internal companion object {
         @JvmSynthetic
-        internal fun fromElement(book: Book, element: Element, current: Path): Bindings = with(element) {
+        internal fun fromElement(book: Book, element: Element, current: Path): PackageBindings = with(element) {
             val mediaTypes = getChildren("mediaType", namespace)
                 .mapTo(mutableListOf()) { createMediaType(element, book.file, current) }
-            return Bindings(book, mediaTypes).also {
+            return PackageBindings(book, mediaTypes).also {
                 logger.trace { "Constructed bindings instance <$it>" }
             }
         }

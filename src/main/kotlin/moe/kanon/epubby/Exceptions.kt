@@ -30,15 +30,16 @@ open class EpubbyException(message: String? = null, cause: Throwable? = null) : 
  * Thrown to indicate that an error occurred in the [current file][currentFile] when parsing a [file][epub] into a
  * [Book] instance.
  */
-class MalformedBookException(
+class MalformedBookFileException @PublishedApi internal constructor(
     val epub: Path,
     val currentFile: Path,
     message: String? = null,
     cause: Throwable? = null
 ) : EpubbyException(message, cause) {
+    // TODO: remove these
     internal companion object {
         @JvmSynthetic
-        internal fun withDebug(container: Path, message: String, cause: Throwable? = null): MalformedBookException {
+        internal fun withDebug(container: Path, message: String, cause: Throwable? = null): MalformedBookFileException {
             val detailedMessage = """
                 |Encountered an error when traversing file "${container.name}" as an EPUB container.
                 |---- Debug Details ----
@@ -47,7 +48,7 @@ class MalformedBookException(
                 |Cause: ${if (cause != null) cause.message else "no cause"}
                 |-----------------------
             """.trimMargin()
-            return MalformedBookException(container, container, detailedMessage, cause)
+            return MalformedBookFileException(container, container, detailedMessage, cause)
         }
 
         @JvmSynthetic
@@ -56,7 +57,7 @@ class MalformedBookException(
             currentFile: Path,
             message: String,
             cause: Throwable? = null
-        ): MalformedBookException {
+        ): MalformedBookFileException {
             val detailedMessage = """
                 |Encountered an error when traversing file "$currentFile" in container file "${container.name}"
                 |---- Debug Details ----
@@ -66,13 +67,29 @@ class MalformedBookException(
                 |Cause: ${if (cause != null) cause.message else "no cause"}
                 |-----------------------
             """.trimMargin()
-            return MalformedBookException(container, currentFile, detailedMessage, cause)
+            return MalformedBookFileException(container, currentFile, detailedMessage, cause)
         }
     }
 }
 
 /**
+ * Thrown to indicate that an attempt to use a feature that was introduced in [minimumRequiredVersion] while working
+ * with a book with [currentVersion] was done.
+ */
+class UnsupportedBookFeatureException @PublishedApi internal constructor(
+    val minimumRequiredVersion: BookVersion,
+    val currentVersion: BookVersion,
+    private val featureName: String
+) : EpubbyException("$featureName only works from EPUB $minimumRequiredVersion and up, current version is $currentVersion.")
+
+/**
+ * Thrown to indicate that the given [version] is not a version of the EPUB specification that epubby knows of.
+ */
+class UnknownBookVersionException @PublishedApi internal constructor(val version: String) :
+    EpubbyException("Unknown EPUB version '$version', epubby only supports the following versions [${BookVersion.values().joinToString()}].")
+
+/**
  * Thrown to indicate that a `book` instance failed the validation phase.
  */
-class InvalidBookException internal constructor(message: String? = null, cause: Throwable? = null) :
+class InvalidBookException @PublishedApi internal constructor(message: String? = null, cause: Throwable? = null) :
     EpubbyException(message, cause)

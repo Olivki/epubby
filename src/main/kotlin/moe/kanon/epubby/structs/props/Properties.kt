@@ -17,6 +17,8 @@
 package moe.kanon.epubby.structs.props
 
 import moe.kanon.epubby.Book
+import moe.kanon.epubby.BookVersion
+import moe.kanon.epubby.NewFeature
 import moe.kanon.epubby.internal.Patterns
 import moe.kanon.epubby.packages.PackageDocument
 import moe.kanon.epubby.structs.prefixes.Prefixes
@@ -30,6 +32,7 @@ import kotlin.reflect.KClass
 /**
  * Represents a list of [Property] instances.
  */
+@NewFeature(since = BookVersion.EPUB_3_0)
 class Properties private constructor(private val delegate: MutableList<Property>) : AbstractMutableList<Property>() {
     override val size: Int get() = delegate.size
 

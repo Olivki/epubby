@@ -18,7 +18,7 @@ package moe.kanon.epubby.structs.props.vocabs
 
 import moe.kanon.epubby.internal.findProperty
 import moe.kanon.epubby.internal.findPropertyOrNull
-import moe.kanon.epubby.packages.Manifest
+import moe.kanon.epubby.packages.PackageManifest
 import moe.kanon.epubby.resources.Resource
 import moe.kanon.epubby.structs.prefixes.Prefix
 import moe.kanon.epubby.structs.props.Property
@@ -26,7 +26,7 @@ import moe.kanon.epubby.structs.props.Property
 /**
  * Represents the [manifest properties vocabulary](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#app-item-properties-vocab).
  *
- * The values defined here can be used in the `properties` of a [manifest item][Manifest.Item].
+ * The values defined here can be used in the `properties` of a [manifest item][PackageManifest.Item].
  */
 enum class ManifestVocabulary(override val reference: String) : Property {
     /**

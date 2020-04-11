@@ -19,14 +19,14 @@ package moe.kanon.epubby
 import moe.kanon.epubby.internal.logger
 import moe.kanon.epubby.metainf.MetaInf
 import moe.kanon.epubby.metainf.MetaInfContainer
-import moe.kanon.epubby.packages.Bindings
-import moe.kanon.epubby.packages.Collection
-import moe.kanon.epubby.packages.Guide
-import moe.kanon.epubby.packages.Manifest
-import moe.kanon.epubby.packages.Metadata
+import moe.kanon.epubby.packages.PackageBindings
+import moe.kanon.epubby.packages.PackageCollection
 import moe.kanon.epubby.packages.PackageDocument
-import moe.kanon.epubby.packages.Spine
-import moe.kanon.epubby.packages.Tours
+import moe.kanon.epubby.packages.PackageGuide
+import moe.kanon.epubby.packages.PackageManifest
+import moe.kanon.epubby.packages.PackageMetadata
+import moe.kanon.epubby.packages.PackageSpine
+import moe.kanon.epubby.packages.PackageTours
 import moe.kanon.epubby.structs.prefixes.isDefaultVocabularyPrefix
 import moe.kanon.epubby.structs.prefixes.isDublinCorePrefix
 
@@ -77,34 +77,34 @@ internal class BookValidator internal constructor(val book: Book) {
         packageDocument.tours?.also { validateTours(it) }
     }
 
-    private fun validateMetadata(metadata: Metadata) {
+    private fun validateMetadata(metadata: PackageMetadata) {
         if (metadata.identifiers.isEmpty()) fail("metadata 'identifiers' is not allowed to be empty")
         if (metadata.titles.isEmpty()) fail("metadata 'titles' is not allowed to be empty")
         if (metadata.languages.isEmpty()) fail("metadata 'languages' is not allowed to be empty")
-        if (metadata.metaElements.isEmpty()) fail("metadata 'meta-elements' is not allowed to be empty")
+        //if (metadata.metaElements.isEmpty()) fail("metadata 'meta-elements' is not allowed to be empty")
     }
 
-    private fun validateManifest(manifest: Manifest) {
-
-    }
-
-    private fun validateSpine(spine: Spine) {
+    private fun validateManifest(manifest: PackageManifest) {
 
     }
 
-    private fun validateGuide(guide: Guide) {
+    private fun validateSpine(spine: PackageSpine) {
 
     }
 
-    private fun validateBindings(bindings: Bindings) {
+    private fun validateGuide(guide: PackageGuide) {
 
     }
 
-    private fun validateCollection(collection: Collection) {
+    private fun validateBindings(bindings: PackageBindings) {
 
     }
 
-    private fun validateTours(tours: Tours) {
+    private fun validateCollection(collection: PackageCollection) {
+
+    }
+
+    private fun validateTours(tours: PackageTours) {
         for ((_, tour) in tours.entries) {
             if (tour.sites.isEmpty()) fail("tour 'sites' is not allowed to be empty")
         }

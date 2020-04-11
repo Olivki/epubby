@@ -23,4 +23,7 @@ import moe.kanon.epubby.Book
  */
 interface Transformer {
     val book: Book
+
+    @JvmDefault
+    fun onRegistration() {}
 }

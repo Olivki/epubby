@@ -19,11 +19,13 @@ package moe.kanon.epubby.packages
 import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.toPersistentHashMap
 import moe.kanon.epubby.Book
+import moe.kanon.epubby.BookVersion
+import moe.kanon.epubby.LegacyFeature
 import moe.kanon.epubby.internal.Namespaces
 import moe.kanon.epubby.internal.getBookPathFromHref
 import moe.kanon.epubby.internal.logger
 import moe.kanon.epubby.internal.malformed
-import moe.kanon.epubby.packages.Guide.Reference
+import moe.kanon.epubby.packages.PackageGuide.Reference
 import moe.kanon.epubby.resources.PageResource
 import moe.kanon.epubby.resources.Resource
 import moe.kanon.epubby.resources.pages.Page
@@ -51,13 +53,14 @@ import java.nio.file.Path
  * document. This specification does not require `Reading Systems` to mark or otherwise identify the entire scope of a
  * referenced element.
  *
- * **NOTE:** Starting from [EPUB 3.0][Book.Format.EPUB_3_0] the `guide` element is considered to be a
+ * **NOTE:** Starting from [EPUB 3.0][BookVersion.EPUB_3_0] the `guide` element is considered to be a
  * [legacy](http://www.idpf.org/epub/301/spec/epub-publications.html#sec-guide-elem) feature, and should be replaced
  * with `landmarks`.
  *
  * @property [book] The [Book] instance that this `guide` is bound to.
  */
-class Guide private constructor(val book: Book, private val _references: CaseInsensitiveMap<String, Reference>) {
+@LegacyFeature(since = BookVersion.EPUB_3_0)
+class PackageGuide private constructor(val book: Book, private val _references: CaseInsensitiveMap<String, Reference>) {
     // TODO: Clean up the class documentation
     // TODO: Make two separate classes for Reference and CustomReference? Maybe add a CustomType too?
 
@@ -399,7 +402,7 @@ class Guide private constructor(val book: Book, private val _references: CaseIns
     }
 
     /**
-     * Implementation of the `reference` element contained inside of the [guide][Guide] of the [book].
+     * Implementation of the `reference` element contained inside of the [guide][PackageGuide] of the [book].
      *
      * The **required** [type] parameter describes the publication component `this` reference is pointing towards. The
      * value for the `type` property **must** be a [Type] constant when applicable. Other types **may** be used
@@ -563,12 +566,12 @@ class Guide private constructor(val book: Book, private val _references: CaseIns
 
     internal companion object {
         @JvmSynthetic
-        internal fun fromElement(book: Book, element: Element, file: Path): Guide = with(element) {
+        internal fun fromElement(book: Book, element: Element, file: Path): PackageGuide = with(element) {
             val refs = getChildren("reference", namespace)
                 .asSequence()
                 .map { createReference(book, it, book.file, file) }
                 .associateByTo(CaseInsensitiveMap()) { it.type }
-            return Guide(book, refs).also {
+            return PackageGuide(book, refs).also {
                 logger.trace { "Constructed guide instance <$it> from file '$file'" }
             }
         }

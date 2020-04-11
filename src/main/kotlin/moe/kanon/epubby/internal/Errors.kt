@@ -18,26 +18,32 @@ package moe.kanon.epubby.internal
 
 import moe.kanon.epubby.BookVersion
 import moe.kanon.epubby.EpubbyException
-import moe.kanon.epubby.MalformedBookException
+import moe.kanon.epubby.MalformedBookFileException
+import moe.kanon.epubby.UnsupportedBookFeatureException
+import moe.kanon.kommons.FakeKeyword
 import moe.kanon.kommons.func.Failure
 import moe.kanon.kommons.func.Try
 import java.nio.file.Path
 
 typealias BookResult<T> = Try<T>
 
+@FakeKeyword
+@PublishedApi
+@Suppress("NOTHING_TO_INLINE")
+internal inline fun requireMinimumVersion(current: BookVersion, requiredMinimum: BookVersion, name: String) {
+    if (current.isOlderThan(requiredMinimum)) throw UnsupportedBookFeatureException(requiredMinimum, current, name)
+}
+
 @PublishedApi
 internal fun fail(message: String, cause: Throwable? = null): Nothing = throw EpubbyException(message, cause)
 
 @PublishedApi
-internal fun unknownVersion(version: BookVersion): Nothing = throw EpubbyException("Unknown book version '$version'")
-
-@PublishedApi
 internal fun malformed(epub: Path, message: String, cause: Throwable? = null): Nothing =
-    throw MalformedBookException(epub, epub, message, cause)
+    throw MalformedBookFileException(epub, epub, message, cause)
 
 @PublishedApi
 internal fun malformed(epub: Path, currentFile: Path, message: String, cause: Throwable? = null): Nothing =
-    throw MalformedBookException(epub, currentFile, message, cause)
+    throw MalformedBookFileException(epub, currentFile, message, cause)
 
 @PublishedApi
 internal fun <T> failure(message: String, cause: Throwable?): Try<T> = Failure(EpubbyException(message, cause))

@@ -19,6 +19,9 @@ package moe.kanon.epubby.packages
 import moe.kanon.epubby.Book
 import moe.kanon.epubby.BookReadMode
 import moe.kanon.epubby.BookVersion
+import moe.kanon.epubby.DeprecatedFeature
+import moe.kanon.epubby.LegacyFeature
+import moe.kanon.epubby.NewFeature
 import moe.kanon.epubby.internal.Namespaces
 import moe.kanon.epubby.metainf.MetaInf
 import moe.kanon.epubby.structs.Direction
@@ -60,19 +63,19 @@ import kotlin.properties.Delegates
  * @property [metadata] TODO
  * @property [manifest] TODO
  * @property [spine] TODO
- * @property [guide] The [guide][Guide] element for the [book] this package is tied to.
+ * @property [guide] The [guide][PackageGuide] element for the [book] this package is tied to.
  *
  * There is no guarantee that a book will have a `guide` element, and therefore there is no guarantee that this
  * property will exist.
- * @property [bindings] The [bindings][Bindings] element for the [book] this package is tied to.
+ * @property [bindings] The [bindings][PackageBindings] element for the [book] this package is tied to.
  *
  * There is no guarantee that a book will have a `bindings` element, and therefore there is no guarantee that this
  * property will exist.
- * @property [collection] The [collection][Collection] element for the [book] this package is tied to.
+ * @property [collection] The [collection][PackageCollection] element for the [book] this package is tied to.
  *
  * There is no guarantee that a book will have a `collection` element, and therefore there is no guarantee that this
  * property will exist.
- * @property [tours] The [tours][Tours] element for the [book] this package is tied to.
+ * @property [tours] The [tours][PackageTours] element for the [book] this package is tied to.
  *
  * There is no guarantee that a book will have a `tours` element, and therefore there is no guarantee that this
  * property will exist.
@@ -85,13 +88,18 @@ class PackageDocument private constructor(
     var identifier: Identifier?,
     val prefix: Prefixes,
     var language: Locale?,
-    val metadata: Metadata,
-    val manifest: Manifest,
-    val spine: Spine,
-    var guide: Guide?,
-    var bindings: Bindings?,
-    var collection: Collection?,
-    var tours: Tours?
+    val metadata: PackageMetadata,
+    val manifest: PackageManifest,
+    val spine: PackageSpine,
+    @LegacyFeature(since = BookVersion.EPUB_3_0)
+    var guide: PackageGuide?,
+    @NewFeature(since = BookVersion.EPUB_3_0)
+    @DeprecatedFeature(since = BookVersion.EPUB_3_2)
+    var bindings: PackageBindings?,
+    @NewFeature(since = BookVersion.EPUB_3_0)
+    var collection: PackageCollection?,
+    @DeprecatedFeature(since = BookVersion.EPUB_2_0)
+    var tours: PackageTours?
 ) {
     var uniqueIdentifier: Identifier by Delegates.vetoable(uniqueIdentifier) { _, _, new ->
         requireThat(new.value.isNotBlank()) { "unique-identifier for package-document should not be blank" }
@@ -100,22 +108,22 @@ class PackageDocument private constructor(
     }
 
     /**
-     * Returns `true` if `this` package-document has a [guide][Guide], `false` otherwise.
+     * Returns `true` if `this` package-document has a [guide][PackageGuide], `false` otherwise.
      */
     fun hasGuide(): Boolean = guide != null
 
     /**
-     * Returns `true` if `this` package-document has a [bindings][Bindings], `false` otherwise.
+     * Returns `true` if `this` package-document has a [bindings][PackageBindings], `false` otherwise.
      */
     fun hasBindings(): Boolean = bindings != null
 
     /**
-     * Returns `true` if `this` package-document has a [collection][Collection], `false` otherwise.
+     * Returns `true` if `this` package-document has a [collection][PackageCollection], `false` otherwise.
      */
     fun hasCollection(): Boolean = collection != null
 
     /**
-     * Returns `true` if `this` package-document has a [tours][Tours], `false` otherwise.
+     * Returns `true` if `this` package-document has a [tours][PackageTours], `false` otherwise.
      */
     fun hasTours(): Boolean = tours != null
 
@@ -155,29 +163,29 @@ class PackageDocument private constructor(
                 val identifier = root.getAttributeValue("id")?.let { Identifier.of(it) }
                 val prefix = root.getAttributeValue("prefix")?.let { Prefixes.parse(it) } ?: Prefixes.empty()
                 val language = root.getAttributeValue("lang", Namespace.XML_NAMESPACE)?.let(Locale::forLanguageTag)
-                val version = root.attr("version", epub, container).let { BookVersion.parse(it) }
+                val version: BookVersion = root.attr("version", epub, container).let { BookVersion.fromString(it) }
                 val book = Book(metaInf, version, epub, fileSystem, fileSystem.getPath("/"))
 
                 // mandatory
                 val manifest = root.child("manifest", epub, container, namespace).let {
-                    Manifest.fromElement(book, it, container, prefix)
+                    PackageManifest.fromElement(book, it, container, prefix)
                 }
                 book.resources.populateFromManifest(manifest)
                 val spine = root.child("spine", epub, container, namespace).let {
-                    Spine.fromElement(book, manifest, it, container, prefix)
+                    PackageSpine.fromElement(book, manifest, it, container, prefix)
                 }
                 book.pages.populateFromSpine(spine)
                 // we parse 'metadata' last of the mandatory elements so that we can reference resources
                 val metadata = root.child("metadata", epub, container, namespace).let {
-                    Metadata.fromElement(book, it, container, prefix)
+                    PackageMetadata.fromElement(book, it, container, prefix)
                 }
 
                 // optional
-                val guide = root.getChild("guide", namespace)?.let { Guide.fromElement(book, it, container) }
-                val bindings = root.getChild("bindings", namespace)?.let { Bindings.fromElement(book, it, container) }
+                val guide = root.getChild("guide", namespace)?.let { PackageGuide.fromElement(book, it, container) }
+                val bindings = root.getChild("bindings", namespace)?.let { PackageBindings.fromElement(book, it, container) }
                 val collection =
-                    root.getChild("collection", namespace)?.let { Collection.fromElement(book, it, container) }
-                val tours = root.getChild("tours", namespace)?.let { Tours.fromElement(book, it, container) }
+                    root.getChild("collection", namespace)?.let { PackageCollection.fromElement(book, it, container) }
+                val tours = root.getChild("tours", namespace)?.let { PackageTours.fromElement(book, it, container) }
 
                 return PackageDocument(
                     book,

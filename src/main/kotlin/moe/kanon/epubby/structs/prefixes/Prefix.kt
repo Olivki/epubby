@@ -16,6 +16,8 @@
 
 package moe.kanon.epubby.structs.prefixes
 
+import moe.kanon.epubby.BookVersion
+import moe.kanon.epubby.NewFeature
 import moe.kanon.epubby.structs.props.Property
 import moe.kanon.kommons.requireThat
 import java.net.URI
@@ -24,6 +26,7 @@ import java.net.URISyntaxException
 /**
  * Represents a prefix to IRI mapping.
  */
+@NewFeature(since = BookVersion.EPUB_3_0)
 interface Prefix {
     /**
      * The shorthand name used to refer to the underlying [uri] when [processing][Property.process] a property that

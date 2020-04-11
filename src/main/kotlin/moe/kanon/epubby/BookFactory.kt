@@ -40,7 +40,7 @@ import java.nio.file.Path
  * TODO
  *
  * @param [epubFile] the file to read and parse into a [Book] instance, this needs to be a EPUB file or this function
- * will throw a [MalformedBookException]
+ * will throw a [MalformedBookFileException]
  * @param [mode] the [mode][BookReadMode] to use when parsing the [epubFile] into a [Book] instance
  *
  * @throws [IOException] if an i/o error occurred
@@ -72,13 +72,13 @@ fun readBook(epubFile: Path, mode: BookReadMode = BookReadMode.STRICT): Book {
 }
 
 private fun createTableOfContents(book: Book): TableOfContents = when {
-    book.version < BookVersion.EPUB_3_0 -> {
+    book.version.isOlderThan(BookVersion.EPUB_3_0) -> {
         val tocFile =
             book.spine.tableOfContents?.href ?: malformed(book.file, "book does not have 'toc' entry defined")
         TableOfContents.fromNcxDocument(book, NcxDocument.fromFile(book.file, tocFile))
     }
     // TODO: 'version in BookVersion.EPUB_3_0..BookVersion.EPUB_3_2'
-    book.version >= BookVersion.EPUB_3_0 -> {
+    book.version.isNewerThan(BookVersion.EPUB_2_0) -> {
         val tocPage = book.resources.pages.values.firstOrNull { it.isNavigationDocument }
             ?: malformed(book.file, "book does not have a 'nav' page-resource defined")
         val navDoc = NavigationDocument.fromFile(book.file, tocPage.file)

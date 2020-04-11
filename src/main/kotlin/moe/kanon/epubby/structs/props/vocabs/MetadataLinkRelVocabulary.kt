@@ -18,16 +18,16 @@ package moe.kanon.epubby.structs.props.vocabs
 
 import moe.kanon.epubby.internal.findProperty
 import moe.kanon.epubby.internal.findPropertyOrNull
-import moe.kanon.epubby.packages.Collection
-import moe.kanon.epubby.packages.Metadata
+import moe.kanon.epubby.packages.PackageCollection
 import moe.kanon.epubby.packages.PackageDocument
+import moe.kanon.epubby.packages.PackageMetadata
 import moe.kanon.epubby.structs.prefixes.Prefix
 import moe.kanon.epubby.structs.props.Property
 
 /**
  * Represents the [metadata link rel vocabulary](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#sec-link-rel).
  *
- * The values defined here can be used as the `rel` of a [metadata link][Metadata.Link].
+ * The values defined here can be used as the `rel` of a [metadata link][PackageMetadata.Link].
  *
  * @property [refinesRelation] Defines whether or not the constant can be used when the `refines` attribute is
  * present.
@@ -47,12 +47,12 @@ enum class MetadataLinkRelVocabulary(
      * The `alternate` property is a subset of the HTML `alternate` keyword for `link` elements, it differs as follows:
      *
      * - It cannot be paired with other keywords.
-     * - If an alternate `link` is included in the [package-document][PackageDocument] [metadata][Metadata], it
+     * - If an alternate `link` is included in the [package-document][PackageDocument] [metadata][PackageMetadata], it
      * identifies an alternate representation of the `package-document` in the format specified by the
-     * [mediaType][Metadata.Link.mediaType] of the `link`.
-     * - If an alternate `link` is included in a [collection][Collection]'s [metadata][Collection.Metadata], it
+     * [mediaType][PackageMetadata.Link.mediaType] of the `link`.
+     * - If an alternate `link` is included in a [collection][PackageCollection]'s [metadata][PackageCollection.Metadata], it
      * identifies an alternate representation of the `collection` in the format specified in by the
-     * [mediaType][Collection.Metadata.Link.mediaType] of the `link`.
+     * [mediaType][PackageCollection.Metadata.Link.mediaType] of the `link`.
      */
     ALTERNATE("alternate", Refines.MUST_NOT_BE_PRESENT),
     /**

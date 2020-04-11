@@ -16,8 +16,12 @@
 
 package moe.kanon.epubby.structs.props
 
+import moe.kanon.epubby.BookVersion
+import moe.kanon.epubby.NewFeature
+
 /**
  * Represents the [rel](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#attrdef-link-rel)
  * attribute.
  */
+@NewFeature(since = BookVersion.EPUB_3_0)
 typealias Relationship = Properties

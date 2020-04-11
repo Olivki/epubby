@@ -24,8 +24,9 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import moe.kanon.epubby.Book
 import moe.kanon.epubby.BookVersion
+import moe.kanon.epubby.DeprecatedFeature
 import moe.kanon.epubby.internal.Namespaces
-import moe.kanon.epubby.packages.Metadata
+import moe.kanon.epubby.packages.PackageMetadata
 import org.jdom2.Attribute
 import org.jdom2.Element
 import org.jdom2.Namespace
@@ -41,7 +42,6 @@ import moe.kanon.epubby.structs.Identifier as EpubbyIdentifier
 /**
  * Represents an abstract implementation of a [dublin core element](http://www.dublincore.org/specifications/dublin-core/dces/).
  *
- * @property [book] The book instance that `this` dublin-core element is tied to.
  * @property [label] The string to use when converting this dublin-core back into its XML form.
  */
 sealed class DublinCore<T : Any>(val label: String) {
@@ -63,11 +63,12 @@ sealed class DublinCore<T : Any>(val label: String) {
      * The purpose of these attributes is to preserve backwards compatibility with the [EPUB 2.0][BookVersion.EPUB_2_0]
      * spec, as `opf:property` attributes were used to define additional information regarding the dublin-core element.
      * In [EPUB 3.0][BookVersion.EPUB_3_0] this functionality was replaced with the retrofitted
-     * [meta][Metadata.Meta.OPF3] element.
+     * [meta][PackageMetadata.OPF3Meta] element.
      *
      * @see [addAttribute]
      * @see [removeAttributes]
      */
+    @DeprecatedFeature(since = BookVersion.EPUB_3_0)
     val attributes: ImmutableList<Attribute>
         get() = _attributes.map { it.clone() }.toImmutableList()
 
@@ -76,10 +77,11 @@ sealed class DublinCore<T : Any>(val label: String) {
      * element.
      *
      * Note that this is only supported for [EPUB 2.0][BookVersion.EPUB_2_0], as in [EPUB 3.0][BookVersion.EPUB_3_0]
-     * the [meta][Metadata.Meta.OPF3] element was retrofitted to perform the role that these attributes did in
+     * the [meta][PackageMetadata.OPF3Meta] element was retrofitted to perform the role that these attributes did in
      * `EPUB 2.0` *(and more)*. This means that any attributes added will only show up if the `book` that serializes
      * this dublin-core element is of version `EPUB 2.0`.
      */
+    @DeprecatedFeature(since = BookVersion.EPUB_3_0)
     fun addAttribute(name: String, value: String) = apply {
         val attribute = Attribute(name, value, Namespaces.OPF_WITH_PREFIX)
         _attributes.add(attribute)
@@ -88,11 +90,13 @@ sealed class DublinCore<T : Any>(val label: String) {
     /**
      * Removes all of the given [attributes] that are also contained in `this` dublin-core element.
      */
+    @DeprecatedFeature(since = BookVersion.EPUB_3_0)
     fun removeAttributes(attributes: Iterable<Attribute>): Boolean = _attributes.removeAll(attributes)
 
     /**
      * Removes *all* the attributes of this dublin-core element.
      */
+    @DeprecatedFeature(since = BookVersion.EPUB_3_0)
     fun removeAllAttributes() {
         _attributes.clear()
     }
@@ -103,6 +107,7 @@ sealed class DublinCore<T : Any>(val label: String) {
      *
      * @see [attributes]
      */
+    @DeprecatedFeature(since = BookVersion.EPUB_3_0)
     fun hasAttribute(name: String, value: String): Boolean = _attributes.any { it.name == name && it.value == value }
 
     /**
@@ -110,6 +115,7 @@ sealed class DublinCore<T : Any>(val label: String) {
      *
      * @see [attributes]
      */
+    @DeprecatedFeature(since = BookVersion.EPUB_3_0)
     fun hasAttribute(name: String): Boolean = _attributes.any { it.name == name }
 
     /**
@@ -143,7 +149,9 @@ sealed class DublinCore<T : Any>(val label: String) {
                 language?.also { setAttribute("lang", it.toLanguageTag(), Namespace.XML_NAMESPACE) }
             }
 
-            if (book.version < BookVersion.EPUB_3_0) _attributes.forEach { setAttribute(it) }
+            if (book.version.isOlderThan(BookVersion.EPUB_3_0)) {
+                _attributes.forEach { setAttribute(it) }
+            }
 
             text = this@DublinCore.stringify()
         }

@@ -48,29 +48,29 @@ import kotlin.properties.Delegates
 /**
  * Represents the [spine](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#sec-pkg-spine) element.
  */
-class Spine(
+class PackageSpine(
     val book: Book,
     var identifier: Identifier?,
     var pageProgressionDirection: PageProgressionDirection?,
     private var tableOfContentsIdentifier: Identifier?,
     @get:JvmSynthetic internal val _references: MutableList<ItemReference>
-) : Iterable<Spine.ItemReference> {
+) : Iterable<PackageSpine.ItemReference> {
     /**
      * Returns a list of all the [itemref][ItemReference]s of `this` guide.
      */
     val references: ImmutableList<ItemReference> get() = _references.toImmutableList()
 
     /**
-     * The [manifest-item][Manifest.Item] that has been marked as the table-of-contents for the [book].
+     * The [manifest-item][PackageManifest.Item] that has been marked as the table-of-contents for the [book].
      *
      * Note that the `toc` attribute that this relies on is marked as a **LEGACY** feature as of
      * [EPUB 3.0][BookVersion.EPUB_3_0], so there is no guarantee that this will return anything.
      */
-    @LegacyFeature(since = "3.0")
-    var tableOfContents: Manifest.Item.Local?
+    @LegacyFeature(since = BookVersion.EPUB_3_0)
+    var tableOfContents: PackageManifest.Item.Local?
         get() = tableOfContentsIdentifier?.let { book.manifest.getLocalItemOrNull(it) }
         set(value) {
-            logger.debug { "Setting the spine table-of-contents to $tableOfContents." }
+            logger.trace { "Setting the spine table-of-contents to $tableOfContents." }
             tableOfContentsIdentifier = value?.identifier
         }
 
@@ -96,7 +96,7 @@ class Spine(
     // -- REFERENCE-OF -- \\
     /**
      * Returns the first [itemref][ItemReference] that references an [item][ItemReference] that has an
-     * [id][Manifest.Item.identifier] that matches the given [resource], or throws a [NoSuchElementException] if none
+     * [id][PackageManifest.Item.identifier] that matches the given [resource], or throws a [NoSuchElementException] if none
      * is found.
      */
     fun getReferenceOf(resource: PageResource): ItemReference = getReferenceOfOrNull(resource)
@@ -106,19 +106,19 @@ class Spine(
      * Returns the first [itemref][ItemReference] that references the given [item], or throws [NoSuchElementException]
      * if none is found.
      */
-    fun getReferenceOf(item: Manifest.Item<*>): ItemReference =
+    fun getReferenceOf(item: PackageManifest.Item<*>): ItemReference =
         _references.find { it.item == item }
             ?: throw NoSuchElementException("No 'itemref' found that references the item <$item>")
 
     /**
      * Returns the first [itemref][ItemReference] that references the given [item], or `null` if none is found.
      */
-    fun getReferenceOfOrNull(item: Manifest.Item<*>): ItemReference? =
+    fun getReferenceOfOrNull(item: PackageManifest.Item<*>): ItemReference? =
         _references.firstOrNull { it.item == item }
 
     /**
-     * Returns the first [itemref][ItemReference] that references an [item][Manifest.Item] that has an
-     * [id][Manifest.Item.identifier] that matches the given [resource], or `null` if none is found.
+     * Returns the first [itemref][ItemReference] that references an [item][PackageManifest.Item] that has an
+     * [id][PackageManifest.Item.identifier] that matches the given [resource], or `null` if none is found.
      */
     fun getReferenceOfOrNull(resource: PageResource): ItemReference? =
         _references.firstOrNull { it.item.identifier == resource.identifier }
@@ -126,19 +126,19 @@ class Spine(
     /**
      * Returns the first [itemref][ItemReference] that references the given [item], or `None` if none is found.
      */
-    fun getReferenceOfOrNone(item: Manifest.Item<*>): Option<ItemReference> =
+    fun getReferenceOfOrNone(item: PackageManifest.Item<*>): Option<ItemReference> =
         _references.firstOrNone { it.item == item }
 
     /**
-     * Returns the first [itemref][ItemReference] that references an [item][Manifest.Item] that has an
-     * [id][Manifest.Item.identifier] that matches the given [resource], or `None` if none is found.
+     * Returns the first [itemref][ItemReference] that references an [item][PackageManifest.Item] that has an
+     * [id][PackageManifest.Item.identifier] that matches the given [resource], or `None` if none is found.
      */
     fun getReferenceOfOrNone(resource: PageResource): Option<ItemReference> =
         _references.firstOrNone { it.item.identifier == resource.identifier }
 
     /**
      * Returns whether or not this `spine` element contains any [itemref][ItemReference] elements that reference
-     * an [item][Manifest.Item] that has a [id][Manifest.Item.identifier] that matches the given [resource].
+     * an [item][PackageManifest.Item] that has a [id][PackageManifest.Item.identifier] that matches the given [resource].
      */
     fun hasReferenceOf(resource: PageResource): Boolean = _references.any { it.item.identifier == resource.identifier }
 
@@ -146,11 +146,11 @@ class Spine(
      * Returns whether or not this `spine` element contains any [itemref][ItemReference] elements that reference the
      * given [item].
      */
-    fun hasReferenceOf(item: Manifest.Item<*>): Boolean = _references.any { it.item == item }
+    fun hasReferenceOf(item: PackageManifest.Item<*>): Boolean = _references.any { it.item == item }
 
     // -- INTERNAL -- \\
     @JvmSynthetic
-    internal fun updateReferenceItemFor(resource: PageResource, newItem: Manifest.Item<*>) {
+    internal fun updateReferenceItemFor(resource: PageResource, newItem: PackageManifest.Item<*>) {
         val ref = getReferenceOfOrNull(resource)
 
         if (ref != null) {
@@ -210,13 +210,13 @@ class Spine(
      * Represents the [itemref](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#elemdef-spine-itemref)
      * element.
      *
-     * @property [item] The [manifest item][Manifest.Item] that `this` spine entry is representing the order of.
+     * @property [item] The [manifest item][PackageManifest.Item] that `this` spine entry is representing the order of.
      * @property [identifier] TODO
      * @property [properties] TODO
      */
     // TODO: Change 'item' to Manifest.Item.Local?
     class ItemReference internal constructor(
-        val item: Manifest.Item<*>,
+        val item: PackageManifest.Item<*>,
         var identifier: Identifier? = null,
         @get:JvmSynthetic internal val isLinearRaw: Boolean? = null,
         val properties: Properties = Properties.empty()
@@ -273,11 +273,11 @@ class Spine(
         @JvmSynthetic
         internal fun fromElement(
             book: Book,
-            manifest: Manifest,
+            manifest: PackageManifest,
             element: Element,
             file: Path,
             prefixes: Prefixes
-        ): Spine = with(element) {
+        ): PackageSpine = with(element) {
             val identifier = getAttributeValue("id")?.let { Identifier.of(it) }
             val pageProgressionDirection =
                 getAttributeValue("page-progression-direction")?.let { PageProgressionDirection.of(it) }
@@ -285,13 +285,13 @@ class Spine(
             val references = getChildren("itemref", namespace)
                 .mapTo(mutableListOf()) { createReference(manifest, it, book.file, file, prefixes) }
                 .ifEmpty { malformed(book.file, file, "The book spine should not be empty") }
-            return Spine(book, identifier, pageProgressionDirection, tocIdentifier, references).also {
+            return PackageSpine(book, identifier, pageProgressionDirection, tocIdentifier, references).also {
                 logger.trace { "Constructed spine instance <$it> from file '$file'" }
             }
         }
 
         private fun createReference(
-            manifest: Manifest,
+            manifest: PackageManifest,
             element: Element,
             epub: Path,
             container: Path,

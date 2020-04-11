@@ -16,45 +16,35 @@
 
 package moe.kanon.epubby.packages
 
-import moe.kanon.epubby.packages.Guide.Reference
-import moe.kanon.epubby.packages.Guide.Type
-import moe.kanon.epubby.packages.Manifest.Item
-import moe.kanon.epubby.packages.Spine.ItemReference
+import moe.kanon.epubby.packages.PackageGuide.Reference
+import moe.kanon.epubby.packages.PackageGuide.Type
+import moe.kanon.epubby.packages.PackageManifest.Item
+import moe.kanon.epubby.packages.PackageSpine.ItemReference
 import moe.kanon.epubby.resources.PageResource
 import moe.kanon.epubby.resources.Resource
 import moe.kanon.epubby.structs.Identifier
-
-// -- METADATA -- \\
-typealias OPF2Meta = Metadata.Meta.OPF2
-
-typealias OPF3Meta = Metadata.Meta.OPF3
-
-// -- MANIFEST -- \\
-typealias LocalItem = Manifest.Item.Local
-
-typealias RemoteItem = Manifest.Item.Remote
 
 /**
  * Returns the [item][Item] stored under the given [identifier], or throws a [NoSuchElementException] if none is
  * found.
  */
-operator fun Manifest.get(identifier: Identifier): Item<*> = getItem(identifier)
+operator fun PackageManifest.get(identifier: Identifier): Item<*> = getItem(identifier)
 
 /**
  * Returns `true` if this manifest has an [item][Item] with the given [identifier], `false` otherwise.
  */
-operator fun Manifest.contains(identifier: Identifier): Boolean = hasItem(identifier)
+operator fun PackageManifest.contains(identifier: Identifier): Boolean = hasItem(identifier)
 
 /**
  * Returns `true` if this manifest contains the given [item], `false` otherwise.
  */
-operator fun Manifest.contains(item: Item<*>): Boolean = hasItem(item)
+operator fun PackageManifest.contains(item: Item<*>): Boolean = hasItem(item)
 
 /**
  * Returns `true` if this manifest contains a [local item][Item.Local] that points towards the given [resource],
  * `false` otherwise.
  */
-operator fun Manifest.contains(resource: Resource): Boolean = hasItemFor(resource)
+operator fun PackageManifest.contains(resource: Resource): Boolean = hasItemFor(resource)
 
 // -- SPINE -- \\
 /**
@@ -62,32 +52,32 @@ operator fun Manifest.contains(resource: Resource): Boolean = hasItemFor(resourc
  *
  * @throws [IndexOutOfBoundsException] if the given [index] is out of range
  */
-operator fun Spine.get(index: Int): ItemReference = getReference(index)
+operator fun PackageSpine.get(index: Int): ItemReference = getReference(index)
 
 /**
  * Returns the first [itemref][ItemReference] that references an [item][ItemReference] that has an
- * [id][Manifest.Item.identifier] that matches the given [resource], or throws a [NoSuchElementException] if none
+ * [id][PackageManifest.Item.identifier] that matches the given [resource], or throws a [NoSuchElementException] if none
  * is found.
  */
-operator fun Spine.get(resource: PageResource): ItemReference = getReferenceOf(resource)
+operator fun PackageSpine.get(resource: PageResource): ItemReference = getReferenceOf(resource)
 
 /**
  * Returns the first [itemref][ItemReference] that references the given [item], or throws [NoSuchElementException]
  * if none is found.
  */
-operator fun Spine.get(item: Item<*>): ItemReference = getReferenceOf(item)
+operator fun PackageSpine.get(item: Item<*>): ItemReference = getReferenceOf(item)
 
 /**
  * Returns whether or not this `spine` element contains any [itemref][ItemReference] elements that reference
- * an [item][Manifest.Item] that has a [id][Manifest.Item.identifier] that matches the given [resource].
+ * an [item][PackageManifest.Item] that has a [id][PackageManifest.Item.identifier] that matches the given [resource].
  */
-operator fun Spine.contains(resource: PageResource): Boolean = hasReferenceOf(resource)
+operator fun PackageSpine.contains(resource: PageResource): Boolean = hasReferenceOf(resource)
 
 /**
  * Returns whether or not this `spine` element contains any [itemref][ItemReference] elements that reference the
  * given [item].
  */
-operator fun Spine.contains(item: Item<*>): Boolean = hasReferenceOf(item)
+operator fun PackageSpine.contains(item: Item<*>): Boolean = hasReferenceOf(item)
 
 // -- GUIDE -- \\
 /**
@@ -99,7 +89,7 @@ operator fun Spine.contains(item: Item<*>): Boolean = hasReferenceOf(item)
  * @param [reference] the [Resource] to inherit the [href][Resource.href] of
  * @param [title] the *(optional)* title
  */
-operator fun Guide.set(type: Type, reference: PageResource) {
+operator fun PackageGuide.set(type: Type, reference: PageResource) {
     addReference(type, reference)
 }
 
@@ -108,7 +98,7 @@ operator fun Guide.set(type: Type, reference: PageResource) {
  *
  * @param [type] the `type` to remove
  */
-operator fun Guide.minusAssign(type: Type) {
+operator fun PackageGuide.minusAssign(type: Type) {
     removeReference(type)
 }
 
@@ -116,12 +106,12 @@ operator fun Guide.minusAssign(type: Type) {
  * Returns the [reference][Reference] stored under the given [type], or throws a [NoSuchElementException] if none
  * is found.
  */
-operator fun Guide.get(type: Type): Reference = getReference(type)
+operator fun PackageGuide.get(type: Type): Reference = getReference(type)
 
 /**
  * Returns `true` if this guide has a reference with the given [type], `false` otherwise.
  */
-operator fun Guide.contains(type: Type): Boolean = hasType(type)
+operator fun PackageGuide.contains(type: Type): Boolean = hasType(type)
 
 /**
  * Adds a new [reference][Reference] instance based on the given [customType], and [href] to this guide.
@@ -140,13 +130,13 @@ operator fun Guide.contains(type: Type): Boolean = hasType(type)
  * behaviour is consistent across all functions that accept a `customType`.
  *
  * Note that as guide references are *case-insensitive* the casing of the given [customType] does not matter when
- * attempting to return it from [getCustomReference][Guide.getCustomReference] or removing it via
- * [removeCustomReference][Guide.removeCustomReference].
+ * attempting to return it from [getCustomReference][PackageGuide.getCustomReference] or removing it via
+ * [removeCustomReference][PackageGuide.removeCustomReference].
  *
  * @param [customType] the custom type string
  * @param [reference] the [Resource] to inherit the [href][Resource.href] of
  */
-operator fun Guide.set(customType: String, reference: PageResource) {
+operator fun PackageGuide.set(customType: String, reference: PageResource) {
     addCustomReference(customType, reference)
 }
 
@@ -170,7 +160,7 @@ operator fun Guide.set(customType: String, reference: PageResource) {
  *
  * @param [customType] the custom type string
  */
-operator fun Guide.minusAssign(customType: String) {
+operator fun PackageGuide.minusAssign(customType: String) {
     removeCustomReference(customType)
 }
 
@@ -193,7 +183,7 @@ operator fun Guide.minusAssign(customType: String) {
  * that invoking this function with `"deStROyeR"` will return the same result as if invoking it with `"destroyer"`
  * or any other casing variation of the same string.
  */
-operator fun Guide.get(customType: String): Reference = getCustomReference(customType)
+operator fun PackageGuide.get(customType: String): Reference = getCustomReference(customType)
 
 /**
  * Returns `true` if this guide has a reference with the given [customType], `false` otherwise.
@@ -213,7 +203,7 @@ operator fun Guide.get(customType: String): Reference = getCustomReference(custo
  * that invoking this function with `"deStROyeR"` will return the same result as if invoking it with `"destroyer"`
  * or any other casing variation of the same string.
  */
-operator fun Guide.contains(customType: String): Boolean = hasCustomType(customType)
+operator fun PackageGuide.contains(customType: String): Boolean = hasCustomType(customType)
 
 // -- BINDINGS -- \\
 

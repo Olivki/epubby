@@ -22,19 +22,15 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toPersistentHashMap
 import moe.kanon.epubby.Book
-import moe.kanon.epubby.BookVersion
 import moe.kanon.epubby.EpubbyException
 import moe.kanon.epubby.LegacyFeature
 import moe.kanon.epubby.internal.logger
-import moe.kanon.epubby.packages.Manifest
+import moe.kanon.epubby.packages.PackageManifest
 import moe.kanon.epubby.structs.Identifier
 import moe.kanon.epubby.structs.props.vocabs.ManifestVocabulary
 import moe.kanon.kommons.collections.asUnmodifiable
 import moe.kanon.kommons.collections.filterValuesIsInstance
 import moe.kanon.kommons.collections.getOrThrow
-import moe.kanon.kommons.func.Option
-import moe.kanon.kommons.func.firstOrNone
-import moe.kanon.kommons.func.getOrNone
 import moe.kanon.kommons.io.paths.createDirectories
 import moe.kanon.kommons.io.paths.delete
 import moe.kanon.kommons.io.paths.exists
@@ -43,7 +39,6 @@ import moe.kanon.kommons.io.paths.moveTo
 import moe.kanon.kommons.io.paths.name
 import moe.kanon.kommons.requireThat
 import java.io.IOException
-import java.net.URI
 import java.nio.file.CopyOption
 import java.nio.file.FileSystem
 import java.nio.file.Path
@@ -120,7 +115,7 @@ class Resources internal constructor(val book: Book) : Iterable<Resource> {
      * [tableOfContents][Book.tableOfContents] for the book.
      *
      * Note that the `toc` attribute that this relies on is marked as a **LEGACY** feature as of
-     * [EPUB 3.0][BookVersion.EPUB_3_0], so there is no guarantee that this will return anything.
+     * [EPUB 3.0][_BookVersion.EPUB_3_0], so there is no guarantee that this will return anything.
      */
     @LegacyFeature(since = "3.0")
     fun getTableOfContentsNcx(): NcxResource? =
@@ -162,7 +157,7 @@ class Resources internal constructor(val book: Book) : Iterable<Resource> {
      * @param [file] the [path][Path] pointing towards the file that the returned [Resource] should be wrapping
      * around, note that this **NEEDS** to point towards an [existing][Path.exists] file
      * @param [identifier] the unique identifier that the returned [Resource] should be using, this is used for
-     * storing the resource inside the [manifest][Manifest] of the [book]
+     * storing the resource inside the [manifest][PackageManifest] of the [book]
      *
      * @throws [IllegalArgumentException] if the [file-system][Path.getFileSystem] of the given [file] is not the same
      * as the [file-system][Book.fileSystem] of the [book]
@@ -205,24 +200,21 @@ class Resources internal constructor(val book: Book) : Iterable<Resource> {
     fun getResource(identifier: Identifier): Resource =
         resources.getOrThrow(identifier) { "No resource found with the identifier '$identifier'" }
 
-    fun getResourceOrNone(identifier: Identifier): Option<Resource> = resources.getOrNone(identifier)
-
     fun getResourceOrNull(identifier: Identifier): Resource? = resources[identifier]
 
     fun getResourceByFile(file: Path): Resource =
         getResourceByFileOrNull(file) ?: throw NoSuchElementException("No resource found with the file '$file'")
 
-    fun getResourceByFileOrNone(file: Path): Option<Resource> = resources.values.firstOrNone { it.file == file }
-
     fun getResourceByFileOrNull(file: Path): Resource? = resources.values.firstOrNull { it.file == file }
 
-    fun getResourceByUri(uri: URI): Resource =
-        getResourceByUriOrNull(uri) ?: throw NoSuchElementException("No resource found with the uri '$uri'")
+    @JvmOverloads
+    fun getResourceByHref(href: String, ignoreCase: Boolean = false): Resource =
+        getResourceByHrefOrNull(href, ignoreCase)
+            ?: throw NoSuchElementException("No resource found with the given href '$href'")
 
-    fun getResourceByUriOrNone(uri: URI): Option<Resource> =
-        resources.values.firstOrNone { it.file == book.getPath(uri) }
-
-    fun getResourceByUriOrNull(uri: URI): Resource? = resources.values.firstOrNull { it.file == book.getPath(uri) }
+    @JvmOverloads
+    fun getResourceByHrefOrNull(href: String, ignoreCase: Boolean = false): Resource? =
+        resources.values.firstOrNull { it.isHrefEqual(href, ignoreCase) }
 
     /**
      * Returns `true` if there exists a resource with the given [identifier], `false` otherwise.
@@ -235,21 +227,9 @@ class Resources internal constructor(val book: Book) : Iterable<Resource> {
     fun hasResource(resource: Resource): Boolean = resources.containsValue(resource)
 
     // -- UTILS -- \\
-    fun visitResources(visitor: ResourceVisitor) {
-        for ((_, resource) in resources) {
-            when (resource) {
-                is NcxResource -> visitor.onTableOfContents(resource)
-                is PageResource -> visitor.onPage(resource)
-                is StyleSheetResource -> visitor.onStyleSheet(resource)
-                is ImageResource -> visitor.onImage(resource)
-                is FontResource -> visitor.onFont(resource)
-                is AudioResource -> visitor.onAudio(resource)
-                is ScriptResource -> visitor.onScript(resource)
-                is VideoResource -> visitor.onVideo(resource)
-                is MiscResource -> visitor.onMisc(resource)
-            }
-        }
-    }
+    fun <R> visitResources(visitor: Resource.Visitor<R>): ImmutableList<R> = resources.values
+        .map { it.accept(visitor) }
+        .toImmutableList()
 
     /**
      * Attempts to move all resources in this repository to their [desired directories][Resource.desiredDirectory].
@@ -278,6 +258,13 @@ class Resources internal constructor(val book: Book) : Iterable<Resource> {
             }
         }
     }
+
+    fun <T : Resource> getResources(filter: Class<T>): ImmutableList<T> = entries.values
+        .filterIsInstance(filter)
+        .toImmutableList()
+
+    @JvmSynthetic
+    inline fun <reified T : Resource> getResources(): ImmutableList<T> = getResources(T::class.java)
 
     /**
      * Returns the [desired directory][Resource.desiredDirectory] of the given [resource].
@@ -340,7 +327,7 @@ class Resources internal constructor(val book: Book) : Iterable<Resource> {
 
     // -- INTERNAL -- \\
     @JvmSynthetic
-    internal fun populateFromManifest(manifest: Manifest) {
+    internal fun populateFromManifest(manifest: PackageManifest) {
         logger.debug { "Creating resource instances for the book from the manifest.." }
         val localResources = manifest.localItems.values.asSequence()
         val knownResources = localResources

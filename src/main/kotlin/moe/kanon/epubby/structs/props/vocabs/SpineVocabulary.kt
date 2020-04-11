@@ -18,7 +18,7 @@ package moe.kanon.epubby.structs.props.vocabs
 
 import moe.kanon.epubby.internal.findProperty
 import moe.kanon.epubby.internal.findPropertyOrNull
-import moe.kanon.epubby.packages.Spine
+import moe.kanon.epubby.packages.PackageSpine
 import moe.kanon.epubby.structs.prefixes.Prefix
 import moe.kanon.epubby.structs.props.Property
 
@@ -29,12 +29,12 @@ import moe.kanon.epubby.structs.props.Property
  */
 enum class SpineVocabulary(override val reference: String) : Property {
     /**
-     * Indicates that the first page of the associated [item][Spine.ItemReference.item] represents the left-hand
+     * Indicates that the first page of the associated [item][PackageSpine.ItemReference.item] represents the left-hand
      * side of a two-page spread.
      */
     PAGE_SPREAD_LEFT("page-spread-left"),
     /**
-     * Indicates that the first page of the associated [item][Spine.ItemReference.item] represents the right-hand
+     * Indicates that the first page of the associated [item][PackageSpine.ItemReference.item] represents the right-hand
      * side of a two-page spread.
      */
     PAGE_SPREAD_RIGHT("page-spread-right");

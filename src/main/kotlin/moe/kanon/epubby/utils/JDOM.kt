@@ -18,7 +18,7 @@
 
 package moe.kanon.epubby.utils
 
-import moe.kanon.epubby.MalformedBookException
+import moe.kanon.epubby.MalformedBookFileException
 import moe.kanon.kommons.func.None
 import moe.kanon.kommons.func.Option
 import moe.kanon.kommons.io.paths.newInputStream
@@ -96,7 +96,7 @@ internal inline fun <R> parseXmlFile(file: Path, scope: (doc: Document, root: El
 @PublishedApi
 @JvmSynthetic
 internal fun Element.attr(name: String, epub: Path, current: Path): String =
-    getAttributeValue(name) ?: throw MalformedBookException(
+    getAttributeValue(name) ?: throw MalformedBookFileException(
         epub,
         current,
         "Element '${this.name}' is missing required attribute '$name'"
@@ -109,7 +109,7 @@ internal fun Element.child(
     epub: Path,
     current: Path,
     namespace: Namespace = this.namespace
-): Element = getChild(name, namespace) ?: throw MalformedBookException.withDebug(
+): Element = getChild(name, namespace) ?: throw MalformedBookFileException.withDebug(
     epub,
     current,
     "Element '${this.name}' is missing required child element '$name'"

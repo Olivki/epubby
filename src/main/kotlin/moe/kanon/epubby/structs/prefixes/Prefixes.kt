@@ -16,10 +16,13 @@
 
 package moe.kanon.epubby.structs.prefixes
 
+import moe.kanon.epubby.BookVersion
+import moe.kanon.epubby.NewFeature
 import moe.kanon.epubby.internal.Patterns
 import moe.kanon.kommons.collections.mapToTypedArray
 import moe.kanon.kommons.requireThat
 
+@NewFeature(since = BookVersion.EPUB_3_0)
 class Prefixes private constructor(private val delegate: MutableMap<String, Prefix>) :
     AbstractMutableMap<String, Prefix>() {
     override val entries: MutableSet<MutableMap.MutableEntry<String, Prefix>>

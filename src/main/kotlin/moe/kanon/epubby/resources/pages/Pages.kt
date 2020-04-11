@@ -20,7 +20,7 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import moe.kanon.epubby.Book
 import moe.kanon.epubby.internal.logger
-import moe.kanon.epubby.packages.Spine
+import moe.kanon.epubby.packages.PackageSpine
 import moe.kanon.epubby.packages.contains
 import moe.kanon.epubby.packages.get
 import moe.kanon.epubby.resources.PageResource
@@ -42,7 +42,7 @@ class Pages internal constructor(val book: Book) : Iterable<Page> {
     val entries: ImmutableList<Page> get() = pages.toImmutableList()
 
     /**
-     * Sorts all the pages registered here by their index in the book [spine][Spine].
+     * Sorts all the pages registered here by their index in the book [spine][PackageSpine].
      *
      * Note that if the [book] has been created via parsing, then all registered pages in here will have already been
      * sorted by their index in the `spine` upon the creation of the `book`.
@@ -124,7 +124,7 @@ class Pages internal constructor(val book: Book) : Iterable<Page> {
     }
 
     /**
-     * Returns the `index` of the given [page], compliant with the [spine][Spine] of the [book], or `-1` if the given
+     * Returns the `index` of the given [page], compliant with the [spine][PackageSpine] of the [book], or `-1` if the given
      * `page` does not have an entry in the `spine` of the `book`.
      */
     fun indexOf(page: Page): Int = pages.indexOf(page)
@@ -200,7 +200,7 @@ class Pages internal constructor(val book: Book) : Iterable<Page> {
 
     // TODO: Rework this one because we're changing how pages are being added to the system.
     @JvmSynthetic
-    internal fun populateFromSpine(spine: Spine) {
+    internal fun populateFromSpine(spine: PackageSpine) {
         logger.debug { "Populating and sorting page instances for the book from the spine.." }
         val pageResources = book
             .resources

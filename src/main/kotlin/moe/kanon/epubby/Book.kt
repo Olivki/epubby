@@ -20,10 +20,10 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import moe.kanon.epubby.internal.logger
 import moe.kanon.epubby.metainf.MetaInf
-import moe.kanon.epubby.packages.Manifest
-import moe.kanon.epubby.packages.Metadata
 import moe.kanon.epubby.packages.PackageDocument
-import moe.kanon.epubby.packages.Spine
+import moe.kanon.epubby.packages.PackageManifest
+import moe.kanon.epubby.packages.PackageMetadata
+import moe.kanon.epubby.packages.PackageSpine
 import moe.kanon.epubby.resources.Resources
 import moe.kanon.epubby.resources.pages.Pages
 import moe.kanon.epubby.resources.toc.TableOfContents
@@ -91,11 +91,11 @@ class Book internal constructor(
     val packageRoot: Path get() = packageFile.parent
 
     // TODO: Documentation
-    val manifest: Manifest get() = packageDocument.manifest
+    val manifest: PackageManifest get() = packageDocument.manifest
 
-    val metadata: Metadata get() = packageDocument.metadata
+    val metadata: PackageMetadata get() = packageDocument.metadata
 
-    val spine: Spine get() = packageDocument.spine
+    val spine: PackageSpine get() = packageDocument.spine
 
     val transformers: Transformers = Transformers(this)
 
@@ -103,9 +103,9 @@ class Book internal constructor(
      * Returns the primary title of `this` book.
      */
     var title: String
-        get() = metadata.title.content
+        get() = metadata.primaryTitle.content
         set(value) {
-            metadata.title.content = value
+            metadata.primaryTitle.content = value
         }
 
     /**
@@ -118,9 +118,9 @@ class Book internal constructor(
      * Returns the primary language of `this` book.
      */
     var language: Locale
-        get() = metadata.language.content
+        get() = metadata.primaryLanguage.content
         set(value) {
-            metadata.language.content = value
+            metadata.primaryLanguage.content = value
         }
 
     /**

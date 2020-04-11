@@ -31,15 +31,14 @@ import kotlinx.collections.immutable.persistentSetOf
 import moe.kanon.epubby.Book
 import moe.kanon.epubby.BookVersion
 import moe.kanon.epubby.EpubbyException
+import moe.kanon.epubby.UnknownBookVersionException
 import moe.kanon.epubby.internal.logger
 import moe.kanon.epubby.internal.mediaType
-import moe.kanon.epubby.internal.unknownVersion
-import moe.kanon.epubby.packages.Guide
-import moe.kanon.epubby.packages.Manifest
-import moe.kanon.epubby.packages.OPF2Meta
 import moe.kanon.epubby.packages.PackageDocument
-import moe.kanon.epubby.packages.Spine
-import moe.kanon.epubby.resources.PageResource.Companion.MEDIA_TYPES
+import moe.kanon.epubby.packages.PackageGuide
+import moe.kanon.epubby.packages.PackageManifest
+import moe.kanon.epubby.packages.PackageMetadata.OPF2Meta
+import moe.kanon.epubby.packages.PackageSpine
 import moe.kanon.epubby.resources.pages.Page
 import moe.kanon.epubby.resources.pages.contains
 import moe.kanon.epubby.structs.Identifier
@@ -69,8 +68,8 @@ import java.util.EnumSet
 import javax.imageio.ImageIO
 import kotlin.properties.Delegates
 
-// TODO: Figure out what to do with Resources and Manifest items. Because they are deeply connected so it might just be
-//       best to only have like a Resource class rather than a Resource class and a Manifest.Item class too?
+// TODO: add a 'mediaType' property to the 'Resource' class so that one can know *exactly* which media-type the resource
+//       represents
 
 /**
  * Represents a [Publication Resource](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-spec.html#dfn-publication-resource).
@@ -146,7 +145,7 @@ sealed class Resource(file: Path, identifier: Identifier, desiredDirectory: Stri
     /**
      * The `resource` that a reading system should use instead if it can't properly display `this` resource.
      */
-    var fallback by Delegates.observable<Resource?>(null) { _, oldFallback, newFallback ->
+    var fallback: Resource? by Delegates.observable<Resource?>(null) { _, oldFallback, newFallback ->
         if (oldFallback != newFallback) {
             updateManifest(fallback = newFallback?.identifier)
         }
@@ -179,9 +178,9 @@ sealed class Resource(file: Path, identifier: Identifier, desiredDirectory: Stri
     }
 
     /**
-     * The [manifest item][Manifest.Item] that `this` resource represents.
+     * The [manifest item][PackageManifest.Item] that `this` resource represents.
      */
-    val manifestItem: Manifest.Item.Local get() = book.manifest.getLocalItem(identifier)
+    val manifestItem: PackageManifest.Item.Local get() = book.manifest.getLocalItem(identifier)
 
     /**
      * Returns a list containing all [Element]s that have an `href`/`src` reference to this resource, or an  empty list
@@ -192,19 +191,17 @@ sealed class Resource(file: Path, identifier: Identifier, desiredDirectory: Stri
      */
     val references: ImmutableList<ResourceReference> get() = book.pages.getReferencesOf(this)
 
+    abstract fun <R> accept(visitor: Visitor<R>): R
+
     /**
      * Invoked when `this` resource is first created by the system.
      */
-    @Throws(ResourceException::class)
-    open fun onCreation() {
-    }
+    internal open fun onCreation() {}
 
     /**
      * Invoked when `this` resource has been marked for removal by the system.
      */
-    @Throws(ResourceException::class)
-    open fun onDeletion() {
-    }
+    internal open fun onDeletion() {}
 
     /**
      * Renames the [file] this resource is wrapping around to the given [name].
@@ -261,7 +258,7 @@ sealed class Resource(file: Path, identifier: Identifier, desiredDirectory: Stri
     internal fun updateManifest(
         // this is simply here to avoid multiple invocations of 'getLocalItem' for every parameter, it should never be
         // anything but 'manifestItem'
-        item: Manifest.Item.Local = manifestItem,
+        item: PackageManifest.Item.Local = manifestItem,
         identifier: Identifier = item.identifier,
         href: Path = item.href,
         mediaType: MediaType? = item.mediaType,
@@ -326,6 +323,64 @@ sealed class Resource(file: Path, identifier: Identifier, desiredDirectory: Stri
         return result
     }
 
+    interface Visitor<R> {
+        fun visitNcx(resource: NcxResource): R
+
+        fun visitPage(resource: PageResource): R
+
+        fun visitStyleSheet(resource: StyleSheetResource): R
+
+        fun visitImage(resource: ImageResource): R
+
+        fun visitFont(resource: FontResource): R
+
+        fun visitAudio(resource: AudioResource): R
+
+        fun visitScript(resource: ScriptResource): R
+
+        fun visitVideo(resource: VideoResource): R
+
+        fun visitMisc(resource: MiscResource): R
+    }
+
+    interface UnitVisitor : Visitor<Unit> {
+        @JvmDefault
+        override fun visitNcx(resource: NcxResource) {
+        }
+
+        @JvmDefault
+        override fun visitPage(resource: PageResource) {
+        }
+
+        @JvmDefault
+        override fun visitStyleSheet(resource: StyleSheetResource) {
+        }
+
+        @JvmDefault
+        override fun visitImage(resource: ImageResource) {
+        }
+
+        @JvmDefault
+        override fun visitFont(resource: FontResource) {
+        }
+
+        @JvmDefault
+        override fun visitAudio(resource: AudioResource) {
+        }
+
+        @JvmDefault
+        override fun visitScript(resource: ScriptResource) {
+        }
+
+        @JvmDefault
+        override fun visitVideo(resource: VideoResource) {
+        }
+
+        @JvmDefault
+        override fun visitMisc(resource: MiscResource) {
+        }
+    }
+
     companion object {
         @JvmSynthetic
         internal fun fromMediaType(
@@ -364,7 +419,7 @@ sealed class Resource(file: Path, identifier: Identifier, desiredDirectory: Stri
          * around, note that this **NEEDS** to point towards an [existing][Path.exists] file
          * @param [book] the [Book] instance that the returned [Resource] should be tied to
          * @param [identifier] the unique identifier that the returned [Resource] should be using, this is used for
-         * storing the resource inside the [manifest][Manifest] of the [book]
+         * storing the resource inside the [manifest][PackageManifest] of the [book]
          *
          * @throws [IOException] if an i/o error occurred
          * @throws [EpubbyException] if something went wrong with the creation of the resource
@@ -435,6 +490,8 @@ class NcxResource internal constructor(override val book: Book, file: Path, iden
 
     override fun toString(): String = "TableOfContentsResource(identifier='$identifier', href='$href', book=$book)"
 
+    override fun <R> accept(visitor: Visitor<R>): R = visitor.visitNcx(this)
+
     companion object {
         @JvmField
         val MEDIA_TYPES: ImmutableSet<MediaType> = persistentHashSetOf(
@@ -471,32 +528,31 @@ class PageResource internal constructor(override val book: Book, file: Path, ide
     Resource(file, identifier, "Text/") {
     override val mediaTypes: ImmutableSet<MediaType> get() = MEDIA_TYPES
 
-    // TODO: See if one can make this return true even if the book is 2.x but the page is a generated ToC based on
-    //       the NCX file?
     // TODO: Documentation
-    // TODO: Check so that there is ONLY ONE page-resource marked as the 'nav' document
     // TODO: pretty the code up for this one? it looks pretty nasty (mainly the 'set' part)
+    // TODO: convert property to function? This might be a doing a little too much for being a property
     var isNavigationDocument: Boolean
         get() = when {
-            book.version < BookVersion.EPUB_3_0 -> TODO()
-            book.version >= BookVersion.EPUB_3_0 -> ManifestVocabulary.NAV in properties
-            else -> unknownVersion(book.version)
+            book.version.isOlderThan(BookVersion.EPUB_3_0) -> book.packageDocument.guide?.isTableOfContentsPage(this)
+                ?: false
+            book.version.isNewerThan(BookVersion.EPUB_2_0) -> ManifestVocabulary.NAV in properties
+            else -> throw UnknownBookVersionException(book.version.toString())
         }
         set(value) {
             when {
-                book.version < BookVersion.EPUB_3_0 -> {
+                book.version.isOlderThan(BookVersion.EPUB_3_0) -> {
                     // TODO: Maybe create a new 'guide' instance when this gets invoked under epub 2.x?
                     book.packageDocument.guide?.also {
                         if (value) {
                             it.setTableOfContentsPage(this)
                         } else {
                             if (it.isTableOfContentsPage(this)) {
-                                it.removeReference(Guide.Type.TABLE_OF_CONTENTS)
+                                it.removeReference(PackageGuide.Type.TABLE_OF_CONTENTS)
                             }
                         }
                     }
                 }
-                book.version >= BookVersion.EPUB_3_0 -> {
+                book.version.isNewerThan(BookVersion.EPUB_2_0) -> {
                     book.resources.pages.values
                         .filter { it != this }
                         .filter { it.isNavigationDocument }
@@ -508,7 +564,7 @@ class PageResource internal constructor(override val book: Book, file: Path, ide
                         properties -= ManifestVocabulary.NAV
                         book.packageDocument.guide?.also {
                             if (it.isTableOfContentsPage(this)) {
-                                it.removeReference(Guide.Type.TABLE_OF_CONTENTS)
+                                it.removeReference(PackageGuide.Type.TABLE_OF_CONTENTS)
                             }
                         }
                     }
@@ -523,11 +579,11 @@ class PageResource internal constructor(override val book: Book, file: Path, ide
     val page: Page get() = book.pages.getPageByResource(this)
 
     /**
-     * Returns the [page], or creates a new [page][Page], adds it to the [spine][Spine] at the given [index] and
+     * Returns the [page], or creates a new [page][Page], adds it to the [spine][PackageSpine] at the given [index] and
      * returns it.
      *
      * Note that `index` is *not* used if `this` page-resource is already tied to a `page`, as it simply returns `page`
-     * then. Invoking this function will also mean that `this` resource will be added to the [manifest][Manifest] if it
+     * then. Invoking this function will also mean that `this` resource will be added to the [manifest][PackageManifest] if it
      * is not already in there, as a `page` can not exist in the `spine` without a `manifest` entry to accompany it.
      */
     fun getOrCreatePage(index: Int): Page = when (this) {
@@ -536,9 +592,9 @@ class PageResource internal constructor(override val book: Book, file: Path, ide
     }
 
     /**
-     * Returns the [page], or creates a new page, adds it to the end of the [spine][Spine] and returns it.
+     * Returns the [page], or creates a new page, adds it to the end of the [spine][PackageSpine] and returns it.
      *
-     * Note that invoking this function will also mean that `this` resource will be added to the [manifest][Manifest]
+     * Note that invoking this function will also mean that `this` resource will be added to the [manifest][PackageManifest]
      * if it is not already in there, as a `page` can not exist in the `spine` without a `manifest` entry to accompany
      * it.
      */
@@ -551,6 +607,8 @@ class PageResource internal constructor(override val book: Book, file: Path, ide
      * Returns `true` if `this` page-resource has an entry in the spine, otherwise `false`.
      */
     fun hasSpineEntry(): Boolean = book.pages.hasPage(this)
+
+    override fun <R> accept(visitor: Visitor<R>): R = visitor.visitPage(this)
 
     override fun onDeletion() {
         book.pages.removePage(page)
@@ -651,6 +709,8 @@ class StyleSheetResource private constructor(
         for (page in book.pages) page.removeStyleSheet(this)
     }
 
+    override fun <R> accept(visitor: Visitor<R>): R = visitor.visitStyleSheet(this)
+
     override fun toString(): String = "StyleSheetResource(identifier='$identifier', href='$href', book=$book)"
 
     @JvmSynthetic
@@ -735,7 +795,11 @@ class ImageResource internal constructor(override val book: Book, file: Path, id
     Resource(file, identifier, "Images/") {
     override val mediaTypes: ImmutableSet<MediaType> get() = MEDIA_TYPES
 
-    private var isBufferedImageAvailable: Boolean = false
+    /**
+     * Returns `true` if the [image] of `this` resource has been accessed and loaded.
+     */
+    var isBufferedImageAvailable: Boolean = false
+        private set
 
     /**
      * Lazily reads and returns a [BufferedImage] instance based on the [file] of `this` resource.
@@ -745,9 +809,11 @@ class ImageResource internal constructor(override val book: Book, file: Path, id
     @get:Throws(ResourceException::class)
     val image: BufferedImage by lazy {
         try {
-            file.newInputStream().use(ImageIO::read).also { isBufferedImageAvailable = true }
+            val result = file.newInputStream().use(ImageIO::read)
+            isBufferedImageAvailable = true
+            result
         } catch (e: IOException) {
-            raiseException("Could not read file '${file.name}' into a buffered-image", e)
+            raiseException("Could not read file '${file.name}' into a buffered-image.", e)
         }
     }
 
@@ -763,37 +829,39 @@ class ImageResource internal constructor(override val book: Book, file: Path, id
      * Returns `true` if `this` resource represents the `cover-image` of the [book], otherwise `false`.
      */
     fun isCoverImage(): Boolean = when {
-        book.version < BookVersion.EPUB_3_0 -> book
+        book.version.isOlderThan(BookVersion.EPUB_3_0) -> book
             .metadata
-            .metaElements
-            .asSequence()
-            .filterIsInstance<OPF2Meta>()
+            .opf2MetaElements
             .filter { it.name == "cover" }
             .any { it.content == identifier.toString() }
-        book.version >= BookVersion.EPUB_3_0 -> ManifestVocabulary.COVER_IMAGE in properties
+        book.version.isNewerThan(BookVersion.EPUB_2_0) -> ManifestVocabulary.COVER_IMAGE in properties
         else -> throw IllegalStateException("Unknown version '${book.version}'")
     }
 
     /**
      * Sets the image that `this` resource represents as the `cover-image` of the [book].
      */
+    // TODO: name?
     fun setAsCoverImage() {
+        logger.trace { "Setting <$this> as the cover-image of $book." }
         when {
-            book.version < BookVersion.EPUB_3_0 -> {
-                book.metadata.metaElements.removeIf { it is OPF2Meta && it.name == "cover" }
-                book.metadata.addMeta(OPF2Meta.withName("cover", identifier.toString()))
+            book.version.isOlderThan(BookVersion.EPUB_3_0) -> {
+                book.metadata.apply {
+                    opf2MetaElements.removeIf { it.name == "cover" }
+                    opf2MetaElements += OPF2Meta.withName("cover", this@ImageResource.identifier.toString())
+                }
             }
-            book.version >= BookVersion.EPUB_3_0 -> {
+            book.version.isNewerThan(BookVersion.EPUB_2_0) -> {
                 for ((_, image) in book.resources.images) {
-                    image.properties.remove(ManifestVocabulary.COVER_IMAGE)
+                    image.properties -= ManifestVocabulary.COVER_IMAGE
                 }
 
-                properties.add(ManifestVocabulary.COVER_IMAGE)
+                properties += ManifestVocabulary.COVER_IMAGE
             }
         }
     }
 
-    // TODO: 'removeAsCoverImage'
+    override fun <R> accept(visitor: Visitor<R>): R = visitor.visitImage(this)
 
     override fun toString(): String =
         "ImageResource(identifier='$identifier', href='$href', isCoverImage=${isCoverImage()}, book=$book)"
@@ -807,7 +875,8 @@ class ImageResource internal constructor(override val book: Book, file: Path, id
     }
 
     internal companion object {
-        @JvmField internal val MEDIA_TYPES: ImmutableSet<MediaType> = persistentHashSetOf(
+        @JvmField
+        internal val MEDIA_TYPES: ImmutableSet<MediaType> = persistentHashSetOf(
             MediaType.GIF,
             MediaType.JPEG,
             MediaType.PNG,
@@ -821,6 +890,8 @@ class FontResource internal constructor(override val book: Book, file: Path, ide
     Resource(file, identifier, "Fonts/") {
     override val mediaTypes: ImmutableSet<MediaType> get() = MEDIA_TYPES
 
+    override fun <R> accept(visitor: Visitor<R>): R = visitor.visitFont(this)
+
     override fun toString(): String = "FontResource(identifier='$identifier', href='$href', book=$book)"
 
     internal companion object {
@@ -833,6 +904,8 @@ class AudioResource internal constructor(override val book: Book, file: Path, id
     Resource(file, identifier, "Audio/") {
     override val mediaTypes: ImmutableSet<MediaType> get() = MEDIA_TYPES
 
+    override fun <R> accept(visitor: Visitor<R>): R = visitor.visitAudio(this)
+
     override fun toString(): String = "AudioResource(identifier='$identifier', href='$href', book=$book)"
 
     internal companion object {
@@ -843,6 +916,8 @@ class AudioResource internal constructor(override val book: Book, file: Path, id
 class ScriptResource internal constructor(override val book: Book, file: Path, identifier: Identifier) :
     Resource(file, identifier, "Scripts/") {
     override val mediaTypes: ImmutableSet<MediaType> get() = MEDIA_TYPES
+
+    override fun <R> accept(visitor: Visitor<R>): R = visitor.visitScript(this)
 
     override fun toString(): String = "ScriptResource(identifier='$identifier', href='$href', book=$book)"
 
@@ -859,6 +934,8 @@ class VideoResource internal constructor(override val book: Book, file: Path, id
     Resource(file, identifier, "Video/") {
     override val mediaTypes: ImmutableSet<MediaType> get() = MEDIA_TYPES
 
+    override fun <R> accept(visitor: Visitor<R>): R = visitor.visitVideo(this)
+
     override fun toString(): String = "VideoResource(identifier='$identifier', href='$href', book=$book)"
 
     internal companion object {
@@ -869,6 +946,8 @@ class VideoResource internal constructor(override val book: Book, file: Path, id
 class MiscResource internal constructor(override val book: Book, file: Path, identifier: Identifier) :
     Resource(file, identifier, "Misc/") {
     override val mediaTypes: ImmutableSet<MediaType> = persistentSetOf()
+
+    override fun <R> accept(visitor: Visitor<R>): R = visitor.visitMisc(this)
 
     override fun toString(): String = "MiscResource(identifier='$identifier', href='$href', book=$book)"
 }

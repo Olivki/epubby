@@ -17,11 +17,13 @@
 package moe.kanon.epubby.packages
 
 import moe.kanon.epubby.Book
+import moe.kanon.epubby.BookVersion
 import moe.kanon.epubby.DeprecatedFeature
 import moe.kanon.epubby.internal.Namespaces
-import moe.kanon.epubby.internal.logger
 import moe.kanon.epubby.internal.malformed
 import moe.kanon.epubby.structs.Identifier
+import moe.kanon.epubby.structs.NonEmptyList
+import moe.kanon.epubby.structs.toNonEmptyList
 import moe.kanon.epubby.utils.attr
 import moe.kanon.kommons.collections.asUnmodifiable
 import org.jdom2.Element
@@ -31,12 +33,12 @@ import java.nio.file.Path
 /**
  * Represents the [tours](http://www.idpf.org/epub/20/spec/OPF_2.0.1_draft.htm#Section2.5) element.
  *
- * The `tours` element was deprecated in EPUB [v2.0.1][].
+ * The `tours` element was deprecated in [EPUB v2.0.1][BookVersion.EPUB_2_0].
  */
 // As this element was already deprecated in v2.0.1 of the EPUB specification, the chance of coming across a book
 // containing this is *very* slim.
-@DeprecatedFeature(since = "2.0")
-class Tours private constructor(val book: Book, val entries: MutableMap<Identifier, Tour>) {
+@DeprecatedFeature(since = BookVersion.EPUB_2_0)
+class PackageTours private constructor(val book: Book, val entries: MutableMap<Identifier, Tour>) {
     @JvmSynthetic
     internal fun toElement(namespace: Namespace = Namespaces.OPF): Element = Element("tours", namespace).apply {
         for ((_, tour) in entries) {
@@ -44,7 +46,7 @@ class Tours private constructor(val book: Book, val entries: MutableMap<Identifi
         }
     }
 
-    class Tour internal constructor(val identifier: Identifier, var title: String, val sites: MutableList<Site>) :
+    class Tour internal constructor(val identifier: Identifier, var title: String, val sites: NonEmptyList<Site>) :
         Iterable<Tour.Site> {
 
         override fun iterator(): Iterator<Site> = sites.iterator().asUnmodifiable()
@@ -103,36 +105,30 @@ class Tours private constructor(val book: Book, val entries: MutableMap<Identifi
     companion object {
         // -- PARSING -- \\
         @JvmSynthetic
-        internal fun fromElement(book: Book, element: Element, file: Path): Tours = with(element) {
+        internal fun fromElement(book: Book, element: Element, file: Path): PackageTours = with(element) {
             val tourElements = getChildren("tour", namespace)
                 .asSequence()
                 .map { createTour(element, book.file, file) }
                 .associateByTo(LinkedHashMap()) { it.identifier }
-            return Tours(book, tourElements).also {
-                logger.trace { "Constructed tours instance <$it> from file '$file'" }
-            }
+            return PackageTours(book, tourElements)
         }
 
         private fun createTour(element: Element, container: Path, current: Path): Tour = with(element) {
             val identifier = Identifier.fromElement(element, container, current)
             val title = attr("title", container, current)
             val sites = getChildren("site", namespace)
-                .mapTo(ArrayList()) { createTourSite(it, container, current) }
-            if (sites.isEmpty()) {
-                malformed(container, current, "'tour' elements need to contain at least one 'site' element")
-            }
-            return Tour(identifier, title, sites).also {
-                logger.trace { "Constructed tours tour instance <$it>" }
-            }
+                .asSequence()
+                .map { createTourSite(it, container, current) }
+                .ifEmpty { malformed(container, current, "'tour' elements need to contain at least one 'site' element") }
+                .toNonEmptyList()
+            return Tour(identifier, title, sites)
         }
 
         private fun createTourSite(element: Element, container: Path, current: Path): Tour.Site =
             with(element) {
                 val href = attr("href", container, current)
                 val title = attr("title", container, current)
-                return Tour.Site(href, title).also {
-                    logger.trace { "Constructed tours tour-site instance <$it>" }
-                }
+                return Tour.Site(href, title)
             }
     }
 }

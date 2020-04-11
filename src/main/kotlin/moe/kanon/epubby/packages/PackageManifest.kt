@@ -46,11 +46,11 @@ import java.util.EnumSet
  *
  * The manifest provides an exhaustive list of the [resources][Resource] used by the [book].
  */
-class Manifest private constructor(
+class PackageManifest private constructor(
     val book: Book,
     val identifier: Identifier?,
     @get:JvmSynthetic internal val items: MutableMap<Identifier, Item<*>>
-) : Iterable<Manifest.Item<*>> {
+) : Iterable<PackageManifest.Item<*>> {
     val localItems: ImmutableMap<Identifier, Item.Local>
         get() = items.filterValuesIsInstance<Identifier, Item.Local>().toPersistentHashMap()
 
@@ -230,7 +230,7 @@ class Manifest private constructor(
         @JvmField internal val URL_VALIDATOR = UrlValidator()
 
         @JvmSynthetic
-        internal fun fromElement(book: Book, element: Element, file: Path, prefixes: Prefixes): Manifest =
+        internal fun fromElement(book: Book, element: Element, file: Path, prefixes: Prefixes): PackageManifest =
             with(element) {
                 val items: MutableMap<Identifier, Item<*>> = getChildren("item", namespace)
                     .asSequence()
@@ -244,9 +244,7 @@ class Manifest private constructor(
 
                 val identifier = getAttributeValue("id")?.let { Identifier.of(it) }
 
-                return@with Manifest(book, identifier, items).also {
-                    logger.trace { "Constructed manifest instance <$it> from file '$file'" }
-                }
+                return@with PackageManifest(book, identifier, items)
             }
 
         private fun createItem(
@@ -262,7 +260,7 @@ class Manifest private constructor(
             val mediaType = element.getAttributeValue("media-type")?.let(MediaType::parse)
             val mediaOverlay = element.getAttributeValue("media-overlay")
             val properties = element.getAttributeValue("properties")?.let {
-                Properties.parse(Manifest::class, it, prefixes)
+                Properties.parse(PackageManifest::class, it, prefixes)
             } ?: Properties.empty()
 
             /*

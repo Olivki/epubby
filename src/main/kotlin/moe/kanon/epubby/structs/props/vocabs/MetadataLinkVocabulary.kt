@@ -18,14 +18,14 @@ package moe.kanon.epubby.structs.props.vocabs
 
 import moe.kanon.epubby.internal.findProperty
 import moe.kanon.epubby.internal.findPropertyOrNull
-import moe.kanon.epubby.packages.Metadata
+import moe.kanon.epubby.packages.PackageMetadata
 import moe.kanon.epubby.structs.prefixes.Prefix
 import moe.kanon.epubby.structs.props.Property
 
 /**
  * Represents the [metadata link properties vocabulary](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#sec-link-properties).
  *
- * The values defined here can be used in the `properties` of a [metadata link][Metadata.Link] to establish the type of
+ * The values defined here can be used in the `properties` of a [metadata link][PackageMetadata.Link] to establish the type of
  * record the reference resource represents.
  */
 enum class MetadataLinkVocabulary(override val reference: String) : Property {

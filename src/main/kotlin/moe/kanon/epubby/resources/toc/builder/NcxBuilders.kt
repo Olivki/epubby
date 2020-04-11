@@ -22,31 +22,27 @@ import java.net.URI
 
 object NcxBuilders {
     @JvmStatic
-    fun textBuilder(origin: NcxDocument.Text): TextBuilder = TextBuilder(origin)
+    fun textBuilder(origin: NcxDocument.Text): TextBuilder = TextBuilder(null, origin)
 
     @JvmStatic
-    fun textBuilder(): TextBuilder = TextBuilder(null)
+    fun textBuilder(content: String): TextBuilder = TextBuilder(content, null)
 
     @JvmStatic
-    fun imgBuilder(origin: NcxDocument.Img): ImgBuilder = ImgBuilder(origin)
+    fun imgBuilder(origin: NcxDocument.Img): ImgBuilder = ImgBuilder(null, origin)
 
     @JvmStatic
-    fun imgBuilder(): ImgBuilder = ImgBuilder(null)
+    fun imgBuilder(source: URI): ImgBuilder = ImgBuilder(source, null)
 
     @JvmStatic
-    fun contentBuilder(origin: NcxDocument.Content): ContentBuilder = ContentBuilder(origin)
+    fun contentBuilder(origin: NcxDocument.Content): ContentBuilder = ContentBuilder(null, origin)
 
     @JvmStatic
-    fun contentBuilder(): ContentBuilder = ContentBuilder(null)
-
-    // TODO: Make error message look better
-    private fun fail(name: String): Nothing =
-        throw UnsupportedOperationException("Property '$name' needs to be set before it can be built")
+    fun contentBuilder(source: URI): ContentBuilder = ContentBuilder(source, null)
 
     class HeadBuilder // TODO
 
-    class TextBuilder internal constructor(origin: NcxDocument.Text?) {
-        private var content: String? = origin?.content
+    class TextBuilder internal constructor(content: String?, origin: NcxDocument.Text?) {
+        private var content: String = origin?.content ?: content!!
         private var identifier: Identifier? = origin?.identifier
         private var clazz: String? = origin?.clazz
 
@@ -56,11 +52,11 @@ object NcxBuilders {
 
         fun clazz(clazz: String?) = apply { this.clazz = clazz }
 
-        fun build(): NcxDocument.Text = NcxDocument.Text(content ?: fail("content"), identifier, clazz)
+        fun build(): NcxDocument.Text = NcxDocument.Text(content, identifier, clazz)
     }
 
-    class ImgBuilder internal constructor(origin: NcxDocument.Img?) {
-        private var source: URI? = origin?.source
+    class ImgBuilder internal constructor(source: URI?, origin: NcxDocument.Img?) {
+        private var source: URI = origin?.source ?: source!!
         private var identifier: Identifier? = origin?.identifier
         private var clazz: String? = origin?.clazz
 
@@ -70,18 +66,18 @@ object NcxBuilders {
 
         fun clazz(clazz: String?) = apply { this.clazz = clazz }
 
-        fun build(): NcxDocument.Img = NcxDocument.Img(source ?: fail("source"), identifier, clazz)
+        fun build(): NcxDocument.Img = NcxDocument.Img(source, identifier, clazz)
     }
 
-    class ContentBuilder internal constructor(origin: NcxDocument.Content?) {
-        private var source: URI? = origin?.source
+    class ContentBuilder internal constructor(source: URI?, origin: NcxDocument.Content?) {
+        private var source: URI = origin?.source ?: source!!
         private var identifier: Identifier? = origin?.identifier
 
         fun source(source: URI) = apply { this.source = source }
 
         fun identifier(identifier: Identifier?) = apply { this.identifier = identifier }
 
-        fun build(): NcxDocument.Content = NcxDocument.Content(source ?: fail("source"), identifier)
+        fun build(): NcxDocument.Content = NcxDocument.Content(source, identifier)
     }
 
     // TODO: The rest

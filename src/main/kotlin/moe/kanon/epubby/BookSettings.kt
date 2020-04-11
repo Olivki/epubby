@@ -22,8 +22,8 @@ class BookSettings private constructor(
     /**
      * Whether or not a `.xhtml` file should be generated containing the entries of the [TableOfContents] of the book.
      *
-     * Note that this option is only used if the format of the `book` is [EPUB 2.0][BookVersion.EPUB_2_0]. This is
-     * because starting from [EPUB 3.0][BookVersion.EPUB_3_0] a `.xhtml` ToC page is *required* to be a valid epub file.
+     * Note that this option is only used if the format of the `book` is [EPUB 2.0][_BookVersion.EPUB_2_0]. This is
+     * because starting from [EPUB 3.0][_BookVersion.EPUB_3_0] a `.xhtml` ToC page is *required* to be a valid epub file.
      *
      * By default this is set to `false`.
      */
@@ -33,8 +33,8 @@ class BookSettings private constructor(
         /**
          * Whether or not a `.xhtml` file should be generated containing the entries of the [TableOfContents] of the book.
          *
-         * Note that this option is only used if the format of the `book` is [EPUB 2.0][BookVersion.EPUB_2_0]. This is
-         * because starting from [EPUB 3.0][BookVersion.EPUB_3_0] a `.xhtml` ToC page is *required* to be a valid epub file.
+         * Note that this option is only used if the format of the `book` is [EPUB 2.0][_BookVersion.EPUB_2_0]. This is
+         * because starting from [EPUB 3.0][_BookVersion.EPUB_3_0] a `.xhtml` ToC page is *required* to be a valid epub file.
          */
         @set:JvmSynthetic
         @get:JvmName("generateTableOfContentsPage")
@@ -43,8 +43,8 @@ class BookSettings private constructor(
         /**
          * Whether or not a `.xhtml` file should be generated containing the entries of the [TableOfContents] of the book.
          *
-         * Note that this option is only used if the format of the `book` is [EPUB 2.0][BookVersion.EPUB_2_0]. This is
-         * because starting from [EPUB 3.0][BookVersion.EPUB_3_0] a `.xhtml` ToC page is *required* to be a valid epub file.
+         * Note that this option is only used if the format of the `book` is [EPUB 2.0][_BookVersion.EPUB_2_0]. This is
+         * because starting from [EPUB 3.0][_BookVersion.EPUB_3_0] a `.xhtml` ToC page is *required* to be a valid epub file.
          *
          * By default this is set to `false`.
          */
