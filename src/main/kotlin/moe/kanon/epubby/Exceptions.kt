@@ -16,32 +16,63 @@
 
 package moe.kanon.epubby
 
-import moe.kanon.epubby.utils.combineWith
+import moe.kanon.kommons.io.paths.name
 import java.nio.file.Path
 
+// TODO: Documentation
+
 /**
- * Thrown to indicate that something went wrong when attempting to do something with a [Book] instance.
- *
- * @property [epub] The path to the file that caused this exception to be thrown.
+ * Thrown to indicate that something went wrong when working with a [Book] instance.
  */
-open class EpubbyException @JvmOverloads constructor(
+open class EpubbyException(message: String? = null, cause: Throwable? = null) : Exception(message, cause)
+
+/**
+ * Thrown to indicate that an error occurred in the [current file][currentFile] when parsing a [file][epub] into a
+ * [Book] instance.
+ */
+class MalformedBookException(
     val epub: Path,
+    val currentFile: Path,
     message: String? = null,
     cause: Throwable? = null
-) : Exception(message, cause)
+) : EpubbyException(message, cause) {
+    internal companion object {
+        @JvmSynthetic
+        internal fun withDebug(container: Path, message: String, cause: Throwable? = null): MalformedBookException {
+            val detailedMessage = """
+                |Encountered an error when traversing file "${container.name}" as an EPUB container.
+                |---- Debug Details ----
+                |Container: $container
+                |Message: "$message"
+                |Cause: ${if (cause != null) cause.message else "no cause"}
+                |-----------------------
+            """.trimMargin()
+            return MalformedBookException(container, container, detailedMessage, cause)
+        }
+
+        @JvmSynthetic
+        internal fun withDebug(
+            container: Path,
+            currentFile: Path,
+            message: String,
+            cause: Throwable? = null
+        ): MalformedBookException {
+            val detailedMessage = """
+                |Encountered an error when traversing file "$currentFile" in container file "${container.name}"
+                |---- Debug Details ----
+                |Container: $container
+                |Current File: $currentFile
+                |Message: "$message"
+                |Cause: ${if (cause != null) cause.message else "no cause"}
+                |-----------------------
+            """.trimMargin()
+            return MalformedBookException(container, currentFile, detailedMessage, cause)
+        }
+    }
+}
 
 /**
- * Thrown to indicate that the specified [epub] is pointing to a malformed EPUB.
- *
- * Note that this exception may be raised in scenarios where the `file` is not an EPUB file at all, ***and*** scenarios
- * where the `file` might be a mostly valid EPUB file. So do *not* assume that a file is an EPUB file *at all* just
- * because this exception was raised.
+ * Thrown to indicate that a `book` instance failed the validation phase.
  */
-open class MalformedBookException @JvmOverloads constructor(
-    epub: Path,
-    message: String? = null,
-    cause: Throwable? = null
-) : EpubbyException(epub, message, cause)
-
-@PublishedApi internal fun raiseMalformedError(epub: Path, file: Path, reason: String): Nothing =
-    throw MalformedBookException(epub, "<${epub.combineWith(file)}> is malformed; $reason")
+class InvalidBookException internal constructor(message: String? = null, cause: Throwable? = null) :
+    EpubbyException(message, cause)

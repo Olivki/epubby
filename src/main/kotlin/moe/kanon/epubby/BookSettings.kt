@@ -14,59 +14,63 @@
  * limitations under the License.
  */
 
-@file:Suppress("DataClassPrivateConstructor")
-
 package moe.kanon.epubby
 
-import moe.kanon.epubby.resources.Resource
+import moe.kanon.epubby.resources.toc.TableOfContents
 
-data class BookSettings private constructor(
+class BookSettings private constructor(
     /**
-     * Whether or not a `.xhtml` file should be generated containing the entries of the [TableOfContents] of the `book`.
+     * Whether or not a `.xhtml` file should be generated containing the entries of the [TableOfContents] of the book.
      *
-     * Note that this option is only used if the format of the `book` is [EPUB_2_0][Book.Format.EPUB_2_0]. This is
-     * because starting from [v3.0.0][Book.Format.EPUB_3_0] a `.xhtml` ToC page is *required* to be a valid epub file.
+     * Note that this option is only used if the format of the `book` is [EPUB 2.0][BookVersion.EPUB_2_0]. This is
+     * because starting from [EPUB 3.0][BookVersion.EPUB_3_0] a `.xhtml` ToC page is *required* to be a valid epub file.
      *
-     * (`false` by default)
+     * By default this is set to `false`.
      */
-    val generateTableOfContentsPage: Boolean = false,
-    /**
-     * Whether or not the resources of a parsed book should be completely re-organized to fit the recommended standard
-     * for how resources should be organized.
-     *
-     * Note that this setting is *very* aggressive, and *will* change large parts of an epub.
-     *
-     * (`true` by default)
-     */
-    val organizeResources: Boolean = true // TODO: Remove this?
+    val generateTableOfContentsPage: Boolean
 ) {
-    companion object {
+    class Builder internal constructor(
         /**
-         * Returns a [BookSettings] instance with all the values set to their defaults.
+         * Whether or not a `.xhtml` file should be generated containing the entries of the [TableOfContents] of the book.
+         *
+         * Note that this option is only used if the format of the `book` is [EPUB 2.0][BookVersion.EPUB_2_0]. This is
+         * because starting from [EPUB 3.0][BookVersion.EPUB_3_0] a `.xhtml` ToC page is *required* to be a valid epub file.
          */
-        @JvmStatic val default: BookSettings get() = BookSettings()
+        @set:JvmSynthetic
+        @get:JvmName("generateTableOfContentsPage")
+        var generateTableOfContentsPage: Boolean = false
+    ) {
+        /**
+         * Whether or not a `.xhtml` file should be generated containing the entries of the [TableOfContents] of the book.
+         *
+         * Note that this option is only used if the format of the `book` is [EPUB 2.0][BookVersion.EPUB_2_0]. This is
+         * because starting from [EPUB 3.0][BookVersion.EPUB_3_0] a `.xhtml` ToC page is *required* to be a valid epub file.
+         *
+         * By default this is set to `false`.
+         */
+        fun generateTableOfContentsPage(shouldGenerateTableOfContentsPage: Boolean): Builder = apply {
+            generateTableOfContentsPage = shouldGenerateTableOfContentsPage
+        }
+
+        /**
+         * Returns a new [BookSettings] instance containing the values set in `this` builder.
+         */
+        fun build(): BookSettings = BookSettings(
+            generateTableOfContentsPage = generateTableOfContentsPage
+        )
     }
 
-    /**
-     * Whether or not a `.xhtml` file should be generated containing the entries of the [TableOfContents] of the `book`.
-     *
-     * Note that this option is only used if the format of the `book` is [EPUB_2_0][Book.Format.EPUB_2_0]. This is
-     * because starting from [v3.0.0][Book.Format.EPUB_3_0] a `.xhtml` ToC page is *required* to be a valid epub file.
-     *
-     * (`false` by default)
-     */
-    fun generateTableOfContentsPage(shouldGenerate: Boolean) = copy(generateTableOfContentsPage = shouldGenerate)
+    companion object {
+        /**
+         * Returns the default [book settings][BookSettings].
+         */
+        @get:[JvmStatic JvmName("getDefault")]
+        val DEFAULT: BookSettings = builder().build()
 
-    /**
-     * Whether or not the resources of a parsed book should be completely re-organized to fit the recommended standard
-     * for how resources should be organized.
-     *
-     * The directory that a resource will be moved into is represented by its
-     * [preferredDirectory][Resource.preferredDirectory] property.
-     *
-     * Note that this setting is *very* aggressive, and *will* change large parts of an epub.
-     *
-     * (`true` by default)
-     */
-    fun organizeResources(shouldOrganize: Boolean) = copy(organizeResources = shouldOrganize)
+        @JvmStatic
+        fun builder(): Builder = Builder()
+
+        @JvmSynthetic
+        inline operator fun invoke(scope: Builder.() -> Unit): BookSettings = builder().apply(scope).build()
+    }
 }

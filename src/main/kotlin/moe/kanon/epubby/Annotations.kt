@@ -16,24 +16,30 @@
 
 package moe.kanon.epubby
 
-/**
- * Used for marking that a property has a different name in its serialized form than the one used in the code.
- *
- * This is only for marking it in the source code, it is *not* used for any serialization done via reflection. It is
- * merely to reduce confusion where short names like `rel` is used in the XML file, but the representing class uses
- * `relation`.
- *
- * It should however *not* be used in situations where an attribute is called `media-type` and the property is called
- * `mediaType`, as that is merely a difference in which case style is used, and annotating every occurrence of that
- * would result in very cluttered code.
- */
-@MustBeDocumented
-@Target(AnnotationTarget.PROPERTY)
-@Retention(AnnotationRetention.SOURCE)
-annotation class SerializedName(val name: String)
+import kotlin.annotation.AnnotationTarget.CLASS
+import kotlin.annotation.AnnotationTarget.FIELD
+import kotlin.annotation.AnnotationTarget.FILE
+import kotlin.annotation.AnnotationTarget.FUNCTION
+import kotlin.annotation.AnnotationTarget.PROPERTY
+import kotlin.annotation.AnnotationTarget.PROPERTY_GETTER
+import kotlin.annotation.AnnotationTarget.PROPERTY_SETTER
 
 /**
- * Used for marking that the feature the annotation target represents is considered to be a [legacy feature](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-spec.html#legacy).
+ * Used for marking which version the feature was introduced into the EPUB specification in.
+ *
+ * If a feature is not annotated with `this` annotation then it's safe to assume that the feature has been available
+ * since EPUB 2.0.
+ *
+ * @property [since] The version that the feature was introduced into the EPUB specification in.
+ */
+@MustBeDocumented
+@Retention(AnnotationRetention.SOURCE)
+@Target(CLASS, FIELD, FILE, FUNCTION, PROPERTY, PROPERTY_GETTER, PROPERTY_SETTER)
+internal annotation class NewFeature(val since: String)
+
+/**
+ * Used for marking that the feature the annotation target represents is considered to be a
+ * [legacy feature](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-spec.html#legacy).
  *
  * - [Authors](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-spec.html#dfn-author) *MAY* include the legacy
  * feature for compatibility purposes.
@@ -44,10 +50,12 @@ annotation class SerializedName(val name: String)
  */
 @MustBeDocumented
 @Retention(AnnotationRetention.SOURCE)
-annotation class EpubLegacy(val since: String)
+@Target(CLASS, FIELD, FILE, FUNCTION, PROPERTY, PROPERTY_GETTER, PROPERTY_SETTER)
+internal annotation class LegacyFeature(val since: String)
 
 /**
- * Used for marking that the feature the annotation target represents is considered to be a [deprecated feature](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-spec.html#deprecated).
+ * Used for marking that the feature the annotation target represents is considered to be a
+ * [deprecated feature](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-spec.html#deprecated).
  *
  * - [Authors](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-spec.html#dfn-author) are strongly
  * *RECOMMENDED* not to use the feature in their EPUB Publications.
@@ -58,4 +66,5 @@ annotation class EpubLegacy(val since: String)
  */
 @MustBeDocumented
 @Retention(AnnotationRetention.SOURCE)
-annotation class EpubDeprecated(val since: String)
+@Target(CLASS, FIELD, FILE, FUNCTION, PROPERTY, PROPERTY_GETTER, PROPERTY_SETTER)
+internal annotation class DeprecatedFeature(val since: String)

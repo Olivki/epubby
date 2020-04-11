@@ -14,11 +14,15 @@
  * limitations under the License.
  */
 
+@file:JvmName("JDomUtils")
+
 package moe.kanon.epubby.utils
 
+import moe.kanon.epubby.MalformedBookException
 import moe.kanon.kommons.func.None
 import moe.kanon.kommons.func.Option
 import moe.kanon.kommons.io.paths.newInputStream
+import moe.kanon.kommons.io.paths.newOutputStream
 import org.jdom2.Attribute
 import org.jdom2.Document
 import org.jdom2.Element
@@ -27,13 +31,10 @@ import org.jdom2.input.SAXBuilder
 import org.jdom2.input.sax.XMLReaders
 import org.jdom2.output.Format
 import org.jdom2.output.XMLOutputter
-import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
 
-@PublishedApi internal inline fun <R> parseFile(file: Path, scope: Element.() -> R): R =
-    file.newInputStream().use { input -> with(SAXBuilder(XMLReaders.NONVALIDATING).build(input).rootElement, scope) }
-
+// -- PUBLIC -- \\
 /**
  * Returns the first child with the given [name] and [namespace], or [None] if none is found.
  */
@@ -60,16 +61,69 @@ fun Element.getAttributeValueOrNone(name: String, namespace: Namespace = Namespa
  * @param [fileName] the name of the file. *(This is the full file name, including the extension.)*
  * @param [format] the [Format] that should be used when writing this document to the file
  */
-fun Document.saveTo(directory: Path, fileName: String, format: Format = Format.getPrettyFormat()): Path {
-    val file = directory.resolve(fileName)
-    val writer = XMLOutputter(format)
+fun Document.writeTo(directory: Path, fileName: String, format: Format = Format.getPrettyFormat()): Path =
+    directory.resolve(fileName).also { file ->
+        file.newOutputStream(StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING).use {
+            XMLOutputter(format).output(this, it)
+        }
+    }
 
-    writer.output(
-        this,
-        Files.newOutputStream(file, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
-    )
-
-    return file
+/**
+ * Serializes `this` document into the given [file], it is output using the given [format].
+ *
+ * @param [file] the file to which the document should be saved
+ * @param [format] the [Format] that should be used when writing this document to the file
+ */
+fun Document.writeTo(file: Path, format: Format = Format.getPrettyFormat()): Path = file.also {
+    it.newOutputStream().use { out ->
+        XMLOutputter(format).output(this, out)
+    }
 }
 
-fun Document.stringify(format: Format = Format.getPrettyFormat()): String = XMLOutputter(format).outputString(document)
+fun Document.stringify(format: Format = Format.getPrettyFormat()): String = XMLOutputter(format).outputString(this)
+
+fun Element.stringify(format: Format = Format.getPrettyFormat()): String = XMLOutputter(format).outputString(this)
+
+// -- INTERNAL -- \\
+@PublishedApi
+@JvmSynthetic
+internal inline fun <R> parseXmlFile(file: Path, scope: (doc: Document, root: Element) -> R): R =
+    file.newInputStream().use { input ->
+        val doc = SAXBuilder(XMLReaders.NONVALIDATING).build(input)
+        scope(doc, doc.rootElement)
+    }
+
+@PublishedApi
+@JvmSynthetic
+internal fun Element.attr(name: String, epub: Path, current: Path): String =
+    getAttributeValue(name) ?: throw MalformedBookException(
+        epub,
+        current,
+        "Element '${this.name}' is missing required attribute '$name'"
+    )
+
+@PublishedApi
+@JvmSynthetic
+internal fun Element.child(
+    name: String,
+    epub: Path,
+    current: Path,
+    namespace: Namespace = this.namespace
+): Element = getChild(name, namespace) ?: throw MalformedBookException.withDebug(
+    epub,
+    current,
+    "Element '${this.name}' is missing required child element '$name'"
+)
+
+@PublishedApi
+@JvmSynthetic
+internal inline fun Document.docScope(block: Element.() -> Unit): Document = this.apply { rootElement.apply(block) }
+
+@PublishedApi
+@JvmSynthetic
+internal inline fun <R> Document.scope(block: Element.() -> R): R = with(this) { rootElement.run(block) }
+
+@PublishedApi
+@JvmSynthetic
+internal fun Element.toCompactString(): String = XMLOutputter(Format.getCompactFormat()).outputString(this)
+

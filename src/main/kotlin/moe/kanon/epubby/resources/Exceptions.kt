@@ -20,25 +20,9 @@ import moe.kanon.epubby.EpubbyException
 import java.nio.file.Path
 
 /**
- * Thrown to indicate that an error occurred when attempting to create a new [Resource].
+ * Thrown to indicate that an error occurred somewhere when working with a [Resource] implementation.
  *
- * @property [resourceFile] The file that the [Resource] instance was being created for.
+ * @property [resourceFile] The file that the [Resource] implementation is tied to.
  */
-open class ResourceCreationException @JvmOverloads constructor(
-    val resourceFile: Path,
-    epub: Path,
-    message: String? = null,
-    cause: Throwable? = null
-) : EpubbyException(epub, message, cause)
-
-/**
- * Thrown to indicate that an error occurred when attempting to delete a [Resource] from the system.
- *
- * @property [resourceFile] The file that the [Resource] instance was tied to.
- */
-open class ResourceDeletionException @JvmOverloads constructor(
-    val resourceFile: Path,
-    epub: Path,
-    message: String? = null,
-    cause: Throwable? = null
-) : EpubbyException(epub, message, cause)
+open class ResourceException(val resourceFile: Path, message: String?, cause: Throwable? = null) :
+    EpubbyException(message, cause)
