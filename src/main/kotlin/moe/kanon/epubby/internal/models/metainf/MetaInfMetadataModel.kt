@@ -14,5 +14,14 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby
+package moe.kanon.epubby.internal.models.metainf
 
+import kotlinx.serialization.Serializable
+import moe.kanon.epubby.internal.ElementNamespaces.META_INF_METADATA
+import nl.adaptivity.xmlutil.serialization.XmlSerialName
+
+// This version of the OCF specification does not define metadata for use in the metadata.xml file. Container-level
+// metadata MAY be defined in future versions of this specification and in EPUB extension specifications.
+@Serializable
+@XmlSerialName("container", META_INF_METADATA, "")
+internal object MetaInfMetadataModel

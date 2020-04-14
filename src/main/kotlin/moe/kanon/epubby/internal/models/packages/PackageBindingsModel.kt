@@ -14,5 +14,16 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby
+package moe.kanon.epubby.internal.models.packages
 
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import nl.adaptivity.xmlutil.serialization.XmlSerialName
+import moe.kanon.epubby.internal.ElementNamespaces.OPF as OPF_NAMESPACES
+
+@Serializable
+@XmlSerialName("bindings", OPF_NAMESPACES, "")
+data class PackageBindingsModel(@XmlSerialName("mediaType", OPF_NAMESPACES, "") val mediaTypes: List<MediaType>) {
+    @Serializable
+    data class MediaType(val handler: String, @SerialName("media-type") val mediaType: String)
+}

@@ -14,5 +14,21 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby
+package moe.kanon.epubby.internal.models.metainf
 
+import kotlinx.serialization.Serializable
+import moe.kanon.epubby.internal.ElementNamespaces
+import moe.kanon.epubby.internal.ElementNamespaces.META_INF_CONTAINER
+import nl.adaptivity.xmlutil.serialization.XmlSerialName
+
+/**
+ * Represents the [signatures.xml](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-ocf.html#sec-container-metainf-signatures.xml)
+ * meta-inf file.
+ */
+@Serializable
+@XmlSerialName("signatures", META_INF_CONTAINER, "")
+internal class MetaInfSignaturesModel {
+    init {
+        throw NotImplementedError()
+    }
+}

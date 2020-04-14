@@ -14,5 +14,12 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby
+package moe.kanon.epubby.internal
 
+internal object ElementPrefixes {
+    const val XML = "xml"
+
+    const val OPF = "opf"
+
+    const val DUBLIN_CORE = "dc"
+}

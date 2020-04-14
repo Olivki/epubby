@@ -30,8 +30,9 @@ buildscript {
 }
 
 plugins {
-    kotlin("jvm").version("1.3.61")
-    kotlin("kapt").version("1.3.61")
+    kotlin("jvm").version("1.3.71")
+    kotlin("kapt").version("1.3.71")
+    kotlin("plugin.serialization").version("1.3.71")
 
     id("com.github.ben-manes.versions").version("0.21.0")
     
@@ -43,7 +44,7 @@ apply(plugin = "name.remal.maven-publish-bintray")
 group = "moe.kanon.epubby"
 description = "Framework for working with the EPUB file format for Kotlin and Java."
 version = "0.1.0"
-val gitUrl = "https://gitlab.com/Olivki/epubby"
+val gitUrl = "https://github.com/Olivki/epubby"
 
 repositories {
     mavenCentral()
@@ -56,6 +57,12 @@ dependencies {
     implementation(kotlin("reflect"))
     implementation(group = "org.jetbrains.kotlinx", name = "kotlinx-html-jvm", version = "0.6.12")
     api(group = "org.jetbrains.kotlinx", name = "kotlinx-collections-immutable-jvm", version = "0.3")
+
+    // serialization
+    implementation(group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-runtime", version = "0.20.0")
+    implementation(group = "net.devrieze", name = "xmlutil-serialization-jvm", version = "0.20.0.0")
+    runtimeOnly(group = "com.fasterxml.woodstox", name = "woodstox-core", version = "5.0.3")
+    // implementation("net.devrieze:xmlutil-serialization-jvm:0.13.0.1")
 
     // Kanon
     implementation(group = "moe.kanon.kommons", name = "kommons.func", version = "1.6.1")

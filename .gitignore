@@ -105,3 +105,4 @@ src/test/kotlin/Ugly.kt
 /.ignore.throws
 /src/test/kotlin/moe/kanon/epubby/Stuff.kt
 /src/test/kotlin/moe/kanon/epubby/StuffExtensions.kt
+/src/test/kotlin/moe/kanon/epubby/Testing.kt

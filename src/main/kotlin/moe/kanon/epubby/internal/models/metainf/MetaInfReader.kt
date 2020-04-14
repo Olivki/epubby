@@ -14,5 +14,12 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby
+package moe.kanon.epubby.internal.models.metainf
 
+import java.nio.file.FileSystems
+import java.nio.file.Path
+
+internal fun readMetaInfModel(epub: Path): MetaInfModel = FileSystems.newFileSystem(epub, null).use { fileSystem ->
+    val root = fileSystem.getPath("/")
+    MetaInfModel.fromDirectory(root.resolve("META-INF"))
+}

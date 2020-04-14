@@ -14,5 +14,12 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby
+package moe.kanon.epubby.internal.models.packages
 
+import kotlinx.serialization.Serializable
+import moe.kanon.epubby.internal.ElementNamespaces
+import nl.adaptivity.xmlutil.serialization.XmlSerialName
+
+@Serializable
+@XmlSerialName("collection", ElementNamespaces.OPF, "")
+internal data class PackageCollectionModel(val d: Unit)

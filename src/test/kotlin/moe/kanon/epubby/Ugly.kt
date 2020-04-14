@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-@file:Suppress("CheckedExceptionsKotlin")
-
 package moe.kanon.epubby
 
-import moe.kanon.kommons.io.paths.copyTo
+/*import moe.kanon.kommons.io.paths.copyTo
 import moe.kanon.kommons.io.paths.createTmpDirectory
 import moe.kanon.kommons.io.paths.deleteIfExists
 import moe.kanon.kommons.io.paths.pathOf
@@ -51,4 +49,4 @@ fun main() {
 }
 
 private fun createBackup(original: Path): Path =
-    original.copyTo(createTmpDirectory("epubby"), keepName = true).apply { toFile().deleteOnExit() }
+    original.copyTo(createTmpDirectory("epubby"), keepName = true).apply { toFile().deleteOnExit() }*/

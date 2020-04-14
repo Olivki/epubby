@@ -14,5 +14,15 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby
+package moe.kanon.epubby.internal.models.packages
 
+import kotlinx.serialization.Serializable
+import nl.adaptivity.xmlutil.serialization.XmlSerialName
+import moe.kanon.epubby.internal.ElementNamespaces.OPF as OPF_NAMESPACE
+
+@Serializable
+@XmlSerialName("guide", OPF_NAMESPACE, "")
+internal data class PackageGuideModel(@XmlSerialName("reference", OPF_NAMESPACE, "") val references: List<Reference>) {
+    @Serializable
+    data class Reference(val type: String, val href: String, val title: String? = null)
+}
