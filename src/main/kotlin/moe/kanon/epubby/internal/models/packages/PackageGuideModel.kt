@@ -16,13 +16,113 @@
 
 package moe.kanon.epubby.internal.models.packages
 
-import kotlinx.serialization.Serializable
-import nl.adaptivity.xmlutil.serialization.XmlSerialName
-import moe.kanon.epubby.internal.ElementNamespaces.OPF as OPF_NAMESPACE
+import com.github.michaelbull.logging.InlineLogger
+import moe.kanon.epubby.Book
+import moe.kanon.epubby.ParseStrictness
+import moe.kanon.epubby.internal.`Reference | CustomReference`
+import moe.kanon.epubby.internal.elementOf
+import moe.kanon.epubby.internal.getAttributeValueOrThrow
+import moe.kanon.epubby.internal.models.SerialName
+import moe.kanon.epubby.mapToValues
+import moe.kanon.epubby.packages.PackageGuide
+import moe.kanon.epubby.resources.PageResource
+import moe.kanon.epubby.tryMap
+import moe.kanon.kommons.collections.emptyEnumMap
+import moe.kanon.kommons.func.Either
+import org.apache.commons.collections4.map.CaseInsensitiveMap
+import org.jdom2.Element
+import moe.kanon.epubby.internal.Namespaces.OPF as NAMESPACE
 
-@Serializable
-@XmlSerialName("guide", OPF_NAMESPACE, "")
-internal data class PackageGuideModel(@XmlSerialName("reference", OPF_NAMESPACE, "") val references: List<Reference>) {
-    @Serializable
-    data class Reference(val type: String, val href: String, val title: String? = null)
+@SerialName("guide")
+internal data class PackageGuideModel internal constructor(internal val references: List<Reference>) {
+    internal fun toElement(): Element = elementOf("guide", NAMESPACE) {
+        references.forEach { reference -> it.addContent(reference.toElement()) }
+    }
+
+    internal fun toPackageGuide(book: Book): PackageGuide {
+        val allReferences = references.asSequence().map { it.toReference(book) }
+        val references = allReferences.filter { it.isLeft }
+            .map { it.leftValue }
+            .associateByTo(emptyEnumMap()) { it.type }
+        val customReferences = allReferences.filter { it.isRight }
+            .map { it.rightValue }
+            .associateByTo(CaseInsensitiveMap()) { it.customType }
+        return PackageGuide(book).also {
+            it._references.putAll(references)
+            it._customReferences.putAll(customReferences)
+        }
+    }
+
+    @SerialName("reference")
+    data class Reference(internal val type: String, internal val href: String, internal val title: String?) {
+        private val hasCustomType: Boolean = type.startsWith("other.", ignoreCase = true)
+
+        internal fun toElement(): Element = elementOf("reference", NAMESPACE) {
+            it.setAttribute("type", type)
+            it.setAttribute("href", href)
+            if (title != null) it.setAttribute("title", title)
+        }
+
+        internal fun toReference(book: Book): `Reference | CustomReference` {
+            val resource = getPageResourceByHref(book)
+            return when (hasCustomType) {
+                false -> Either.left(PackageGuide.Reference(book, PackageGuide.Type.byType(type), resource, title))
+                true -> Either.right(PackageGuide.CustomReference(book, type.substring(6), resource, title))
+            }
+        }
+
+        private fun getPageResourceByHref(book: Book): PageResource = TODO()
+
+        internal companion object {
+            private val logger = InlineLogger(Reference::class)
+
+            internal fun fromElement(element: Element): Reference {
+                val type = handleType(element.getAttributeValueOrThrow("type"), shouldLog = true)
+                val href = element.getAttributeValueOrThrow("href")
+                val title = element.getAttributeValue("href")
+                return Reference(type, href, title)
+            }
+
+            private fun handleType(value: String, shouldLog: Boolean): String = when {
+                PackageGuide.Type.isUnknownType(value) && !(value.startsWith("other.", ignoreCase = true)) -> {
+                    // TODO: lower to 'debug'?
+                    // TODO: more verbose/better log message?
+                    if (shouldLog) logger.info { "Fixing unknown guide type '$value' to 'other.$value'." }
+                    "other.$value"
+                }
+                else -> value
+            }
+
+            internal fun fromReference(origin: PackageGuide.Reference): Reference {
+                val type = origin.type.type
+                val href = origin.reference.relativeHref.substringAfter("../")
+                val title = origin.title
+                return Reference(type, href, title)
+            }
+
+            internal fun fromCustomReference(origin: PackageGuide.CustomReference): Reference {
+                val type = handleType(origin.customType, shouldLog = false)
+                val href = origin.reference.relativeHref.substringAfter("../")
+                val title = origin.title
+                return Reference(type, href, title)
+            }
+        }
+    }
+
+    internal companion object {
+        private val logger = InlineLogger(PackageGuideModel::class)
+
+        internal fun fromElement(element: Element, strictness: ParseStrictness): PackageGuideModel {
+            val references = element.getChildren("reference", element.namespace)
+                .tryMap { Reference.fromElement(it) }
+                .mapToValues(logger, strictness)
+            return PackageGuideModel(references)
+        }
+
+        internal fun fromPackageGuide(origin: PackageGuide): PackageGuideModel {
+            val references = origin._references.map { (_, ref) -> Reference.fromReference(ref) }
+            val customReferences = origin._customReferences.map { (_, ref) -> Reference.fromCustomReference(ref) }
+            return PackageGuideModel((references + customReferences))
+        }
+    }
 }

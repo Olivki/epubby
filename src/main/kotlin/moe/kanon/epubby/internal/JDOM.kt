@@ -16,17 +16,40 @@
 
 package moe.kanon.epubby.internal
 
+import moe.kanon.epubby.MalformedBookException
+import moe.kanon.kommons.func.Try
 import moe.kanon.kommons.io.paths.newInputStream
 import moe.kanon.kommons.io.paths.newOutputStream
+import org.jdom2.Attribute
 import org.jdom2.Document
 import org.jdom2.Element
+import org.jdom2.Namespace
 import org.jdom2.input.SAXBuilder
 import org.jdom2.input.sax.XMLReaders
 import org.jdom2.output.Format
 import org.jdom2.output.XMLOutputter
 import java.nio.file.Path
 
-internal fun documentOf(input: String): Document = input.reader().use { SAXBuilder(XMLReaders.NONVALIDATING).build(it) }
+private val defaultFormat: Format = Format.getPrettyFormat().setIndent("    ")
+
+internal fun Document.stringify(format: Format = defaultFormat): String =
+    XMLOutputter(format).outputString(this)
+
+internal fun Element.stringify(format: Format = defaultFormat): String =
+    XMLOutputter(format).outputString(this)
+
+internal fun Element.getChildOrThrow(name: String, namespace: Namespace = Namespace.NO_NAMESPACE): Element =
+    getChild(name, namespace) ?: throw MalformedBookException("Element '$name' is missing required child '$name'.")
+
+internal fun Element.getAttributeOrThrow(name: String, namespace: Namespace = Namespace.NO_NAMESPACE): Attribute =
+    getAttribute(name, namespace)
+        ?: throw MalformedBookException("Element '$name' is missing required attribute '$name'.")
+
+internal fun Element.getAttributeValueOrThrow(name: String, namespace: Namespace = Namespace.NO_NAMESPACE): String =
+    getAttributeOrThrow(name, namespace).value
+
+internal fun documentFrom(input: String): Document =
+    input.reader().use { SAXBuilder(XMLReaders.NONVALIDATING).build(it) }
 
 internal fun documentFrom(input: Path): Document =
     input.newInputStream().use { SAXBuilder(XMLReaders.NONVALIDATING).build(it) }
@@ -36,10 +59,16 @@ internal fun Document.writeTo(file: Path, format: Format = Format.getPrettyForma
     return file
 }
 
-private val defaultFormat: Format = Format.getPrettyFormat().setIndent("    ")
+internal inline fun <T> Document.use(scope: (doc: Document, root: Element) -> T): T = run { scope(this, rootElement) }
 
-internal fun Document.stringify(format: Format = defaultFormat): String =
-    XMLOutputter(format).outputString(this)
+internal inline fun documentOf(
+    rootName: String,
+    rootNamespace: Namespace,
+    scope: (doc: Document, root: Element) -> Unit
+): Document = Document(Element(rootName, rootNamespace)).apply { scope(this, rootElement) }
 
-internal fun Element.stringify(format: Format = defaultFormat): String =
-    XMLOutputter(format).outputString(this)
+internal inline fun elementOf(
+    name: String,
+    namespace: Namespace,
+    scope: (Element) -> Unit
+): Element = Element(name, namespace).apply { scope(this) }

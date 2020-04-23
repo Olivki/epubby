@@ -16,19 +16,25 @@
 
 package moe.kanon.epubby.internal.models.metainf
 
-import kotlinx.serialization.Serializable
-import moe.kanon.epubby.internal.ElementNamespaces
-import moe.kanon.epubby.internal.ElementNamespaces.META_INF_CONTAINER
-import nl.adaptivity.xmlutil.serialization.XmlSerialName
+import moe.kanon.epubby.Book
+import moe.kanon.epubby.internal.documentFrom
+import moe.kanon.epubby.internal.writeTo
+import moe.kanon.epubby.metainf.MetaInfSignatures
+import org.jdom2.Document
+import java.nio.file.FileSystem
+import java.nio.file.Path
 
-/**
- * Represents the [signatures.xml](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-ocf.html#sec-container-metainf-signatures.xml)
- * meta-inf file.
- */
-@Serializable
-@XmlSerialName("signatures", META_INF_CONTAINER, "")
-internal class MetaInfSignaturesModel {
-    init {
-        throw NotImplementedError()
+internal data class MetaInfSignaturesModel internal constructor(internal val document: Document) {
+    internal fun writeToFile(fileSystem: FileSystem) {
+        document.writeTo(fileSystem.getPath("/META-INF/signatures.xml"))
+    }
+
+    internal fun toMetaInfSignatures(book: Book): MetaInfSignatures = MetaInfSignatures(book, document)
+
+    internal companion object {
+        internal fun fromFile(file: Path): MetaInfSignaturesModel = MetaInfSignaturesModel(documentFrom(file))
+
+        internal fun fromMetaInfSignatures(origin: MetaInfSignatures): MetaInfSignaturesModel =
+            MetaInfSignaturesModel(origin.document)
     }
 }

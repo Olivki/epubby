@@ -16,10 +16,11 @@
 
 package moe.kanon.epubby.internal
 
-internal object ElementPrefixes {
-    const val XML = "xml"
+internal object Patterns {
+    // -- WHITESPACE -- \\
+    @JvmField val WHITESPACE = """\s""".toRegex()
+    @JvmField val EXCESSIVE_WHITESPACE = """\s{2,}""".toRegex()
 
-    const val OPF = "opf"
-
-    const val DUBLIN_CORE = "dc"
+    // -- SPACE -- \\
+    @JvmField val EXCESSIVE_SPACE = " {2,}".toRegex()
 }

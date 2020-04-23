@@ -16,49 +16,25 @@
 
 package moe.kanon.epubby.internal.models.metainf
 
-import kotlinx.serialization.Serializable
-import moe.kanon.epubby.internal.ElementNamespaces.META_INF_MANIFEST
-import nl.adaptivity.xmlutil.serialization.XmlSerialName
+import moe.kanon.epubby.Book
+import moe.kanon.epubby.internal.documentFrom
+import moe.kanon.epubby.internal.writeTo
+import moe.kanon.epubby.metainf.MetaInfManifest
+import org.jdom2.Document
+import java.nio.file.FileSystem
+import java.nio.file.Path
 
-/**
- * Represents the [manifest.xml](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-ocf.html#sec-container-metainf-manifest.xml)
- * meta-inf file.
- */
-// note that this feature exists only for compatibility with the ODF file format
-@Serializable
-@XmlSerialName("manifest", META_INF_MANIFEST, "manifest")
-internal data class MetaInfManifestModel(
-    @XmlSerialName("file-entry", META_INF_MANIFEST, "manifest") val fileEntries: List<FileEntry>
-) {
-    @Serializable
-    data class FileEntry(
-        @XmlSerialName("media-type", META_INF_MANIFEST, ".") val mediaType: String,
-        @XmlSerialName("full-path", META_INF_MANIFEST, ".") val fullPath: String,
-        @XmlSerialName("size", META_INF_MANIFEST, "manifest") val size: Int? = null, // non-negative
-        @XmlSerialName("encryption-data", META_INF_MANIFEST, "manifest") val encryptionData: EncryptionData? = null
-    ) {
-        @Serializable
-        data class EncryptionData(
-            // 'checksum-type' & 'checksum' are not defined as optional elements, but yet in the example XML provided
-            // in the documentation they use 'encryption-data' multiple times, but 'checksum-type' & 'checksum' is
-            // never defined on any of them, so leaving them 'null' here for now
-            @XmlSerialName("checksum-type", META_INF_MANIFEST, "..") val checksumType: String? = null,
-            @XmlSerialName("checksum", META_INF_MANIFEST, "..") val checksum: String? = null,
-            @XmlSerialName("algorithm", META_INF_MANIFEST, ".") val algorithm: Algorithm,
-            @XmlSerialName("key-derivation", META_INF_MANIFEST, ".") val keyDerivation: KeyDerivation
-        ) {
-            @Serializable
-            data class Algorithm(
-                @XmlSerialName("algorithm-name", META_INF_MANIFEST, "...") val name: String,
-                @XmlSerialName("initialisation-vector", META_INF_MANIFEST, "...") val initialisationVector: String
-            )
+internal data class MetaInfManifestModel internal constructor(internal val document: Document) {
+    internal fun writeToFile(fileSystem: FileSystem) {
+        document.writeTo(fileSystem.getPath("/META-INF/manifest.xml"))
+    }
 
-            @Serializable
-            data class KeyDerivation(
-                @XmlSerialName("key-derivation-name", META_INF_MANIFEST, "...") val name: String,
-                @XmlSerialName("iteration-count", META_INF_MANIFEST, "...") val iterationCount: Int, // non-negative
-                @XmlSerialName("salt", META_INF_MANIFEST, "...") val salt: String
-            )
-        }
+    internal fun toMetaInfManifest(book: Book): MetaInfManifest = MetaInfManifest(book, document)
+
+    internal companion object {
+        internal fun fromFile(file: Path): MetaInfManifestModel = MetaInfManifestModel(documentFrom(file))
+
+        internal fun fromMetaInfManifest(origin: MetaInfManifest): MetaInfManifestModel =
+            MetaInfManifestModel(origin.document)
     }
 }

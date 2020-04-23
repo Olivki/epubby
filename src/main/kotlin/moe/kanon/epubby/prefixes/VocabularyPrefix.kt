@@ -14,22 +14,10 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.internal
+package moe.kanon.epubby.prefixes
 
-import org.jdom2.Namespace
+import java.net.URI
 
-internal object ElementNamespaces {
-    const val XML = "http://www.w3.org/XML/1998/namespace"
-
-    const val META_INF_CONTAINER = "urn:oasis:names:tc:opendocument:xmlns:container"
-
-    const val META_INF_METADATA = "http://www.idpf.org/2013/metadata"
-
-    const val META_INF_MANIFEST = "urn:oasis:names:tc:opendocument:xmlns:manifest:1.0"
-
-    const val OPF = "http://www.idpf.org/2007/opf"
-
-    const val DUBLIN_CORE = "http://purl.org/dc/elements/1.1/"
-
-    const val DAISY_NCX = "http://www.daisy.org/z3986/2005/ncx/"
+internal data class VocabularyPrefix internal constructor(override val uri: URI) : Prefix {
+    override val prefix: String = ""
 }

@@ -16,12 +16,25 @@
 
 package moe.kanon.epubby.internal.models.metainf
 
-import kotlinx.serialization.Serializable
-import moe.kanon.epubby.internal.ElementNamespaces.META_INF_METADATA
-import nl.adaptivity.xmlutil.serialization.XmlSerialName
+import moe.kanon.epubby.Book
+import moe.kanon.epubby.internal.documentFrom
+import moe.kanon.epubby.internal.writeTo
+import moe.kanon.epubby.metainf.MetaInfMetadata
+import org.jdom2.Document
+import java.nio.file.FileSystem
+import java.nio.file.Path
 
-// This version of the OCF specification does not define metadata for use in the metadata.xml file. Container-level
-// metadata MAY be defined in future versions of this specification and in EPUB extension specifications.
-@Serializable
-@XmlSerialName("container", META_INF_METADATA, "")
-internal object MetaInfMetadataModel
+internal data class MetaInfMetadataModel internal constructor(internal val document: Document) {
+    internal fun writeToFile(fileSystem: FileSystem) {
+        document.writeTo(fileSystem.getPath("/META-INF/metadata.xml"))
+    }
+
+    internal fun toMetaInfMetadata(book: Book): MetaInfMetadata = MetaInfMetadata(book, document)
+
+    internal companion object {
+        internal fun fromFile(file: Path): MetaInfMetadataModel = MetaInfMetadataModel(documentFrom(file))
+
+        internal fun fromMetaInfMetadata(origin: MetaInfMetadata): MetaInfMetadataModel =
+            MetaInfMetadataModel(origin.document)
+    }
+}

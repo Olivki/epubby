@@ -16,4 +16,35 @@
 
 package moe.kanon.epubby
 
-class Book
+import moe.kanon.epubby.metainf.MetaInf
+import java.io.Closeable
+import java.nio.file.FileSystem
+import java.util.Locale
+
+class Book(
+    val fileSystem: FileSystem,
+    val version: BookVersion,
+    val metaInf: MetaInf
+) : Closeable {
+    var title: String
+        get() = TODO()
+        set(value) {
+            TODO()
+        }
+
+    var author: String?
+        get() = TODO()
+        set(value) {
+            TODO()
+        }
+
+    var language: Locale
+        get() = TODO()
+        set(value) {
+            TODO()
+        }
+
+    override fun close() {
+        fileSystem.close()
+    }
+}

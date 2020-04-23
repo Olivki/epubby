@@ -14,18 +14,9 @@
  * limitations under the License.
  */
 
-package moe.kanon.epubby.internal.models.packages
+package moe.kanon.epubby.metainf
 
-import moe.kanon.epubby.internal.models.metainf.readMetaInfModel
-import java.nio.file.FileSystems
-import java.nio.file.Path
+import moe.kanon.epubby.Book
+import org.jdom2.Document
 
-internal fun readPackageDocument(epub: Path): PackageDocumentModel {
-    val metaInf = readMetaInfModel(epub)
-    return FileSystems.newFileSystem(epub, null).use { fileSystem ->
-        val root = fileSystem.getPath("/")
-        val rawPath = metaInf.container.rootFiles.rootFiles.first().fullPath
-        val path = root.resolve(rawPath)
-        PackageDocumentModel.fromFile(path)
-    }
-}
+class MetaInfManifest(val book: Book, val document: Document)

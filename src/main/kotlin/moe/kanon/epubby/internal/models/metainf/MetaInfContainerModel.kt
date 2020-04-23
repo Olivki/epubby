@@ -16,29 +16,153 @@
 
 package moe.kanon.epubby.internal.models.metainf
 
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
-import moe.kanon.epubby.internal.ElementNamespaces
-import moe.kanon.epubby.internal.ElementNamespaces.META_INF_CONTAINER
-import nl.adaptivity.xmlutil.serialization.XmlChildrenName
-import nl.adaptivity.xmlutil.serialization.XmlSerialName
+import com.github.michaelbull.logging.InlineLogger
+import com.google.common.net.MediaType
+import moe.kanon.epubby.Book
+import moe.kanon.epubby.BookVersion
+import moe.kanon.epubby.MalformedBookException
+import moe.kanon.epubby.ParseStrictness
+import moe.kanon.epubby.internal.documentFrom
+import moe.kanon.epubby.internal.documentOf
+import moe.kanon.epubby.internal.elementOf
+import moe.kanon.epubby.internal.getAttributeValueOrThrow
+import moe.kanon.epubby.internal.models.SerialName
+import moe.kanon.epubby.internal.use
+import moe.kanon.epubby.internal.writeTo
+import moe.kanon.epubby.mapToValues
+import moe.kanon.epubby.metainf.MetaInfContainer
+import moe.kanon.epubby.prefixes.Prefixes
+import moe.kanon.epubby.props.resolveLinkRelationship
+import moe.kanon.epubby.props.toStringForm
+import moe.kanon.epubby.tryMap
+import moe.kanon.epubby.utils.toNonEmptyList
+import org.apache.logging.log4j.kotlin.loggerOf
+import org.jdom2.Document
+import org.jdom2.Element
+import java.nio.file.FileSystem
+import java.nio.file.Path
+import moe.kanon.epubby.internal.Namespaces.META_INF_CONTAINER as NAMESPACE
 
-@Serializable
-@XmlSerialName("container", META_INF_CONTAINER, "")
 internal data class MetaInfContainerModel(
-    val version: String,
-    @XmlSerialName("rootfiles", META_INF_CONTAINER, "") val rootFiles: RootFiles,
-    @XmlSerialName("links", META_INF_CONTAINER, "") val links: Links? = null
+    internal val version: String,
+    internal val rootFiles: List<RootFile>,
+    internal val links: List<Link>
 ) {
-    @Serializable
-    data class RootFiles(@XmlSerialName("rootfile", META_INF_CONTAINER, "") val rootFiles: List<RootFile>)
+    private fun toDocument(): Document = documentOf("container", NAMESPACE) { _, root ->
+        root.addContent(elementOf("rootfiles", root.namespace) { element ->
+            rootFiles.forEach { element.addContent(it.toElement()) }
+        })
 
-    @Serializable
-    data class RootFile(@SerialName("full-path") val fullPath: String, @SerialName("media-type") val mediaType: String)
+        if (links.isNotEmpty()) {
+            root.addContent(elementOf("links", root.namespace) { element ->
+                links.forEach { element.addContent(it.toElement()) }
+            })
+        }
+    }
 
-    @Serializable
-    data class Links(@XmlSerialName("link", META_INF_CONTAINER, "") val links: List<Link>)
+    internal fun toMetaInfContainer(book: Book, prefixes: Prefixes): MetaInfContainer {
+        val rootFiles = rootFiles.map { it.toRootFile(book) }.toNonEmptyList()
+        val links = links.mapTo(mutableListOf()) { it.toLink(book, prefixes) }
+        return MetaInfContainer(book, version, rootFiles, links)
+    }
 
-    @Serializable
-    data class Link(val href: String, @SerialName("rel") val relation: String, val mediaType: String? = null)
+    internal fun writeToFile(fileSystem: FileSystem) {
+        toDocument().writeTo(fileSystem.getPath("/META-INF/container.xml"))
+    }
+
+    @SerialName("rootfile")
+    data class RootFile(
+        @SerialName("full-path") internal val fullPath: String,
+        @SerialName("media-type") internal val mediaType: String
+    ) {
+        internal fun toElement(): Element = elementOf("rootfile", NAMESPACE) {
+            it.setAttribute("full-path", fullPath)
+            it.setAttribute("media-type", mediaType)
+        }
+
+        internal fun toRootFile(book: Book): MetaInfContainer.RootFile {
+            val fullPath = book.fileSystem.getPath(fullPath)
+            val mediaType = MediaType.parse(mediaType)
+            return MetaInfContainer.RootFile(book, fullPath, mediaType)
+        }
+
+        internal companion object {
+            internal fun fromElement(element: Element): RootFile {
+                val fullPath = element.getAttributeValueOrThrow("full-path")
+                val mediaType = element.getAttributeValueOrThrow("media-type")
+                return RootFile(fullPath, mediaType)
+            }
+
+            internal fun fromRootFile(origin: MetaInfContainer.RootFile): RootFile {
+                val fullPath = origin.fullPath.toString().substring(1)
+                val mediaType = origin.mediaType.toString()
+                return RootFile(fullPath, mediaType)
+            }
+        }
+    }
+
+    @SerialName("link")
+    data class Link(
+        internal val href: String,
+        @SerialName("rel") internal val relation: String? = null,
+        internal val mediaType: String? = null
+    ) {
+        internal fun toElement(): Element = elementOf("link", NAMESPACE) {
+            it.setAttribute("href", href)
+            if (relation != null) it.setAttribute("rel", relation)
+            if (mediaType != null) it.setAttribute("mediaType", mediaType)
+        }
+
+        internal fun toLink(book: Book, prefixes: Prefixes): MetaInfContainer.Link {
+            val relation = relation?.let { resolveLinkRelationship(it, prefixes) }
+            val mediaType = mediaType?.let(MediaType::parse)
+            return MetaInfContainer.Link(book, href, relation, mediaType)
+        }
+
+        internal companion object {
+            internal fun fromElement(element: Element): Link {
+                val href = element.getAttributeValueOrThrow("href")
+                val relation = element.getAttributeValue("rel")
+                val mediaType = element.getAttributeValue("mediaType")
+                return Link(href, relation, mediaType)
+            }
+
+            internal fun fromLink(origin: MetaInfContainer.Link): Link {
+                val href = origin.href
+                val relation = when {
+                    origin.book.version.isNewerThan(BookVersion.EPUB_2_0) -> origin.relation?.toStringForm()
+                    else -> null
+                }
+                val mediaType = origin.mediaType.toString()
+                return Link(href, relation, mediaType)
+            }
+        }
+    }
+
+    internal companion object {
+        private val logger = InlineLogger(MetaInfContainerModel::class)
+
+        internal fun fromFile(
+            file: Path,
+            strictness: ParseStrictness
+        ): MetaInfContainerModel = documentFrom(file).use { _, root ->
+            val version = root.getAttributeValueOrThrow("version")
+            val rootFiles = root.getChild("rootfiles", root.namespace)
+                .getChildren("rootfile", root.namespace)
+                .tryMap { RootFile.fromElement(it) }
+                .mapToValues(logger, strictness)
+                .ifEmpty { throw MalformedBookException("'rootfiles' in meta-inf container is empty.") }
+            val links = root.getChild("links", root.namespace)
+                .getChildren("link", root.namespace)
+                .tryMap { Link.fromElement(it) }
+                .mapToValues(logger, strictness)
+            return MetaInfContainerModel(version, rootFiles, links)
+        }
+
+        internal fun fromMetaInfContainer(origin: MetaInfContainer): MetaInfContainerModel {
+            val rootFiles = origin.rootFiles.map { RootFile.fromRootFile(it) }
+            val links = origin.links.map { Link.fromLink(it) }
+            return MetaInfContainerModel(origin.version, rootFiles, links)
+        }
+    }
 }

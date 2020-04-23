@@ -16,24 +16,90 @@
 
 package moe.kanon.epubby.internal.models.packages
 
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
-import nl.adaptivity.xmlutil.serialization.XmlSerialName
-import moe.kanon.epubby.internal.ElementNamespaces.OPF as OPF_NAMESPACE
+import com.github.michaelbull.logging.InlineLogger
+import moe.kanon.epubby.Book
+import moe.kanon.epubby.MalformedBookException
+import moe.kanon.epubby.ParseStrictness
+import moe.kanon.epubby.internal.`Resource | RemoteItem`
+import moe.kanon.epubby.internal.elementOf
+import moe.kanon.epubby.internal.getAttributeValueOrThrow
+import moe.kanon.epubby.internal.models.SerialName
+import moe.kanon.epubby.mapToValues
+import moe.kanon.epubby.packages.PackageManifest
+import moe.kanon.epubby.prefixes.Prefixes
+import moe.kanon.epubby.tryMap
+import org.apache.logging.log4j.kotlin.loggerOf
+import org.jdom2.Element
+import moe.kanon.epubby.internal.Namespaces.OPF as NAMESPACE
 
-@Serializable
-@XmlSerialName("manifest", OPF_NAMESPACE, "")
-internal data class PackageManifestModel(
-    @SerialName("id") val identifier: String? = null,
-    @XmlSerialName("item", OPF_NAMESPACE, "") val items: List<Item>
+@SerialName("manifest")
+internal data class PackageManifestModel internal constructor(
+    @SerialName("id") internal val identifier: String?,
+    internal val items: List<Item>
 ) {
-    @Serializable
+    internal fun toElement(): Element = elementOf("manifest", NAMESPACE) {
+        if (identifier != null) it.setAttribute("id", identifier)
+        items.forEach { item -> it.addContent(item.toElement()) }
+    }
+
+    internal fun toPackageManifest(book: Book, prefixes: Prefixes): PackageManifest {
+        TODO("'toPackageManifest' operation is not implemented yet.")
+    }
+
+    @SerialName("item")
     data class Item(
-        @SerialName("id") val identifier: String,
-        val href: String,
-        @SerialName("media-type") val mediaType: String? = null,
-        val fallback: String? = null,
-        @SerialName("media-overlay") val mediaOverlay: String? = null,
-        val properties: String? = null
-    )
+        @SerialName("id") internal val identifier: String,
+        internal val href: String,
+        @SerialName("media-type") internal val mediaType: String?,
+        internal val fallback: String?,
+        @SerialName("media-overlay") internal val mediaOverlay: String?,
+        internal val properties: String?
+    ) {
+        internal fun toElement(): Element = elementOf("item", NAMESPACE) {
+            it.setAttribute("id", identifier)
+            it.setAttribute("href", href)
+            if (mediaType != null) it.setAttribute("media-type", mediaType)
+            if (fallback != null) it.setAttribute("fallback", fallback)
+            if (mediaOverlay != null) it.setAttribute("media-overlay", mediaOverlay)
+            if (properties != null) it.setAttribute("properties", properties)
+        }
+
+        internal fun toItem(book: Book): `Resource | RemoteItem` {
+            TODO("'toItem' operation is not implemented yet.")
+        }
+
+        internal companion object {
+            internal fun fromElement(element: Element): Item {
+                val identifier = element.getAttributeValueOrThrow("id")
+                val href = element.getAttributeValueOrThrow("href")
+                val fallback = element.getAttributeValue("fallback")
+                val mediaType = element.getAttributeValue("media-type")
+                val mediaOverlay = element.getAttributeValue("media-overlay")
+                val properties = element.getAttributeValue("properties")
+                return Item(identifier, href, mediaType, fallback, mediaOverlay, properties)
+            }
+
+            // TODO: only accept 'properties' if book version is newer than 2.0 (aka 3.x and up)
+            internal fun fromItem(origin: `Resource | RemoteItem`): Item {
+                TODO("'fromItem' operation is not implemented yet.")
+            }
+        }
+    }
+
+    internal companion object {
+        private val logger = InlineLogger(PackageManifestModel::class)
+
+        internal fun fromElement(element: Element, strictness: ParseStrictness): PackageManifestModel {
+            val identifier = element.getAttributeValue("id")
+            val items = element.getChildren("item", element.namespace)
+                .tryMap { Item.fromElement(it) }
+                .mapToValues(logger, strictness)
+                .ifEmpty { throw MalformedBookException.forMissing("manifest", "item") }
+            return PackageManifestModel(identifier, items)
+        }
+
+        internal fun fromPackageManifest(origin: PackageManifest): PackageManifestModel {
+            TODO("'fromPackageManifest' operation is not implemented yet.")
+        }
+    }
 }

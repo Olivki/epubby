@@ -16,16 +16,25 @@
 
 package moe.kanon.epubby.internal.models.metainf
 
-import kotlinx.serialization.Serializable
-import moe.kanon.epubby.internal.ElementNamespaces
-import moe.kanon.epubby.internal.ElementNamespaces.META_INF_CONTAINER
-import nl.adaptivity.xmlutil.serialization.XmlSerialName
+import moe.kanon.epubby.Book
+import moe.kanon.epubby.internal.documentFrom
+import moe.kanon.epubby.internal.writeTo
+import moe.kanon.epubby.metainf.MetaInfEncryption
+import org.jdom2.Document
+import java.nio.file.FileSystem
+import java.nio.file.Path
 
-/**
- * Represents the [encryption.xml](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-ocf.html#sec-container-metainf-encryption.xml)
- * meta-inf file.
- */
-@Serializable
-@XmlSerialName("encryption", META_INF_CONTAINER, "")
-internal class MetaInfEncryptionModel {
+internal data class MetaInfEncryptionModel internal constructor(internal val document: Document) {
+    internal fun writeToFile(fileSystem: FileSystem) {
+        document.writeTo(fileSystem.getPath("/META-INF/encryption.xml"))
+    }
+
+    internal fun toMetaInfEncryption(book: Book): MetaInfEncryption = MetaInfEncryption(book, document)
+
+    internal companion object {
+        internal fun fromFile(file: Path): MetaInfEncryptionModel = MetaInfEncryptionModel(documentFrom(file))
+
+        internal fun fromMetaInfEncryption(origin: MetaInfEncryption): MetaInfEncryptionModel =
+            MetaInfEncryptionModel(origin.document)
+    }
 }

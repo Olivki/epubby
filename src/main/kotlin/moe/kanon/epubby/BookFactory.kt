@@ -16,3 +16,15 @@
 
 package moe.kanon.epubby
 
+import java.io.IOException
+import java.nio.file.FileSystems
+import java.nio.file.Path
+
+fun readBook(file: Path): Book {
+    val fileSystem = try {
+        FileSystems.newFileSystem(file, null)
+    } catch (e: IOException) {
+        throw IOException("Could not create a zip file-system for '$file'.", e)
+    }
+    return TODO() //Book(fileSystem)
+}

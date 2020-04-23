@@ -16,14 +16,66 @@
 
 package moe.kanon.epubby.internal.models.packages
 
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
-import nl.adaptivity.xmlutil.serialization.XmlSerialName
-import moe.kanon.epubby.internal.ElementNamespaces.OPF as OPF_NAMESPACES
+import com.github.michaelbull.logging.InlineLogger
+import moe.kanon.epubby.Book
+import moe.kanon.epubby.ParseStrictness
+import moe.kanon.epubby.internal.elementOf
+import moe.kanon.epubby.internal.getAttributeOrThrow
+import moe.kanon.epubby.internal.getAttributeValueOrThrow
+import moe.kanon.epubby.internal.models.SerialName
+import moe.kanon.epubby.mapToValues
+import moe.kanon.epubby.packages.PackageBindings
+import moe.kanon.epubby.tryMap
+import org.apache.logging.log4j.kotlin.loggerOf
+import org.jdom2.Element
+import moe.kanon.epubby.internal.Namespaces.OPF as NAMESPACE
 
-@Serializable
-@XmlSerialName("bindings", OPF_NAMESPACES, "")
-data class PackageBindingsModel(@XmlSerialName("mediaType", OPF_NAMESPACES, "") val mediaTypes: List<MediaType>) {
-    @Serializable
-    data class MediaType(val handler: String, @SerialName("media-type") val mediaType: String)
+@SerialName("bindings")
+internal data class PackageBindingsModel internal constructor(val mediaTypes: List<MediaType>) {
+    internal fun toElement(): Element = elementOf("bindings", NAMESPACE) {
+        mediaTypes.forEach { mediaType -> it.addContent(mediaType.toElement()) }
+    }
+
+    internal fun toPackageBindings(book: Book): PackageBindings {
+        TODO("'toPackageBindings' operation is not implemented yet.")
+    }
+
+    @SerialName("mediaType")
+    data class MediaType(@SerialName("media-type") val mediaType: String, val handler: String) {
+        internal fun toElement(): Element = elementOf("mediaType", NAMESPACE) {
+            it.setAttribute("media-type", mediaType)
+            it.setAttribute("handler", handler)
+        }
+
+        internal fun toMediaType(book: Book): PackageBindings.MediaType {
+            TODO("'toMediaType' operation is not implemented yet.")
+        }
+
+        internal companion object {
+            internal fun fromElement(element: Element): MediaType {
+                val mediaType = element.getAttributeValueOrThrow("media-type")
+                val handler = element.getAttributeValueOrThrow("handler")
+                return MediaType(mediaType, handler)
+            }
+
+            internal fun fromMediaType(origin: PackageBindings.MediaType): MediaType {
+                TODO("'fromMediaType' operation is not implemented yet.")
+            }
+        }
+    }
+
+    internal companion object {
+        private val logger = InlineLogger(PackageBindingsModel::class)
+
+        internal fun fromElement(element: Element, strictness: ParseStrictness): PackageBindingsModel {
+            val mediaTypes = element.getChildren("mediaType", element.namespace)
+                .tryMap { MediaType.fromElement(it) }
+                .mapToValues(logger, strictness)
+            return PackageBindingsModel(mediaTypes)
+        }
+
+        internal fun fromPackageBindings(origin: PackageBindings): PackageBindings {
+            TODO("'fromPackageBindings' operation is not implemented yet.")
+        }
+    }
 }

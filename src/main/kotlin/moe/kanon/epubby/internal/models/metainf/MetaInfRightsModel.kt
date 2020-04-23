@@ -16,14 +16,24 @@
 
 package moe.kanon.epubby.internal.models.metainf
 
-import kotlinx.serialization.Serializable
-import nl.adaptivity.xmlutil.serialization.XmlSerialName
+import moe.kanon.epubby.Book
+import moe.kanon.epubby.internal.documentFrom
+import moe.kanon.epubby.internal.writeTo
+import moe.kanon.epubby.metainf.MetaInfRights
+import org.jdom2.Document
+import java.nio.file.FileSystem
+import java.nio.file.Path
 
-// as of writing this, the latest of the epub specification (that being epub 3.2) does not specify a specific format
-// for how the 'rights.xml' document should look, but they state a newer version might. This means there is nothing for
-// us to model, and therefore this is just an object.
-// This does also mean that as long as as the epub file *contains* a /META-INF/rights.xml file signifies that the book
-// is governed by some sort of digital rights (DRM).
-@Serializable
-@XmlSerialName("rights", "", "")
-object MetaInfRightsModel
+internal data class MetaInfRightsModel internal constructor(internal val document: Document) {
+    internal fun writeToFile(fileSystem: FileSystem) {
+        document.writeTo(fileSystem.getPath("/META-INF/rights.xml"))
+    }
+
+    internal fun toMetaInfRights(book: Book): MetaInfRights = MetaInfRights(book, document)
+
+    internal companion object {
+        internal fun fromFile(file: Path): MetaInfRightsModel = MetaInfRightsModel(documentFrom(file))
+
+        internal fun fromMetaInfRights(origin: MetaInfRights): MetaInfRightsModel = MetaInfRightsModel(origin.document)
+    }
+}

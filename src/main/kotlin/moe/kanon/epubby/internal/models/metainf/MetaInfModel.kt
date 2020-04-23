@@ -16,43 +16,76 @@
 
 package moe.kanon.epubby.internal.models.metainf
 
-import moe.kanon.epubby.internal.parse
-import moe.kanon.epubby.internal.parseIfExists
+import moe.kanon.epubby.Book
+import moe.kanon.epubby.ParseStrictness
+import moe.kanon.epubby.metainf.MetaInf
+import moe.kanon.epubby.prefixes.Prefixes
+import moe.kanon.kommons.io.paths.exists
 import moe.kanon.kommons.io.requireFileExistence
-import nl.adaptivity.xmlutil.serialization.XML
-import org.apache.logging.log4j.kotlin.logger
+import java.nio.file.FileSystem
 import java.nio.file.Path
 
-internal data class MetaInfModel private constructor(
-    val container: MetaInfContainerModel,
-    val encryption: MetaInfEncryptionModel?,
-    val manifest: MetaInfManifestModel?,
-    val metadata: MetaInfMetadataModel?,
-    val rights: MetaInfRightsModel?,
-    val signatures: MetaInfSignaturesModel?
+internal data class MetaInfModel internal constructor(
+    internal val container: MetaInfContainerModel,
+    internal val encryption: MetaInfEncryptionModel?,
+    internal val manifest: MetaInfManifestModel?,
+    internal val metadata: MetaInfMetadataModel?,
+    internal val rights: MetaInfRightsModel?,
+    internal val signatures: MetaInfSignaturesModel?
 ) {
-    companion object {
-        private val logger = logger()
+    internal fun toMetaInf(book: Book, prefixes: Prefixes): MetaInf {
+        val container = container.toMetaInfContainer(book, prefixes)
+        val encryption = encryption?.toMetaInfEncryption(book)
+        val manifest = manifest?.toMetaInfManifest(book)
+        val metadata = metadata?.toMetaInfMetadata(book)
+        val rights = rights?.toMetaInfRights(book)
+        val signatures = signatures?.toMetaInfSignatures(book)
+        return MetaInf(book, container, encryption, manifest, metadata, rights, signatures)
+    }
 
-        internal fun fromDirectory(directory: Path): MetaInfModel {
+    internal fun writeToDirectory(fileSystem: FileSystem) {
+        container.writeToFile(fileSystem)
+        encryption?.writeToFile(fileSystem)
+        manifest?.writeToFile(fileSystem)
+        metadata?.writeToFile(fileSystem)
+        rights?.writeToFile(fileSystem)
+        signatures?.writeToFile(fileSystem)
+    }
+
+    internal companion object {
+        internal fun fromDirectory(directory: Path, strictness: ParseStrictness): MetaInfModel {
             val containerFile = directory.resolve("container.xml")
-            // TODO: better error message and maybe custom exception?
+
+            // TODO: better error message/custom exception?
             requireFileExistence(containerFile)
 
-            val xml = XML {
-                omitXmlDecl = false
-                indent = 4
-                unknownChildHandler = { input, _, name, _ ->
-                    logger.error { "Encountered unknown child '$name', info [\n${input.locationInfo}]." }
-                }
-            }
+            val container = MetaInfContainerModel.fromFile(containerFile, strictness)
+            val encryption = directory.resolve("encryption.xml")
+                .takeIf { it.exists }
+                ?.let { MetaInfEncryptionModel.fromFile(it) }
+            val manifest = directory.resolve("manifest.xml")
+                .takeIf { it.exists }
+                ?.let { MetaInfManifestModel.fromFile(it) }
+            val metadata = directory.resolve("metadata.xml")
+                .takeIf { it.exists }
+                ?.let { MetaInfMetadataModel.fromFile(it) }
+            val rights = directory.resolve("rights.xml")
+                .takeIf { it.exists }
+                ?.let { MetaInfRightsModel.fromFile(it) }
+            val signatures = directory.resolve("signatures.xml")
+                .takeIf { it.exists }
+                ?.let { MetaInfSignaturesModel.fromFile(it) }
 
-            val container: MetaInfContainerModel = xml.parse(containerFile)
-            val encryption: MetaInfEncryptionModel? = null //xml.parseIfExists(directory.resolve("encryption.xml"))
-            val manifest: MetaInfManifestModel? = xml.parseIfExists(directory.resolve("manifest.xml"))
-            val metadata: MetaInfMetadataModel? = xml.parseIfExists(directory.resolve("metadata.xml"))
-            val rights: MetaInfRightsModel? = xml.parseIfExists(directory.resolve("encryption.xml"))
-            val signatures: MetaInfSignaturesModel? = null //xml.parseIfExists(directory.resolve("signatures.xml"))
+            return MetaInfModel(container, encryption, manifest, metadata, rights, signatures)
+        }
+
+        internal fun fromMetaInf(origin: MetaInf): MetaInfModel {
+            val container = MetaInfContainerModel.fromMetaInfContainer(origin.container)
+            val encryption = origin.encryption?.let { MetaInfEncryptionModel.fromMetaInfEncryption(it) }
+            val manifest = origin.manifest?.let { MetaInfManifestModel.fromMetaInfManifest(it) }
+            val metadata = origin.metadata?.let { MetaInfMetadataModel.fromMetaInfMetadata(it) }
+            val rights = origin.rights?.let { MetaInfRightsModel.fromMetaInfRights(it) }
+            val signatures = origin.signatures?.let { MetaInfSignaturesModel.fromMetaInfSignatures(it) }
             return MetaInfModel(container, encryption, manifest, metadata, rights, signatures)
         }
     }

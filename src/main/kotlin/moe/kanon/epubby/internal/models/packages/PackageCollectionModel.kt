@@ -16,10 +16,33 @@
 
 package moe.kanon.epubby.internal.models.packages
 
-import kotlinx.serialization.Serializable
-import moe.kanon.epubby.internal.ElementNamespaces
-import nl.adaptivity.xmlutil.serialization.XmlSerialName
+import com.github.michaelbull.logging.InlineLogger
+import moe.kanon.epubby.Book
+import moe.kanon.epubby.ParseStrictness
+import moe.kanon.epubby.internal.elementOf
+import moe.kanon.epubby.internal.models.SerialName
+import moe.kanon.epubby.packages.PackageCollection
+import moe.kanon.epubby.prefixes.Prefixes
+import org.apache.logging.log4j.kotlin.loggerOf
+import org.jdom2.Element
+import moe.kanon.epubby.internal.Namespaces.OPF as NAMESPACE
 
-@Serializable
-@XmlSerialName("collection", ElementNamespaces.OPF, "")
-internal data class PackageCollectionModel(val d: Unit)
+@SerialName("collection")
+internal data class PackageCollectionModel internal constructor(val d: Unit) {
+    internal fun toElement(): Element = elementOf("collection", NAMESPACE) {
+        TODO("'toElement' operation is not implemented.")
+    }
+
+    internal fun toPackageCollection(book: Book, prefixes: Prefixes): PackageCollection {
+        TODO("'toPackageCollection' operation is not implemented yet.")
+    }
+
+    // TODO
+    internal companion object {
+        private val logger = InlineLogger(PackageCollectionModel::class)
+
+        internal fun fromElement(element: Element, strictness: ParseStrictness): PackageCollectionModel {
+            TODO("'fromElement' operation is not implemented yet")
+        }
+    }
+}

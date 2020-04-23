@@ -1,19 +1,3 @@
-/*
- * Copyright 2019-2020 Oliver Berg
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 import name.remal.gradle_plugins.dsl.extensions.convention
 import name.remal.gradle_plugins.dsl.extensions.get
 import name.remal.gradle_plugins.plugins.publish.bintray.RepositoryHandlerBintrayExtension
@@ -30,9 +14,8 @@ buildscript {
 }
 
 plugins {
-    kotlin("jvm").version("1.3.71")
-    kotlin("kapt").version("1.3.71")
-    kotlin("plugin.serialization").version("1.3.71")
+    kotlin("jvm").version("1.3.72")
+    kotlin("kapt").version("1.3.72")
 
     id("com.github.ben-manes.versions").version("0.21.0")
     
@@ -58,18 +41,13 @@ dependencies {
     implementation(group = "org.jetbrains.kotlinx", name = "kotlinx-html-jvm", version = "0.6.12")
     api(group = "org.jetbrains.kotlinx", name = "kotlinx-collections-immutable-jvm", version = "0.3")
 
-    // serialization
-    implementation(group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-runtime", version = "0.20.0")
-    implementation(group = "net.devrieze", name = "xmlutil-serialization-jvm", version = "0.20.0.0")
-    runtimeOnly(group = "com.fasterxml.woodstox", name = "woodstox-core", version = "5.0.3")
-    // implementation("net.devrieze:xmlutil-serialization-jvm:0.13.0.1")
-
     // Kanon
-    implementation(group = "moe.kanon.kommons", name = "kommons.func", version = "1.6.1")
+    implementation(group = "moe.kanon.kommons", name = "core", version = "1.3.2")
+    implementation(group = "moe.kanon.kommons", name = "kommons.func", version = "2.0.0")
     implementation(group = "moe.kanon.kommons", name = "kommons.reflection", version = "0.5.0")
     implementation(group = "moe.kanon.kommons", name = "kommons.io", version = "1.4.2")
-    implementation(group = "moe.kanon.kommons", name = "kommons.lang", version = "0.4.1")
-    implementation(group = "moe.kanon.kommons", name = "kommons.collections", version = "0.10.3")
+    implementation(group = "moe.kanon.kommons", name = "kommons.lang", version = "0.6.0")
+    implementation(group = "moe.kanon.kommons", name = "kommons.collections", version = "0.11.1")
 
     // kassava
     implementation(group = "au.com.console", name = "kassava", version = "2.1.0-rc.1")
@@ -79,8 +57,12 @@ dependencies {
 
     // Apache
     implementation(group = "commons-validator", name = "commons-validator", version = "1.6")
+    // TODO: remove this V
     implementation(group = "org.apache.logging.log4j", name = "log4j-api-kotlin", version = "1.0.0")
-    api(group = "org.apache.commons", name = "commons-collections4", version = "4.4")
+    implementation(group = "org.apache.commons", name = "commons-collections4", version = "4.4")
+
+    // logging
+    implementation(group = "com.michael-bull.kotlin-inline-logger", name = "kotlin-inline-logger", version = "1.0.2")
 
     // css handler
     api(group = "com.helger", name = "ph-css", version = "6.2.0")
