@@ -26,7 +26,7 @@ Gradle
   }
   
   dependencies {
-      implementation "moe.kanon.epubby:epubby:LATEST_VERSION"
+      implementation "epubby.dev:epubby:LATEST_VERSION"
   }
   ```
 
@@ -39,7 +39,7 @@ Gradle
   }
   
   dependencies {
-      implementation(group = "moe.kanon.epubby", name = "epubby", version = "LATEST_VERSION")
+      implementation(group = "epubby.dev", name = "epubby", version = "LATEST_VERSION")
   }
   ```
 
@@ -47,7 +47,7 @@ Maven
 
 ```xml
 <dependency>
-    <groupId>moe.kanon.epubby</groupId>
+    <groupId>epubby.dev</groupId>
     <artifactId>epubby</artifactId>
     <version>LATEST_VERSION</version>
     <type>pom</type>

@@ -24,7 +24,7 @@ plugins {
 
 apply(plugin = "name.remal.maven-publish-bintray")
 
-group = "moe.kanon.epubby"
+group = "epubby.dev"
 description = "Framework for working with the EPUB file format for Kotlin and Java."
 version = "0.1.0"
 val gitUrl = "https://github.com/Olivki/epubby"
@@ -42,12 +42,11 @@ dependencies {
     api(group = "org.jetbrains.kotlinx", name = "kotlinx-collections-immutable-jvm", version = "0.3")
 
     // Kanon
-    implementation(group = "moe.kanon.kommons", name = "core", version = "1.3.2")
     implementation(group = "moe.kanon.kommons", name = "kommons.func", version = "2.0.0")
-    implementation(group = "moe.kanon.kommons", name = "kommons.reflection", version = "0.5.0")
+    implementation(group = "moe.kanon.kommons", name = "kommons.reflection", version = "0.6.0")
     implementation(group = "moe.kanon.kommons", name = "kommons.io", version = "1.4.2")
     implementation(group = "moe.kanon.kommons", name = "kommons.lang", version = "0.6.0")
-    implementation(group = "moe.kanon.kommons", name = "kommons.collections", version = "0.11.1")
+    implementation(group = "moe.kanon.kommons", name = "kommons.collections", version = "0.14.0")
 
     // kassava
     implementation(group = "au.com.console", name = "kassava", version = "2.1.0-rc.1")
@@ -76,8 +75,8 @@ dependencies {
 
     // Google
     api(group = "com.google.guava", name = "guava", version = "28.1-jre")
-    compileOnly(group = "com.google.auto.service", name = "auto-service", version = "1.0-rc4")
-    kapt(group = "com.google.auto.service", name = "auto-service", version = "1.0-rc4")
+    //compileOnly(group = "com.google.auto.service", name = "auto-service", version = "1.0-rc4")
+    //kapt(group = "com.google.auto.service", name = "auto-service", version = "1.0-rc4")
 
     // Test Dependencies
     testImplementation(group = "io.kotlintest", name = "kotlintest-runner-junit5", version = "3.1.11")
