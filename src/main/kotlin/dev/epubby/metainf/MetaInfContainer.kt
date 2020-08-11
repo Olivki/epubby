@@ -19,16 +19,16 @@ package dev.epubby.metainf
 import com.google.common.net.MediaType
 import dev.epubby.Book
 import dev.epubby.BookVersion
-import dev.epubby.internal.NewFeature
-import dev.epubby.props.Relationship
+import dev.epubby.internal.IntroducedIn
+import dev.epubby.properties.Relationship
 import dev.epubby.utils.NonEmptyList
 import java.nio.file.Path
 
-class MetaInfContainer(
+class MetaInfContainer @JvmOverloads constructor(
     val book: Book,
-    val version: String,
+    val version: ContainerVersion,
     val rootFiles: NonEmptyList<RootFile>,
-    val links: MutableList<Link>
+    val links: MutableList<Link> = mutableListOf()
 ) {
     val packageDocument: RootFile
         get() = rootFiles[0]
@@ -55,33 +55,30 @@ class MetaInfContainer(
         override fun equals(other: Any?): Boolean = when {
             this === other -> true
             other !is RootFile -> false
-            book != other.book -> false
             fullPath != other.fullPath -> false
             mediaType != other.mediaType -> false
             else -> true
         }
 
         override fun hashCode(): Int {
-            var result = book.hashCode()
-            result = 31 * result + fullPath.hashCode()
+            var result = fullPath.hashCode()
             result = 31 * result + mediaType.hashCode()
             return result
         }
 
-        override fun toString(): String = "RootFile(book=$book, fullPath='$fullPath', mediaType='$mediaType')"
+        override fun toString(): String = "RootFile(fullPath='$fullPath', mediaType='$mediaType')"
     }
 
-    class Link(
+    class Link @JvmOverloads constructor(
         val book: Book,
         val href: String,
-        @NewFeature(since = BookVersion.EPUB_3_0)
+        @IntroducedIn(version = BookVersion.EPUB_3_0)
         val relation: Relationship? = null,
         val mediaType: MediaType? = null
     ) {
         override fun equals(other: Any?): Boolean = when {
             this === other -> true
             other !is Link -> false
-            book != other.book -> false
             href != other.href -> false
             relation != other.relation -> false
             mediaType != other.mediaType -> false
@@ -89,8 +86,7 @@ class MetaInfContainer(
         }
 
         override fun hashCode(): Int {
-            var result = book.hashCode()
-            result = 31 * result + href.hashCode()
+            var result = href.hashCode()
             result = 31 * result + (relation?.hashCode() ?: 0)
             result = 31 * result + (mediaType?.hashCode() ?: 0)
             return result
@@ -98,7 +94,6 @@ class MetaInfContainer(
 
         override fun toString(): String = buildString {
             append("Link(")
-            append("book=$book")
             append("href='$href'")
             if (relation != null) append("relation='$relation'")
             if (mediaType != null) append("mediaType='$mediaType'")

@@ -23,37 +23,46 @@ import dev.epubby.ParseStrictness
 import dev.epubby.internal.`Resource | RemoteItem`
 import dev.epubby.internal.elementOf
 import dev.epubby.internal.getAttributeValueOrThrow
-import dev.epubby.internal.models.SerialName
+import dev.epubby.internal.models.SerializedName
 import dev.epubby.mapToValues
 import dev.epubby.packages.PackageManifest
 import dev.epubby.prefixes.Prefixes
 import dev.epubby.tryMap
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.toPersistentList
 import org.jdom2.Element
 import dev.epubby.internal.Namespaces.OPF as NAMESPACE
 
-@SerialName("manifest")
-internal data class PackageManifestModel internal constructor(
-    @SerialName("id") internal val identifier: String?,
-    internal val items: List<Item>
+@SerializedName("manifest")
+data class PackageManifestModel internal constructor(
+    @SerializedName("id")
+    val identifier: String?,
+    val items: ImmutableList<Item>
 ) {
+    @JvmSynthetic
     internal fun toElement(): Element = elementOf("manifest", NAMESPACE) {
         if (identifier != null) it.setAttribute("id", identifier)
         items.forEach { item -> it.addContent(item.toElement()) }
     }
 
+    @JvmSynthetic
     internal fun toPackageManifest(book: Book, prefixes: Prefixes): PackageManifest {
         TODO("'toPackageManifest' operation is not implemented yet.")
     }
 
-    @SerialName("item")
-    data class Item(
-        @SerialName("id") internal val identifier: String,
-        internal val href: String,
-        @SerialName("media-type") internal val mediaType: String?,
-        internal val fallback: String?,
-        @SerialName("media-overlay") internal val mediaOverlay: String?,
-        internal val properties: String?
+    @SerializedName("item")
+    data class Item internal constructor(
+        @SerializedName("id")
+        val identifier: String,
+        val href: String,
+        @SerializedName("media-type")
+        val mediaType: String?,
+        val fallback: String?,
+        @SerializedName("media-overlay")
+        val mediaOverlay: String?,
+        val properties: String?
     ) {
+        @JvmSynthetic
         internal fun toElement(): Element = elementOf("item", NAMESPACE) {
             it.setAttribute("id", identifier)
             it.setAttribute("href", href)
@@ -63,11 +72,13 @@ internal data class PackageManifestModel internal constructor(
             if (properties != null) it.setAttribute("properties", properties)
         }
 
+        @JvmSynthetic
         internal fun toItem(book: Book): `Resource | RemoteItem` {
             TODO("'toItem' operation is not implemented yet.")
         }
 
         internal companion object {
+            @JvmSynthetic
             internal fun fromElement(element: Element): Item {
                 val identifier = element.getAttributeValueOrThrow("id")
                 val href = element.getAttributeValueOrThrow("href")
@@ -79,6 +90,7 @@ internal data class PackageManifestModel internal constructor(
             }
 
             // TODO: only accept 'properties' if book version is newer than 2.0 (aka 3.x and up)
+            @JvmSynthetic
             internal fun fromItem(origin: `Resource | RemoteItem`): Item {
                 TODO("'fromItem' operation is not implemented yet.")
             }
@@ -86,17 +98,20 @@ internal data class PackageManifestModel internal constructor(
     }
 
     internal companion object {
-        private val logger = InlineLogger(PackageManifestModel::class)
+        private val LOGGER: InlineLogger = InlineLogger(PackageManifestModel::class)
 
+        @JvmSynthetic
         internal fun fromElement(element: Element, strictness: ParseStrictness): PackageManifestModel {
             val identifier = element.getAttributeValue("id")
             val items = element.getChildren("item", element.namespace)
                 .tryMap { Item.fromElement(it) }
-                .mapToValues(logger, strictness)
+                .mapToValues(LOGGER, strictness)
                 .ifEmpty { throw MalformedBookException.forMissing("manifest", "item") }
+                .toPersistentList()
             return PackageManifestModel(identifier, items)
         }
 
+        @JvmSynthetic
         internal fun fromPackageManifest(origin: PackageManifest): PackageManifestModel {
             TODO("'fromPackageManifest' operation is not implemented yet.")
         }

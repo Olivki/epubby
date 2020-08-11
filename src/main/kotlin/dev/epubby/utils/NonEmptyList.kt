@@ -22,11 +22,12 @@ package dev.epubby.utils
  * Note that attempted to invoke [clear], [removeAt] *(with `index` set to `0`)* or any other other removal operations
  * that would remove the *first* element in any manner will result in a [UnsupportedOperationException] being thrown.
  */
-// TODO: Rename to 'NonEmptyMutableList' to make it clear that it's mutable? It feels a bit verbose seeing as from the
-//       Java side 'MutableList' is just 'List' and because we use Java collections in Kotlin we don't have stuff like
-//       'MutableArrayList', but rather just 'ArrayList', so might be for the better to keep this as 'NonEmptyList'
-//       without the 'Mutable' part
-class NonEmptyList<E> private constructor(head: E, val tail: MutableList<E>) : AbstractMutableList<E>() {
+class NonEmptyList<E> private constructor(
+    head: E,
+    @get:JvmName("tail")
+    val tail: MutableList<E>
+) : AbstractMutableList<E>() {
+    @get:JvmName("head")
     var head: E = head
         private set
 
@@ -70,6 +71,11 @@ class NonEmptyList<E> private constructor(head: E, val tail: MutableList<E>) : A
         throw UnsupportedOperationException("Clearing a NonEmptyList is not supported")
     }
 
+    /**
+     * Returns a new [NonEmptyList] that contains the exact same elements as `this`.
+     */
+    fun copy(): NonEmptyList<E> = copyOf(this)
+
     companion object {
         /**
          * Returns a new [NonEmptyList] that contains the given [head] and [tail].
@@ -90,29 +96,38 @@ class NonEmptyList<E> private constructor(head: E, val tail: MutableList<E>) : A
          */
         @JvmStatic
         fun <T> copyOf(elements: Iterable<T>): NonEmptyList<T> {
-            require(elements.any()) { "expected 'elements' to not be empty" }
+            require(elements.any()) { "'elements' must not be empty" }
             return NonEmptyList(elements.elementAt(0), elements.drop(1).toMutableList())
         }
     }
 }
 
 /**
- * Returns a new [NonEmptyList] containing the elements of `this`.
+ * A [MutableList] implementation that guarantees that there'll always be *at least* one element available.
  *
- * @throws [IllegalArgumentException] if `this` is empty
+ * Note that attempted to invoke [clear][NonEmptyList.clear], [removeAt][NonEmptyList.removeAt] *(with `index` set to
+ * `0`)* or any other other removal operations that would remove the *first* element in any manner will result in a
+ * [UnsupportedOperationException] being thrown.
  */
-fun <T> Iterable<T>.toNonEmptyList(): NonEmptyList<T> = NonEmptyList.copyOf(this)
+typealias NonEmptyMutableList<E> = NonEmptyList<E>
 
 /**
  * Returns a new [NonEmptyList] containing the elements of `this`.
  *
  * @throws [IllegalArgumentException] if `this` is empty
  */
-fun <T> Sequence<T>.toNonEmptyList(): NonEmptyList<T> = NonEmptyList.copyOf(this.asIterable())
+fun <T> Iterable<T>.toNonEmptyList(): NonEmptyMutableList<T> = NonEmptyList.copyOf(this)
 
 /**
  * Returns a new [NonEmptyList] containing the elements of `this`.
  *
  * @throws [IllegalArgumentException] if `this` is empty
  */
-fun <T> Array<T>.toNonEmptyList(): NonEmptyList<T> = NonEmptyList.copyOf(this.asIterable())
+fun <T> Sequence<T>.toNonEmptyList(): NonEmptyMutableList<T> = NonEmptyList.copyOf(this.asIterable())
+
+/**
+ * Returns a new [NonEmptyList] containing the elements of `this`.
+ *
+ * @throws [IllegalArgumentException] if `this` is empty
+ */
+fun <T> Array<T>.toNonEmptyList(): NonEmptyMutableList<T> = NonEmptyList.copyOf(this.asIterable())

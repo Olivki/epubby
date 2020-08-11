@@ -19,7 +19,7 @@ package dev.epubby.prefixes
 import java.net.URI
 
 internal data class VocabularyPrefix internal constructor(override val uri: URI) : Prefix {
-    override val name: String = ""
+    override val title: String = ""
 
     override val isReserved: Boolean
         get() = false

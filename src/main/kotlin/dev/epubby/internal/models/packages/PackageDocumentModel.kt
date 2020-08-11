@@ -20,16 +20,11 @@ import com.github.michaelbull.logging.InlineLogger
 import dev.epubby.Book
 import dev.epubby.BookVersion
 import dev.epubby.ParseStrictness
-import dev.epubby.internal.Namespaces
-import dev.epubby.internal.documentFrom
-import dev.epubby.internal.documentOf
-import dev.epubby.internal.getAttributeValueOrThrow
-import dev.epubby.internal.getChildOrThrow
-import dev.epubby.internal.models.SerialName
-import dev.epubby.internal.use
-import dev.epubby.internal.writeTo
+import dev.epubby.internal.*
+import dev.epubby.internal.models.SerializedName
+import dev.epubby.internal.parser.PrefixesParser
 import dev.epubby.packages.PackageDocument
-import dev.epubby.prefixes.Prefixes
+import dev.epubby.prefixes.emptyPrefixes
 import dev.epubby.utils.Direction
 import moe.kanon.kommons.io.paths.name
 import org.jdom2.Document
@@ -38,22 +33,27 @@ import java.nio.file.FileSystem
 import java.nio.file.Path
 import java.util.Locale
 
-@SerialName("package")
-internal data class PackageDocumentModel internal constructor(
+@SerializedName("package")
+data class PackageDocumentModel internal constructor(
     private val filePath: String,
-    internal val version: String,
-    @SerialName("unique-identifier") internal val uniqueIdentifier: String,
-    @SerialName("dir") internal val direction: String?,
-    @SerialName("id") internal val identifier: String?,
-    @SerialName("prefix") internal val prefixes: String?,
-    @SerialName("xml:lang") internal val language: String?,
-    internal val metadata: PackageMetadataModel,
-    internal val manifest: PackageManifestModel,
-    internal val spine: PackageSpineModel,
-    internal val guide: PackageGuideModel?,
-    internal val bindings: PackageBindingsModel?,
-    internal val collection: PackageCollectionModel?,
-    internal val tours: PackageToursModel?
+    val version: String,
+    @SerializedName("unique-identifier")
+    val uniqueIdentifier: String,
+    @SerializedName("dir")
+    val direction: String?,
+    @SerializedName("id")
+    val identifier: String?,
+    @SerializedName("prefix")
+    val prefixes: String?,
+    @SerializedName("xml:lang")
+    val language: String?,
+    val metadata: PackageMetadataModel,
+    val manifest: PackageManifestModel,
+    val spine: PackageSpineModel,
+    val guide: PackageGuideModel?,
+    val bindings: PackageBindingsModel?,
+    val collection: PackageCollectionModel?,
+    val tours: PackageToursModel?
 ) {
     private fun toDocument(): Document = documentOf("package", Namespaces.OPF) { _, root ->
         root.setAttribute("version", version)
@@ -72,10 +72,12 @@ internal data class PackageDocumentModel internal constructor(
         if (tours != null) root.addContent(tours.toElement())
     }
 
+    @JvmSynthetic
     internal fun toPackageDocument(book: Book): PackageDocument {
+        // TODO: make use of 'version' ?
         val version = BookVersion.parse(version)
         val direction = direction?.let { Direction.fromTag(it) }
-        val prefixes = prefixes?.let { Prefixes.parse(it) } ?: Prefixes.empty()
+        val prefixes = prefixes?.let { PrefixesParser.parse(it) } ?: emptyPrefixes()
         val language = language?.let(Locale::forLanguageTag)
         val metadata = metadata.toPackageMetadata(book, prefixes)
         val manifest = manifest.toPackageManifest(book, prefixes)
@@ -86,15 +88,15 @@ internal data class PackageDocumentModel internal constructor(
         val tours = tours?.toPackageTours(book)
 
         return PackageDocument(
-            book,
             uniqueIdentifier,
+            book,
+            metadata,
+            manifest,
+            spine,
             direction,
             identifier,
             prefixes,
             language,
-            metadata,
-            manifest,
-            spine,
             guide,
             bindings,
             collection,
@@ -102,13 +104,15 @@ internal data class PackageDocumentModel internal constructor(
         )
     }
 
+    @JvmSynthetic
     internal fun writeToFile(fileSystem: FileSystem) {
         toDocument().writeTo(fileSystem.getPath(filePath))
     }
 
     internal companion object {
-        private val logger = InlineLogger(PackageDocumentModel::class)
+        private val LOGGER: InlineLogger = InlineLogger(PackageDocumentModel::class)
 
+        @JvmSynthetic
         internal fun fromFile(
             file: Path,
             strictness: ParseStrictness
@@ -136,7 +140,7 @@ internal data class PackageDocumentModel internal constructor(
             val tours = root.getChild("tours", root.namespace)
                 ?.let { PackageToursModel.fromElement(it, strictness) }
 
-            return PackageDocumentModel(
+            return@use PackageDocumentModel(
                 file.name,
                 version,
                 uniqueIdentifier,
@@ -154,6 +158,7 @@ internal data class PackageDocumentModel internal constructor(
             )
         }
 
+        @JvmSynthetic
         internal fun fromPackageDocument(origin: PackageDocument): PackageDocumentModel {
             val filePath = origin.book.metaInf.container
             TODO("'fromPackageDocument' operation is not implemented yet.")

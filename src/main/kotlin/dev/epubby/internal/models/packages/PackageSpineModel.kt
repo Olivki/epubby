@@ -17,43 +17,57 @@
 package dev.epubby.internal.models.packages
 
 import com.github.michaelbull.logging.InlineLogger
-import dev.epubby.Book
-import dev.epubby.MalformedBookException
-import dev.epubby.ParseStrictness
+import dev.epubby.*
 import dev.epubby.internal.elementOf
 import dev.epubby.internal.getAttributeValueOrThrow
-import dev.epubby.internal.models.SerialName
-import dev.epubby.mapToValues
+import dev.epubby.internal.models.SerializedName
 import dev.epubby.packages.PackageSpine
+import dev.epubby.page.Page
 import dev.epubby.prefixes.Prefixes
-import dev.epubby.tryMap
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.toPersistentList
 import moe.kanon.kommons.lang.ParseException
 import moe.kanon.kommons.lang.parse
 import org.jdom2.Element
 import dev.epubby.internal.Namespaces.OPF as NAMESPACE
 
-@SerialName("spine")
-internal data class PackageSpineModel internal constructor(
-    @SerialName("id") internal val identifier: String?,
-    @SerialName("page-progression-direction") internal val pageProgressionDirection: String?,
-    @SerialName("toc") internal val tableOfContentsIdentifier: String?,
-    internal val references: List<ItemReference>
+@SerializedName("spine")
+data class PackageSpineModel internal constructor(
+    @SerializedName("id")
+    val identifier: String?,
+    @SerializedName("page-progression-direction")
+    val pageProgressionDirection: String?,
+    @SerializedName("toc")
+    val tableOfContentsIdentifier: String?,
+    val references: ImmutableList<ItemReference>
 ) {
+    @JvmSynthetic
     internal fun toElement(): Element = elementOf("spine", NAMESPACE) {
-        TODO("'toElement' operation is not implemented.")
+        if (identifier != null) it.setAttribute("id", identifier)
+        if (pageProgressionDirection != null) it.setAttribute("page-progression-direction", pageProgressionDirection)
+        if (tableOfContentsIdentifier != null) it.setAttribute("toc", tableOfContentsIdentifier)
+
+        for (reference in references) {
+            it.addContent(reference.toElement())
+        }
     }
 
+    @JvmSynthetic
     internal fun toPackageSpine(book: Book, prefixes: Prefixes): PackageSpine {
         TODO("'toPackageSpine' operation is not implemented yet.")
     }
 
-    @SerialName("itemref")
-    data class ItemReference(
-        @SerialName("idref") val identifierReference: String,
-        @SerialName("id") val identifier: String?,
-        @SerialName("linear") val isLinear: Boolean, //  = true
+    @SerializedName("itemref")
+    data class ItemReference internal constructor(
+        @SerializedName("idref")
+        val identifierReference: String,
+        @SerializedName("id")
+        val identifier: String?,
+        @SerializedName("linear")
+        val isLinear: Boolean, //  = true
         val properties: String?
     ) {
+        @JvmSynthetic
         internal fun toElement(): Element = elementOf("itemref", NAMESPACE) {
             it.setAttribute("idref", identifierReference)
             if (identifier != null) it.setAttribute("id", identifier)
@@ -61,11 +75,13 @@ internal data class PackageSpineModel internal constructor(
             if (properties != null) it.setAttribute("properties", properties)
         }
 
-        internal fun toItemReference(book: Book): PackageSpine.ItemReference {
+        @JvmSynthetic
+        internal fun toPage(book: Book): Page {
             TODO("'toItemReference' operation is not implemented yet.")
         }
 
         internal companion object {
+            @JvmSynthetic
             internal fun fromElement(element: Element): ItemReference {
                 val identifierReference = element.getAttributeValueOrThrow("idref")
                 val identifier = element.getAttributeValue("id")
@@ -80,26 +96,30 @@ internal data class PackageSpineModel internal constructor(
                 throw MalformedBookException("Expected value of 'linear' is 'yes' or 'no', was '$value'.", e)
             }
 
-            internal fun fromItemReference(origin: PackageSpine.ItemReference): ItemReference {
+            @JvmSynthetic
+            internal fun fromPage(origin: Page): ItemReference {
                 TODO("'fromItemReference' operation is not implemented yet.")
             }
         }
     }
 
     internal companion object {
-        private val logger = InlineLogger(PackageSpineModel::class)
+        private val LOGGER: InlineLogger = InlineLogger(PackageSpineModel::class)
 
+        @JvmSynthetic
         internal fun fromElement(element: Element, strictness: ParseStrictness): PackageSpineModel {
             val identifier = element.getAttributeValue("id")
             val pageProgressionDirection = element.getAttributeValue("page-progression-direction")
             val tableOfContentsIdentifier = element.getAttributeValue("toc")
             val references = element.getChildren("itemref", element.namespace)
                 .tryMap { ItemReference.fromElement(it) }
-                .mapToValues(logger, strictness)
+                .mapToValues(LOGGER, strictness)
                 .ifEmpty { throw MalformedBookException.forMissing("spine", "itemref") }
+                .toPersistentList()
             return PackageSpineModel(identifier, pageProgressionDirection, tableOfContentsIdentifier, references)
         }
 
+        @JvmSynthetic
         internal fun fromPackageSpine(origin: PackageSpine): PackageSpineModel {
             TODO("'fromPackageSpine' operation is not implemented yet.")
         }

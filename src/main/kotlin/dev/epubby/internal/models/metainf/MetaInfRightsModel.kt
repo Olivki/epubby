@@ -24,16 +24,20 @@ import org.jdom2.Document
 import java.nio.file.FileSystem
 import java.nio.file.Path
 
-internal data class MetaInfRightsModel internal constructor(internal val document: Document) {
+data class MetaInfRightsModel internal constructor(internal val document: Document) {
+    @JvmSynthetic
     internal fun writeToFile(fileSystem: FileSystem) {
         document.writeTo(fileSystem.getPath("/META-INF/rights.xml"))
     }
 
+    @JvmSynthetic
     internal fun toMetaInfRights(book: Book): MetaInfRights = MetaInfRights(book, document)
 
     internal companion object {
+        @JvmSynthetic
         internal fun fromFile(file: Path): MetaInfRightsModel = MetaInfRightsModel(documentFrom(file))
 
+        @JvmSynthetic
         internal fun fromMetaInfRights(origin: MetaInfRights): MetaInfRightsModel = MetaInfRightsModel(origin.document)
     }
 }

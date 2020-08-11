@@ -24,16 +24,20 @@ import org.jdom2.Document
 import java.nio.file.FileSystem
 import java.nio.file.Path
 
-internal data class MetaInfManifestModel internal constructor(internal val document: Document) {
+data class MetaInfManifestModel internal constructor(internal val document: Document) {
+    @JvmSynthetic
     internal fun writeToFile(fileSystem: FileSystem) {
         document.writeTo(fileSystem.getPath("/META-INF/manifest.xml"))
     }
 
+    @JvmSynthetic
     internal fun toMetaInfManifest(book: Book): MetaInfManifest = MetaInfManifest(book, document)
 
     internal companion object {
+        @JvmSynthetic
         internal fun fromFile(file: Path): MetaInfManifestModel = MetaInfManifestModel(documentFrom(file))
 
+        @JvmSynthetic
         internal fun fromMetaInfManifest(origin: MetaInfManifest): MetaInfManifestModel =
             MetaInfManifestModel(origin.document)
     }

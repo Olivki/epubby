@@ -27,3 +27,18 @@ open class MalformedBookException(message: String?, cause: Throwable? = null) : 
 }
 
 class UnknownBookVersionException(version: String) : Exception("'$version' is not a known EPUB version")
+
+class InvalidBookVersionException(
+    val requiredMinimum: BookVersion,
+    val currentVersion: BookVersion,
+    val containerName: String,
+    val featureName: String
+) : MalformedBookException("$containerName feature $featureName requires at minimum version $requiredMinimum, but current version is $currentVersion.")
+
+@Suppress("NOTHING_TO_INLINE")
+internal inline fun invalidVersion(
+    currentVersion: BookVersion,
+    minVersion: BookVersion,
+    name: String,
+    feature: String
+): Nothing = throw InvalidBookVersionException(currentVersion, minVersion, name, feature)

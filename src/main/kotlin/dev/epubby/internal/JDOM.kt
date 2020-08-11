@@ -31,11 +31,9 @@ import java.nio.file.Path
 
 private val defaultFormat: Format = Format.getPrettyFormat().setIndent("    ")
 
-internal fun Document.stringify(format: Format = defaultFormat): String =
-    XMLOutputter(format).outputString(this)
+internal fun Document.stringify(format: Format = defaultFormat): String = XMLOutputter(format).outputString(this)
 
-internal fun Element.stringify(format: Format = defaultFormat): String =
-    XMLOutputter(format).outputString(this)
+internal fun Element.stringify(format: Format = defaultFormat): String = XMLOutputter(format).outputString(this)
 
 internal fun Element.getChildOrThrow(name: String, namespace: Namespace = Namespace.NO_NAMESPACE): Element =
     getChild(name, namespace) ?: throw MalformedBookException("Element '$name' is missing required child '$name'.")

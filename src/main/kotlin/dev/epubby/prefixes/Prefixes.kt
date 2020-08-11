@@ -17,23 +17,42 @@
 package dev.epubby.prefixes
 
 import dev.epubby.BookVersion
-import dev.epubby.internal.NewFeature
-import dev.epubby.internal.Patterns
+import dev.epubby.internal.IntroducedIn
+import java.util.Collections
 
-@NewFeature(since = BookVersion.EPUB_3_0)
+@IntroducedIn(version = BookVersion.EPUB_3_0)
 class Prefixes private constructor(private val delegate: MutableMap<String, Prefix>) :
     AbstractMutableMap<String, Prefix>() {
     override val entries: MutableSet<MutableMap.MutableEntry<String, Prefix>>
         get() = delegate.entries
 
-    override fun put(key: String, value: Prefix): Prefix? = delegate.put(key, value)
+    fun add(prefix: Prefix) {
+        put(prefix.title, prefix)
+    }
+
+    fun addAll(vararg prefixes: Prefix) {
+        for (prefix in prefixes) {
+            add(prefix)
+        }
+    }
+
+    @JvmSynthetic
+    operator fun plusAssign(prefix: Prefix) {
+        add(prefix)
+    }
+
+    override fun put(key: String, value: Prefix): Prefix? {
+        requireKnown(value)
+        return delegate.put(key, value)
+    }
 
     // unsure if this the correct form to output this to
-    fun toStringForm(): String = values.joinToString(separator = " ", transform = Prefix::toStringForm)
+    @JvmSynthetic
+    internal fun toStringForm(): String = values.joinToString(separator = " ", transform = Prefix::toStringForm)
 
     companion object {
         @get:JvmSynthetic
-        internal val EMPTY: Prefixes = Prefixes(HashMap(0))
+        internal val EMPTY: Prefixes = Prefixes(Collections.emptyMap())
 
         // TODO: documentation
 
@@ -41,41 +60,40 @@ class Prefixes private constructor(private val delegate: MutableMap<String, Pref
         fun empty(): Prefixes = Prefixes(hashMapOf())
 
         @JvmStatic
-        fun of(vararg prefixes: Prefix): Prefixes {
-            require(prefixes.isNotEmpty()) { "expected 'prefixes' to not be empty" }
-            require(prefixes.none { it.isDefaultVocabularyPrefix() }) { "prefixes are not allowed to map to default vocabularies" }
-            require(prefixes.none { it.name.isBlank() }) { "prefixes are not allowed to have a blank 'prefix'" }
-            return Prefixes(prefixes.associateByTo(hashMapOf(), Prefix::name))
-        }
+        fun of(vararg prefixes: Prefix): Prefixes = copyOf(prefixes.asIterable())
 
         @JvmStatic
         fun copyOf(prefixes: Iterable<Prefix>): Prefixes {
-            require(prefixes.any()) { "expected 'prefixes' to not be empty" }
-            require(prefixes.none { it.isDefaultVocabularyPrefix() }) { "prefixes are not allowed to map to default vocabularies" }
-            require(prefixes.none { it.name.isBlank() }) { "prefixes are not allowed to have a blank 'prefix'" }
-            return Prefixes(prefixes.associateByTo(hashMapOf(), Prefix::name))
+            validate(prefixes)
+            return Prefixes(prefixes.associateByTo(hashMapOf()) { it.title })
         }
 
         @JvmStatic
         fun copyOf(prefixes: Map<String, Prefix>): Prefixes {
-            require(prefixes.isNotEmpty()) { "expected 'prefixes' to not be empty" }
-            require(prefixes.values.none { it.isDefaultVocabularyPrefix() }) { "prefixes are not allowed to map to default vocabularies" }
-            require(prefixes.values.none { it.name.isBlank() }) { "prefixes are not allowed to have a blank 'prefix'" }
+            validate(prefixes.values)
             return Prefixes(prefixes.toMap(hashMapOf()))
         }
 
-        @JvmSynthetic
-        internal fun parse(input: String): Prefixes {
-            val prefixes = input
-                // this might be a bit excessive seeing as the EBNF grammar only defines space, character tabulation,
-                // carriage return and line feed as the valid whitespace characters
-                .replace(Patterns.WHITESPACE, " ")
-                .replace(Patterns.EXCESSIVE_WHITESPACE, " ")
-                .splitToSequence(" ")
-                .windowed(2, 2)
-                .map { Prefix.of(it[0].substringBeforeLast(':'), it[1]) }
-                .associateByTo(hashMapOf(), Prefix::name)
-            return Prefixes(prefixes)
+        private fun validate(prefixes: Iterable<Prefix>) {
+            for (prefix in prefixes) {
+                requireKnown(prefix)
+
+                if (prefix.isDefaultVocabularyPrefix()) {
+                    throw IllegalArgumentException("prefix must not map to default vocabularies (${prefix.toStringForm()})")
+                }
+
+                if (prefix.title.isBlank()) {
+                    throw IllegalArgumentException("prefix 'title' must not be blank (${prefix.toStringForm()})")
+                }
+            }
         }
     }
 }
+
+fun emptyPrefixes(): Prefixes = Prefixes.empty()
+
+fun prefixesOf(vararg prefixes: Prefix): Prefixes = Prefixes.copyOf(prefixes.asIterable())
+
+fun Iterable<Prefix>.toPrefixes(): Prefixes = Prefixes.copyOf(this)
+
+fun Map<String, Prefix>.toPrefixes(): Prefixes = Prefixes.copyOf(this)

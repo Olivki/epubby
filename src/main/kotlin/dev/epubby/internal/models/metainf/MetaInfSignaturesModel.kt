@@ -24,16 +24,20 @@ import org.jdom2.Document
 import java.nio.file.FileSystem
 import java.nio.file.Path
 
-internal data class MetaInfSignaturesModel internal constructor(internal val document: Document) {
+data class MetaInfSignaturesModel internal constructor(internal val document: Document) {
+    @JvmSynthetic
     internal fun writeToFile(fileSystem: FileSystem) {
         document.writeTo(fileSystem.getPath("/META-INF/signatures.xml"))
     }
 
+    @JvmSynthetic
     internal fun toMetaInfSignatures(book: Book): MetaInfSignatures = MetaInfSignatures(book, document)
 
     internal companion object {
+        @JvmSynthetic
         internal fun fromFile(file: Path): MetaInfSignaturesModel = MetaInfSignaturesModel(documentFrom(file))
 
+        @JvmSynthetic
         internal fun fromMetaInfSignatures(origin: MetaInfSignatures): MetaInfSignaturesModel =
             MetaInfSignaturesModel(origin.document)
     }

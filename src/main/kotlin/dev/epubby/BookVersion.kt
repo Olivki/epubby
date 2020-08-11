@@ -21,10 +21,12 @@ enum class BookVersion(val major: Int, val minor: Int) {
      * Represents the [EPUB 2.0](http://www.idpf.org/epub/dir/#epub201) format.
      */
     EPUB_2_0(2, 0),
+
     /**
      * Represents the [EPUB 3.0](http://www.idpf.org/epub/dir/#epub301) format.
      */
     EPUB_3_0(3, 0),
+
     /**
      * Represents the [EPUB 3.1](http://www.idpf.org/epub/dir/#epub31) format.
      *
@@ -33,6 +35,7 @@ enum class BookVersion(val major: Int, val minor: Int) {
      */
     // TODO: disallow usage of this version when creating a book from scratch
     EPUB_3_1(3, 1),
+
     /**
      * Represents the [EPUB 3.2](http://www.idpf.org/epub/dir/#epub32) format.
      */
@@ -53,18 +56,28 @@ enum class BookVersion(val major: Int, val minor: Int) {
     /**
      * Returns `true` if `this` version is newer than the [other] version, otherwise `false`.
      */
-    infix fun isNewerThan(other: BookVersion): Boolean = compareAgainst(other) > 0
+    infix fun isNewer(other: BookVersion): Boolean = compareVersions(other) > 0
+
+    /**
+     * Returns `true` if `this` version is newer, or equal, to  the [other] version, otherwise `false`.
+     */
+    infix fun isNewerOrEqual(other: BookVersion): Boolean = compareVersions(other) >= 0
 
     /**
      * Returns `true` if `this` version is older than the [other] version, otherwise `false`.
      */
-    infix fun isOlderThan(other: BookVersion): Boolean = compareAgainst(other) < 0
+    infix fun isOlder(other: BookVersion): Boolean = compareVersions(other) < 0
+
+    /**
+     * Returns `true` if `this` version is older, or equal, to the [other] version, otherwise `false`.
+     */
+    infix fun isOlderOrEqual(other: BookVersion): Boolean = compareVersions(other) <= 0
 
     /**
      * Acts the same as the [compareTo] function, except that it works on the [major] & [minor] versions of the
      * version instances.
      */
-    fun compareAgainst(other: BookVersion): Int = when {
+    private fun compareVersions(other: BookVersion): Int = when {
         major > other.major -> 1
         major < other.major -> -1
         minor > other.minor -> 1

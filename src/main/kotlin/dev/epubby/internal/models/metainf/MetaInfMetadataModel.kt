@@ -24,16 +24,20 @@ import org.jdom2.Document
 import java.nio.file.FileSystem
 import java.nio.file.Path
 
-internal data class MetaInfMetadataModel internal constructor(internal val document: Document) {
+data class MetaInfMetadataModel internal constructor(internal val document: Document) {
+    @JvmSynthetic
     internal fun writeToFile(fileSystem: FileSystem) {
         document.writeTo(fileSystem.getPath("/META-INF/metadata.xml"))
     }
 
+    @JvmSynthetic
     internal fun toMetaInfMetadata(book: Book): MetaInfMetadata = MetaInfMetadata(book, document)
 
     internal companion object {
+        @JvmSynthetic
         internal fun fromFile(file: Path): MetaInfMetadataModel = MetaInfMetadataModel(documentFrom(file))
 
+        @JvmSynthetic
         internal fun fromMetaInfMetadata(origin: MetaInfMetadata): MetaInfMetadataModel =
             MetaInfMetadataModel(origin.document)
     }

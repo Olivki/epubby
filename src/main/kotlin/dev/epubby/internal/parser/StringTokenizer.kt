@@ -139,6 +139,6 @@ internal class StringTokenizer internal constructor(
     private fun unexpectedChar(expected: CharArray): Nothing =
         throw UnexpectedCharacterException(currentLine, currentColumn, expected, peek())
 
-    internal fun exception(message: String): Nothing =
-        throw ParseException(currentLine, currentColumn, "[$currentLine, $currentColumn]: $message")
+    internal fun exception(message: String, cause: Throwable? = null): Nothing =
+        throw ParseException(currentLine, currentColumn, "[$currentLine, $currentColumn]: $message", cause)
 }

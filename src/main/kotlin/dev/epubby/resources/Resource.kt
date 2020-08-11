@@ -16,14 +16,106 @@
 
 package dev.epubby.resources
 
+import com.google.common.net.MediaType
 import dev.epubby.Book
+import dev.epubby.packages.PackageDocument
+import dev.epubby.properties.Properties
+import dev.epubby.utils.verifyFile
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.toPersistentSet
+import moe.kanon.kommons.io.paths.contentType
+import moe.kanon.kommons.io.paths.isSameAs
+import moe.kanon.kommons.io.paths.name
+import moe.kanon.kommons.io.requireFileExistence
+import moe.kanon.kommons.reflection.KServiceLoader
+import moe.kanon.kommons.reflection.loadServices
+import java.io.IOException
+import java.nio.file.Path
+import kotlin.properties.Delegates
 
-sealed class Resource(val book: Book) {
+abstract class Resource(val book: Book, identifier: String, file: Path) {
+    companion object {
+        private val locators: KServiceLoader<ResourceLocator> = loadServices()
+
+        @JvmStatic
+        @JvmOverloads
+        @Throws(IOException::class)
+        fun fromFile(
+            file: Path,
+            book: Book,
+            identifier: String = "x_${file.name}"
+        ): Resource {
+            require(identifier !in book.resources) { "Identifier '$identifier' is not unique" }
+            verifyFile(book, file)
+            val mediaType =
+                requireNotNull(file.contentType?.let(MediaType::parse)) { "Media type of file '$file' is null" }
+            return locators.asSequence()
+                .map { it.findFactory(mediaType) }
+                .filterNotNull()
+                .firstOrNull()
+                ?.invoke(book, identifier, file, mediaType) ?: MiscResource(book, identifier, file, mediaType)
+        }
+    }
+
+    abstract val mediaType: MediaType
+
+    var file: Path = file
+        @Throws(IOException::class)
+        set(value) {
+            val oldFile = field
+            verifyFile(book, file)
+            require(!(value.parent isSameAs book.root)) { "must not be root of book" }
+            // TODO: updateReferencesTo(value)
+            field = value
+            onFileChanged(oldFile, value)
+        }
+
+    protected open fun onFileChanged(oldFile: Path, newFile: Path) {}
+
+    /**
+     * Returns a path that's relative to the [OPF file][PackageDocument.file] of the [book].
+     */
+    val relativeFile: Path
+        get() = book.packageDocument.file.relativize(file)
+
+    val href: String
+        get() = book.packageDocument.directory.relativize(file).toString()
+
     val relativeHref: String
-        get() = TODO()
+        get() = relativeFile.toString()
+
+    // TODO: narrow the type down to a more general set, like EnumSet<ManifestVocabulary> ?
+    open val properties: Properties = Properties.empty()
+
+    /**
+     * The resource that a reading system should use instead if it can't properly display `this` resource.
+     */
+    var fallback: Resource? = null
+
+    var identifier: String by Delegates.observable(identifier) { _, old, new ->
+        book.resources.updateIdentifier(this, old, new)
+    }
+
+    val references: ImmutableList<ResourceReference>
+        get() = book.spine.getReferencesOf(this)
+
+    abstract fun <R : Any> accept(visitor: ResourceVisitor<R>): R
+
+    final override fun equals(other: Any?): Boolean = when {
+        this === other -> true
+        other !is Resource -> false
+        mediaType != other.mediaType -> false
+        file != other.file -> false
+        properties != other.properties -> false
+        fallback != other.fallback -> false
+        else -> true
+    }
+
+    final override fun hashCode(): Int {
+        var result = mediaType.hashCode()
+        result = 31 * result + file.hashCode()
+        result = 31 * result + properties.hashCode()
+        result = 31 * result + (fallback?.hashCode() ?: 0)
+        return result
+    }
 }
-
-class PageResource(book: Book) : Resource(book)
-
-// https://w3c.github.io/publ-epub-revision/epub32/spec/epub-spec.html#cmt-woff2
-class FontResource(book: Book) : Resource(book)

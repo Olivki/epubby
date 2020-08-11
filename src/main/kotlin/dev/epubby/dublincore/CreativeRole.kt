@@ -41,7 +41,7 @@ class CreativeRole private constructor(val code: String, val name: String?) {
      * [default roles][defaultRoles], otherwise `false`.
      */
     val isCustomRole: Boolean
-        get() = code !in cache
+        get() = code !in CACHE
 
     override fun equals(other: Any?): Boolean = when {
         this === other -> true
@@ -70,13 +70,13 @@ class CreativeRole private constructor(val code: String, val name: String?) {
          */
         @JvmStatic
         val defaultRoles: ImmutableSet<CreativeRole>
-            get() = cache.values.toImmutableSet()
+            get() = CACHE.values.toImmutableSet()
 
-        private val cache: MutableMap<String, CreativeRole> = hashMapOf()
+        private val CACHE: MutableMap<String, CreativeRole> = hashMapOf()
 
         private fun createConstant(code: String, name: String): CreativeRole {
             val role = CreativeRole(code, name)
-            cache[code] = role
+            CACHE[code] = role
             return role
         }
 
@@ -109,9 +109,9 @@ class CreativeRole private constructor(val code: String, val name: String?) {
         @JvmSynthetic
         internal fun create(_code: String, name: String? = null): CreativeRole {
             val code = _code.toLowerCase()
-            return when {
-                cache.containsKey(code) -> cache.getValue(code)
-                else -> CreativeRole(if (_code.startsWith("oth.")) _code else "oth.$_code", name)
+            return when (val value = CACHE[code]) {
+                null -> CreativeRole(if (_code.startsWith("oth.")) _code else "oth.$_code", name)
+                else -> value
             }
         }
 

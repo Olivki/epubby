@@ -29,13 +29,26 @@ class DateEvent private constructor(val name: String) {
     override fun toString(): String = "DateEvent(name='$name')"
 
     companion object {
-        @JvmField val CREATION: DateEvent = DateEvent("creation")
+        private val CACHE: MutableMap<String, DateEvent> = hashMapOf()
 
-        @JvmField val PUBLICATION: DateEvent = DateEvent("publication")
+        private fun getOrCreate(name: String): DateEvent = CACHE.getOrPut(name) { DateEvent(name) }
 
-        @JvmField val MODIFICATION: DateEvent = DateEvent("modification")
+        /**
+         * Represents the date when the e-book was created.
+         */
+        @JvmField val CREATION: DateEvent = getOrCreate("creation")
+
+        /**
+         * Represents the date when the e-book was published.
+         */
+        @JvmField val PUBLICATION: DateEvent = getOrCreate("publication")
+
+        /**
+         * Represents the date when the e-book was last modified.
+         */
+        @JvmField val MODIFICATION: DateEvent = getOrCreate("modification")
 
         @JvmStatic
-        fun of(name: String): DateEvent = DateEvent(name)
+        fun of(name: String): DateEvent = getOrCreate(name)
     }
 }

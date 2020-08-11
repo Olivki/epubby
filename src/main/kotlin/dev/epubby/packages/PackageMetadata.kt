@@ -16,10 +16,15 @@
 
 package dev.epubby.packages
 
+import dev.epubby.Book
+import dev.epubby.BookElement
 import dev.epubby.dublincore.DublinCore
 import dev.epubby.dublincore.LocalizedDublinCore
 
-class PackageMetadata {
+class PackageMetadata(override val book: Book) : BookElement {
+    override val elementName: String
+        get() = "PackageMetadata"
+
     var primaryIdentifier: DublinCore.Identifier
         get() = TODO()
         set(value) {
@@ -38,9 +43,9 @@ class PackageMetadata {
             TODO()
         }
 
-    class Opf2Meta
+    class Opf2Meta(val book: Book)
 
-    class Opf3Meta
+    class Opf3Meta(val book: Book)
 
-    class Link
+    class Link(val book: Book)
 }

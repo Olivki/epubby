@@ -17,14 +17,8 @@
 package dev.epubby.internal
 
 import dev.epubby.BookVersion
-import kotlin.annotation.AnnotationTarget.CLASS
-import kotlin.annotation.AnnotationTarget.FIELD
-import kotlin.annotation.AnnotationTarget.FILE
-import kotlin.annotation.AnnotationTarget.FUNCTION
-import kotlin.annotation.AnnotationTarget.PROPERTY
-import kotlin.annotation.AnnotationTarget.PROPERTY_GETTER
-import kotlin.annotation.AnnotationTarget.PROPERTY_SETTER
-import kotlin.annotation.AnnotationTarget.TYPEALIAS
+import kotlin.annotation.AnnotationRetention.SOURCE
+import kotlin.annotation.AnnotationTarget.*
 
 /**
  * Used for marking which version the feature was introduced into the EPUB specification in.
@@ -32,13 +26,26 @@ import kotlin.annotation.AnnotationTarget.TYPEALIAS
  * If a feature has *not* been annotated with `this`, then it's generally safe to assume that the feature has been
  * available since [EPUB 2.0][BookVersion.EPUB_2_0].
  *
- * @property [since] The version that the feature was introduced into the EPUB specification in.
+ * @property [version] The version that the feature was introduced into the EPUB specification in.
  */
 // TODO: rename to 'IntroducedIn' and 'since' to 'version'?
 @MustBeDocumented
-@Retention(AnnotationRetention.SOURCE)
-@Target(TYPEALIAS, CLASS, FIELD, FILE, FUNCTION, PROPERTY, PROPERTY_GETTER, PROPERTY_SETTER)
-internal annotation class NewFeature(val since: BookVersion)
+@Retention(SOURCE)
+@Target(
+    TYPEALIAS,
+    CLASS,
+    FIELD,
+    FILE,
+    FUNCTION,
+    PROPERTY,
+    PROPERTY_GETTER,
+    PROPERTY_SETTER,
+    CLASS,
+    PROPERTY,
+    VALUE_PARAMETER,
+    FUNCTION
+)
+internal annotation class IntroducedIn(val version: BookVersion)
 
 /**
  * Used for marking that the feature the annotation target represents is considered to be a
@@ -49,13 +56,12 @@ internal annotation class NewFeature(val since: BookVersion)
  * - [Reading Systems](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-spec.html#dfn-epub-reading-system)
  * *MUST NOT* support the legacy feature in content that conforms to this version of EPUB.
  *
- * @property [since] The version that the feature started getting considered as legacy.
+ * @property [in] The version that the feature started getting considered as legacy.
  */
-// TODO: rename to 'MarkedAsLegacy' and 'since' to '`in`'?
 @MustBeDocumented
-@Retention(AnnotationRetention.SOURCE)
-@Target(CLASS, FIELD, FILE, FUNCTION, PROPERTY, PROPERTY_GETTER, PROPERTY_SETTER)
-internal annotation class LegacyFeature(val since: BookVersion)
+@Retention(SOURCE)
+@Target(CLASS, FIELD, FILE, FUNCTION, PROPERTY, PROPERTY_GETTER, PROPERTY_SETTER, VALUE_PARAMETER)
+internal annotation class MarkedAsLegacy(val `in`: BookVersion)
 
 /**
  * Used for marking that the feature the annotation target represents is considered to be a
@@ -66,10 +72,30 @@ internal annotation class LegacyFeature(val since: BookVersion)
  * - [Reading Systems](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-spec.html#dfn-epub-reading-system)
  * *MAY* support the feature.
  *
- * @property [since] The version that the feature started getting considered as deprecated.
+ * @property [in] The version that the feature started getting considered as deprecated.
  */
-// TODO: rename to 'MarkedAsDeprecated' and 'since' to '`in`'?
 @MustBeDocumented
-@Retention(AnnotationRetention.SOURCE)
-@Target(CLASS, FIELD, FILE, FUNCTION, PROPERTY, PROPERTY_GETTER, PROPERTY_SETTER)
-internal annotation class DeprecatedFeature(val since: BookVersion)
+@Retention(SOURCE)
+@Target(
+    CLASS,
+    FIELD,
+    FILE,
+    FUNCTION,
+    PROPERTY,
+    PROPERTY_GETTER,
+    PROPERTY_SETTER,
+    CLASS,
+    PROPERTY,
+    VALUE_PARAMETER,
+    FUNCTION
+)
+internal annotation class MarkedAsDeprecated(val `in`: BookVersion)
+
+/**
+ * Any "public" elements marked with this are, for all intents an purposes, to be considered *internal* API.
+ *
+ * Features annotated with this may be changed completely, or straight up removed without a proper deprecation cycle or
+ * even notification.
+ */
+@RequiresOptIn
+internal annotation class EpubbyInternal

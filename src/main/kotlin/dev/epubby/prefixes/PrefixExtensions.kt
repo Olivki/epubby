@@ -18,19 +18,35 @@
 
 package dev.epubby.prefixes
 
-import dev.epubby.props.vocabs.ManifestVocabulary
-import dev.epubby.props.vocabs.MetadataLinkRelVocabulary
-import dev.epubby.props.vocabs.MetadataLinkVocabulary
-import dev.epubby.props.vocabs.MetadataMetaVocabulary
-import dev.epubby.props.vocabs.SpineVocabulary
+import dev.epubby.properties.vocabularies.ManifestVocabulary
+import dev.epubby.properties.vocabularies.MetadataLinkRelVocabulary
+import dev.epubby.properties.vocabularies.MetadataLinkVocabulary
+import dev.epubby.properties.vocabularies.MetadataMetaVocabulary
+import dev.epubby.properties.vocabularies.SpineVocabulary
+import dev.epubby.properties.vocabularies.VocabularyPrefixes
+import dev.epubby.properties.vocabularies.VocabularyPrefixes.MANIFEST_PREFIX
+import dev.epubby.properties.vocabularies.VocabularyPrefixes.METADATA_LINK_PREFIX
+import dev.epubby.properties.vocabularies.VocabularyPrefixes.METADATA_META_PREFIX
+import dev.epubby.properties.vocabularies.VocabularyPrefixes.SPINE_PREFIX
+
+@get:JvmSynthetic
+internal val Prefix.isKnownInstance: Boolean
+    get() = this is BasicPrefix || this is PackagePrefix || this is VocabularyPrefix
+
+@JvmSynthetic
+internal fun requireKnown(prefix: Prefix) {
+    if (!prefix.isKnownInstance) {
+        throw IllegalArgumentException("Custom implementations of 'Prefix' are not supported. (${prefix.javaClass})")
+    }
+}
 
 /**
  * Returns the form used for serializing `this` prefix back into XML.
  */
-// TODO: 'internal'?
-fun Prefix.toStringForm(): String = when {
-    name.isBlank() -> uri.toString()
-    else -> "$name: $uri"
+@JvmSynthetic
+internal fun Prefix.toStringForm(): String = when {
+    title.isBlank() -> uri.toString()
+    else -> "$title: $uri"
 }
 
 /**
@@ -38,19 +54,13 @@ fun Prefix.toStringForm(): String = when {
  * vocabularies, otherwise `false`.
  */
 fun Prefix.isDefaultVocabularyPrefix(): Boolean = when {
-    ManifestVocabulary.PREFIX.uri == uri -> true
-    MetadataLinkRelVocabulary.PREFIX.uri == uri -> true
-    MetadataLinkVocabulary.PREFIX.uri == uri -> true
-    MetadataMetaVocabulary.PREFIX.uri == uri -> true
-    SpineVocabulary.PREFIX.uri == uri -> true
+    MANIFEST_PREFIX.uri == uri -> true
+    METADATA_LINK_PREFIX.uri == uri -> true
+    METADATA_LINK_PREFIX.uri == uri -> true
+    METADATA_META_PREFIX.uri == uri -> true
+    SPINE_PREFIX.uri == uri -> true
     else -> false
 }
-
-/**
- * Returns `true` if `this` prefix does not have a `uri` that points to the same location as any of the known default
- * vocabularies, otherwise `false`.
- */
-fun Prefix.isNotDefaultVocabularyPrefix(): Boolean = !(isDefaultVocabularyPrefix())
 
 // TODO: replace the dublin-core prefix uri checks with 'isSameAs' and 'isNotSameAs' checks?
 
@@ -61,27 +71,16 @@ fun Prefix.isNotDefaultVocabularyPrefix(): Boolean = !(isDefaultVocabularyPrefix
 fun Prefix.isDublinCorePrefix(): Boolean = this.uri == PackagePrefix.DC_TERMS.uri
 
 /**
- * Returns `true` if `this` prefix does not have a `uri` that points to the same location as the
- * [DC_TERMS][PackagePrefix.DC_TERMS] package prefix, otherwise `false`.
- */
-fun Prefix.isNotDublinCorePrefix(): Boolean = this.uri != PackagePrefix.DC_TERMS.uri
-
-/**
  * Returns `true` if `this` prefix is a [package-prefix][PackagePrefix], otherwise `false`.
  */
 fun Prefix.isPackagePrefix(): Boolean = PackagePrefix.values().any { it.isSameAs(this) }
 
 /**
- * Returns `true` if `this` prefix is a not [package-prefix][PackagePrefix], otherwise `false`.
- */
-fun Prefix.isNotPackagePrefix(): Boolean = PackagePrefix.values().none { it.isSameAs(this) }
-
-/**
  * Returns `true` if the `prefix` and `uri` of `this` are the same as those of [other], otherwise `false`.
  */
-fun Prefix.isSameAs(other: Prefix): Boolean = this.name == other.name && this.uri == other.uri
+infix fun Prefix.isSameAs(other: Prefix): Boolean = this.title == other.title && this.uri == other.uri
 
 /**
  * Returns `true` if the `prefix` and `uri` of `this` are not the same as those of [other], otherwise `false`.
  */
-fun Prefix.isNotSameAs(other: Prefix): Boolean = this.name != other.name && this.uri != other.uri
+infix fun Prefix.isNotSameAs(other: Prefix): Boolean = this.title != other.title && this.uri != other.uri

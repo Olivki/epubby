@@ -17,12 +17,12 @@
 package dev.epubby.prefixes
 
 import dev.epubby.BookVersion
-import dev.epubby.internal.NewFeature
+import dev.epubby.internal.IntroducedIn
 import moe.kanon.kommons.collections.getOrThrow
 import java.net.URI
 
-@NewFeature(since = BookVersion.EPUB_3_0)
-enum class PackagePrefix(val title: String, override val uri: URI) : Prefix {
+@IntroducedIn(version = BookVersion.EPUB_3_0)
+enum class PackagePrefix(override val title: String, override val uri: URI) : Prefix {
     A11Y("a11y", URI.create("http://www.idpf.org/epub/vocab/package/a11y/#")),
     // TODO: is the actual prefix 'dc'?
     DC_TERMS("dcterms", URI.create("http://purl.org/dc/terms/")),

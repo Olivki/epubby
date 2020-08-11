@@ -18,7 +18,7 @@ package dev.epubby.prefixes
 
 import java.net.URI
 
-internal data class BasicPrefix internal constructor(override val name: String, override val uri: URI) : Prefix {
+internal data class BasicPrefix internal constructor(override val title: String, override val uri: URI) : Prefix {
     override val isReserved: Boolean
         get() = false
 }

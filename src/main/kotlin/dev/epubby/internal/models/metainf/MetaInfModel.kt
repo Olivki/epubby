@@ -25,7 +25,7 @@ import moe.kanon.kommons.io.requireFileExistence
 import java.nio.file.FileSystem
 import java.nio.file.Path
 
-internal data class MetaInfModel internal constructor(
+data class MetaInfModel internal constructor(
     internal val container: MetaInfContainerModel,
     internal val encryption: MetaInfEncryptionModel?,
     internal val manifest: MetaInfManifestModel?,
@@ -33,6 +33,11 @@ internal data class MetaInfModel internal constructor(
     internal val rights: MetaInfRightsModel?,
     internal val signatures: MetaInfSignaturesModel?
 ) {
+    // TODO: 'prefixes' should not be needed here, as the meta-inf properties should *not* be inheriting from the
+    //        prefixes defined in the package-document as the two don't know anything of each other, so a default
+    //        value should be used instead, however i'm unsure of what default prefix meta-inf 'link' elements resolve
+    //        against
+    @JvmSynthetic
     internal fun toMetaInf(book: Book, prefixes: Prefixes): MetaInf {
         val container = container.toMetaInfContainer(book, prefixes)
         val encryption = encryption?.toMetaInfEncryption(book)
@@ -43,6 +48,7 @@ internal data class MetaInfModel internal constructor(
         return MetaInf(book, container, encryption, manifest, metadata, rights, signatures)
     }
 
+    @JvmSynthetic
     internal fun writeToDirectory(fileSystem: FileSystem) {
         container.writeToFile(fileSystem)
         encryption?.writeToFile(fileSystem)
@@ -53,6 +59,7 @@ internal data class MetaInfModel internal constructor(
     }
 
     internal companion object {
+        @JvmSynthetic
         internal fun fromDirectory(directory: Path, strictness: ParseStrictness): MetaInfModel {
             val containerFile = directory.resolve("container.xml")
 
@@ -79,6 +86,7 @@ internal data class MetaInfModel internal constructor(
             return MetaInfModel(container, encryption, manifest, metadata, rights, signatures)
         }
 
+        @JvmSynthetic
         internal fun fromMetaInf(origin: MetaInf): MetaInfModel {
             val container = MetaInfContainerModel.fromMetaInfContainer(origin.container)
             val encryption = origin.encryption?.let { MetaInfEncryptionModel.fromMetaInfEncryption(it) }

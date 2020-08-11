@@ -75,8 +75,8 @@ dependencies {
 
     // Google
     api(group = "com.google.guava", name = "guava", version = "28.1-jre")
-    //compileOnly(group = "com.google.auto.service", name = "auto-service", version = "1.0-rc4")
-    //kapt(group = "com.google.auto.service", name = "auto-service", version = "1.0-rc4")
+    compileOnly(group = "com.google.auto.service", name = "auto-service", version = "1.0-rc4")
+    kapt(group = "com.google.auto.service", name = "auto-service", version = "1.0-rc4")
 
     // Test Dependencies
     testImplementation(group = "io.kotlintest", name = "kotlintest-runner-junit5", version = "3.1.11")

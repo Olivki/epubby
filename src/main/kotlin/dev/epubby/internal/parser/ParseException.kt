@@ -16,4 +16,9 @@
 
 package dev.epubby.internal.parser
 
-internal open class ParseException(val line: Int, val column: Int, message: String) : Exception(message)
+internal open class ParseException(
+    val line: Int,
+    val column: Int,
+    message: String,
+    cause: Throwable? = null
+) : Exception(message, cause)

@@ -21,41 +21,53 @@ import dev.epubby.Book
 import dev.epubby.ParseStrictness
 import dev.epubby.internal.elementOf
 import dev.epubby.internal.getAttributeValueOrThrow
-import dev.epubby.internal.models.SerialName
+import dev.epubby.internal.models.SerializedName
 import dev.epubby.mapToValues
 import dev.epubby.packages.PackageBindings
 import dev.epubby.tryMap
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.toPersistentList
 import org.jdom2.Element
 import dev.epubby.internal.Namespaces.OPF as NAMESPACE
 
-@SerialName("bindings")
-internal data class PackageBindingsModel internal constructor(val mediaTypes: List<MediaType>) {
+@SerializedName("bindings")
+data class PackageBindingsModel internal constructor(val mediaTypes: ImmutableList<MediaType>) {
+    @JvmSynthetic
     internal fun toElement(): Element = elementOf("bindings", NAMESPACE) {
         mediaTypes.forEach { mediaType -> it.addContent(mediaType.toElement()) }
     }
 
+    @JvmSynthetic
     internal fun toPackageBindings(book: Book): PackageBindings {
         TODO("'toPackageBindings' operation is not implemented yet.")
     }
 
-    @SerialName("mediaType")
-    data class MediaType(@SerialName("media-type") val mediaType: String, val handler: String) {
+    @SerializedName("mediaType")
+    data class MediaType internal constructor(
+        @SerializedName("media-type")
+        val mediaType: String,
+        val handler: String
+    ) {
+        @JvmSynthetic
         internal fun toElement(): Element = elementOf("mediaType", NAMESPACE) {
             it.setAttribute("media-type", mediaType)
             it.setAttribute("handler", handler)
         }
 
+        @JvmSynthetic
         internal fun toMediaType(book: Book): PackageBindings.MediaType {
             TODO("'toMediaType' operation is not implemented yet.")
         }
 
         internal companion object {
+            @JvmSynthetic
             internal fun fromElement(element: Element): MediaType {
                 val mediaType = element.getAttributeValueOrThrow("media-type")
                 val handler = element.getAttributeValueOrThrow("handler")
                 return MediaType(mediaType, handler)
             }
 
+            @JvmSynthetic
             internal fun fromMediaType(origin: PackageBindings.MediaType): MediaType {
                 TODO("'fromMediaType' operation is not implemented yet.")
             }
@@ -63,15 +75,18 @@ internal data class PackageBindingsModel internal constructor(val mediaTypes: Li
     }
 
     internal companion object {
-        private val logger = InlineLogger(PackageBindingsModel::class)
+        private val LOGGER: InlineLogger = InlineLogger(PackageBindingsModel::class)
 
+        @JvmSynthetic
         internal fun fromElement(element: Element, strictness: ParseStrictness): PackageBindingsModel {
             val mediaTypes = element.getChildren("mediaType", element.namespace)
                 .tryMap { MediaType.fromElement(it) }
-                .mapToValues(logger, strictness)
+                .mapToValues(LOGGER, strictness)
+                .toPersistentList()
             return PackageBindingsModel(mediaTypes)
         }
 
+        @JvmSynthetic
         internal fun fromPackageBindings(origin: PackageBindings): PackageBindings {
             TODO("'fromPackageBindings' operation is not implemented yet.")
         }

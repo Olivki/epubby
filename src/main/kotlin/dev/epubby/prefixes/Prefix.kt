@@ -17,17 +17,17 @@
 package dev.epubby.prefixes
 
 import dev.epubby.BookVersion
-import dev.epubby.internal.NewFeature
-import dev.epubby.internal.parser.NCName
+import dev.epubby.internal.IntroducedIn
+import org.jdom2.Verifier
 import java.net.URI
 import java.net.URISyntaxException
 
-@NewFeature(since = BookVersion.EPUB_3_0)
+@IntroducedIn(version = BookVersion.EPUB_3_0)
 interface Prefix {
     /**
      * The shorthand name used by properties when referring to the [uri] mapping.
      */
-    val name: String
+    val title: String
 
     /**
      * TODO
@@ -43,12 +43,13 @@ interface Prefix {
         /**
          * TODO
          *
-         * @throws [IllegalArgumentException] if [prefix] is not a valid `NCName` or equal to `"_"`
+         * @throws [IllegalArgumentException] if [prefix] is not a valid `NCName`, is a reserved prefix or equal to `"_"`
          */
         @JvmStatic
         fun of(prefix: String, uri: URI): Prefix {
-            // TODO: use 'Verifier.checkElementName' function instead?
-            require(NCName.isName(prefix)) { "'prefix' must be a valid NCName." }
+            val verification = Verifier.checkElementName(prefix)
+            require(verification == null) { verification }
+            require(!PackagePrefix.isReservedPrefix(prefix)) { "'prefix' must not be a reserved prefix" }
             require(prefix != "_") { "'_' is a reserved prefix name and can therefore not be used." }
             return BasicPrefix(prefix, uri)
         }

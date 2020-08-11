@@ -17,22 +17,32 @@
 package dev.epubby.packages
 
 import dev.epubby.Book
+import dev.epubby.BookElement
+import dev.epubby.BookVersion.EPUB_3_0
+import dev.epubby.internal.MarkedAsLegacy
+import dev.epubby.internal.ifNotNull
 import dev.epubby.resources.PageResource
 import moe.kanon.kommons.collections.asUnmodifiableMap
 import moe.kanon.kommons.collections.emptyEnumMap
 import moe.kanon.kommons.collections.getOrThrow
 import org.apache.commons.collections4.map.CaseInsensitiveMap
 
-class PackageGuide(val book: Book) {
+@MarkedAsLegacy(`in` = EPUB_3_0)
+class PackageGuide(override val book: Book) : BookElement {
     @get:JvmSynthetic
     internal val _references: MutableMap<Type, Reference> = emptyEnumMap()
 
     @get:JvmSynthetic
     internal val _customReferences: MutableMap<String, CustomReference> = CaseInsensitiveMap()
 
-    val references: Map<Type, Reference> = _references.asUnmodifiableMap()
+    val references: Map<Type, Reference>
+        get() = _references.asUnmodifiableMap()
 
-    val customReferences: Map<String, CustomReference> = _customReferences.asUnmodifiableMap()
+    val customReferences: Map<String, CustomReference>
+        get() = _customReferences.asUnmodifiableMap()
+
+    override val elementName: String
+        get() = "PackageGuide"
 
     /**
      * Adds a new [reference][Reference] instance based on the given [type], [reference] and [title] to this guide.
@@ -76,9 +86,9 @@ class PackageGuide(val book: Book) {
     fun getReferenceOrNull(type: Type): Reference? = _references[type]
 
     /**
-     * Adds a new [reference][Reference] instance based on the given [customType], [reference] and [title] to this guide.
+     * Adds a new [reference][Reference] instance based on the given [type], [reference] and [title] to this guide.
      *
-     * Note that if a `reference` already exists under the given [customType], then it will be overridden.
+     * Note that if a `reference` already exists under the given [type], then it will be overridden.
      *
      * The [OPF][PackageDocument] specification states that;
      *
@@ -91,21 +101,25 @@ class PackageGuide(val book: Book) {
      * `reference` under the key `"tn"`, instead it will store the `reference` under the key `"other.tn"`. This
      * behaviour is consistent across all functions that accept a `customType`.
      *
-     * Note that as guide references are *case-insensitive* the casing of the given [customType] does not matter when
+     * Note that as guide references are *case-insensitive* the casing of the given [type] does not matter when
      * attempting to return it from [getCustomReference] or removing it via [removeCustomReference].
      *
-     * @throws [IllegalArgumentException] if the given [customType] matches an already known [type][Type]
+     * @throws [IllegalArgumentException] if the given [type] matches an already known [type][Type]
      */
     @JvmOverloads
-    fun addCustomReference(customType: String, reference: PageResource, title: String? = null): CustomReference {
-        require(Type.isUnknownType(customType)) { "Expected custom-type '$customType' to be original, but it matches an officially defined type." }
-        val ref = CustomReference(book, customType, reference, title)
-        _customReferences[customType] = ref
+    fun addCustomReference(
+        type: String,
+        reference: PageResource,
+        title: String? = null
+    ): CustomReference {
+        require(Type.isUnknownType(type)) { "'customType' must not match any officially defined types ($type)" }
+        val ref = CustomReference(book, type, reference, title)
+        _customReferences[type] = ref
         return ref
     }
 
     /**
-     * Removes the [reference][Reference] element stored under the specified [customType].
+     * Removes the [reference][Reference] element stored under the specified [type].
      *
      * The [OPF][PackageDocument] specification states that;
      *
@@ -122,14 +136,14 @@ class PackageGuide(val book: Book) {
      * meaning that invoking this function with `customType` as `"deStROyeR"` will remove the same `reference` as if
      * invoking it with `customType` as `"destroyer"` or any other casing variation of the same string.
      */
-    fun removeCustomReference(customType: String) {
-        if (customType in _customReferences) {
-            _customReferences -= customType
+    fun removeCustomReference(type: String) {
+        if (type in _customReferences) {
+            _customReferences -= type
         }
     }
 
     /**
-     * Returns the [reference][Reference] stored under the given [customType], or throws a [NoSuchElementException] if
+     * Returns the [reference][Reference] stored under the given [type], or throws a [NoSuchElementException] if
      * none is found.
      *
      * The [OPF][PackageDocument] specification states that;
@@ -147,11 +161,11 @@ class PackageGuide(val book: Book) {
      * that invoking this function with `"deStROyeR"` will return the same result as if invoking it with `"destroyer"`
      * or any other casing variation of the same string.
      */
-    fun getCustomReference(customType: String): CustomReference =
-        _customReferences.getOrThrow(customType) { "No reference found with the given custom type 'other.$customType'" }
+    fun getCustomReference(type: String): CustomReference =
+        _customReferences.getOrThrow(type) { "No reference found with the given custom type 'other.$type'" }
 
     /**
-     * Returns the [reference][Reference] stored under the given [customType], or `null` if none is found.
+     * Returns the [reference][Reference] stored under the given [type], or `null` if none is found.
      *
      * The [OPF][PackageDocument] specification states that;
      *
@@ -168,7 +182,7 @@ class PackageGuide(val book: Book) {
      * that invoking this function with `"deStROyeR"` will return the same result as if invoking it with `"destroyer"`
      * or any other casing variation of the same string.
      */
-    fun getCustomReferenceOrNull(customType: String): CustomReference? = _customReferences[customType]
+    fun getCustomReferenceOrNull(type: String): CustomReference? = _customReferences[type]
 
     override fun equals(other: Any?): Boolean = when {
         this === other -> true
@@ -185,14 +199,17 @@ class PackageGuide(val book: Book) {
     }
 
     override fun toString(): String =
-        "PackageGuide(book=$book, references=$_references, customReferences=$_customReferences)"
+        "PackageGuide(references=$_references, customReferences=$_customReferences)"
 
-    class Reference internal constructor(
-        val book: Book,
+    class Reference @JvmOverloads constructor(
+        override val book: Book,
         val type: Type,
         var reference: PageResource,
         var title: String? = null
-    ) {
+    ) : BookElement {
+        override val elementName: String
+            get() = "PackageGuide.Reference"
+
         override fun equals(other: Any?): Boolean = when {
             this === other -> true
             other !is Reference -> false
@@ -213,28 +230,31 @@ class PackageGuide(val book: Book) {
             append("Reference(")
             append("type=$type")
             append(", reference=$reference")
-            if (title != null) append(", title='$reference'")
+            title ifNotNull { append(", title='$it'") }
             append(")")
         }
     }
 
-    class CustomReference internal constructor(
-        val book: Book,
-        val customType: String,
+    class CustomReference @JvmOverloads constructor(
+        override val book: Book,
+        val type: String,
         var reference: PageResource,
         var title: String? = null
-    ) {
+    ) : BookElement {
+        override val elementName: String
+            get() = "PackageGuide.CustomReference"
+
         override fun equals(other: Any?): Boolean = when {
             this === other -> true
             other !is CustomReference -> false
-            customType.toLowerCase() != other.customType.toLowerCase() -> false
+            !type.equals(other.type, ignoreCase = true) -> false
             reference != other.reference -> false
             title != other.title -> false
             else -> true
         }
 
         override fun hashCode(): Int {
-            var result = customType.toLowerCase().hashCode()
+            var result = type.toLowerCase().hashCode()
             result = 31 * result + reference.hashCode()
             result = 31 * result + (title?.hashCode() ?: 0)
             return result
@@ -242,13 +262,14 @@ class PackageGuide(val book: Book) {
 
         override fun toString(): String = buildString {
             append("Reference(")
-            append("customType='$customType'")
+            append("customType='$type'")
             append(", reference=$reference")
-            if (title != null) append(", title='$reference'")
+            title ifNotNull { append(", title='$it'") }
             append(")")
         }
     }
 
+    // TODO: move this up and rename to 'ReferenceType'?
     enum class Type(val type: String) {
         /**
          * A [page][Page] containing the book cover(s), jacket information, etc..
@@ -261,7 +282,7 @@ class PackageGuide(val book: Book) {
         TITLE_PAGE("title-page"),
 
         /**
-         * The [table of contents][TableOfContents] [page][Page].
+         * The [page][Page] representing the [table of contents][TableOfContents].
          */
         TABLE_OF_CONTENTS("toc"),
 
@@ -336,35 +357,39 @@ class PackageGuide(val book: Book) {
         TEXT("text");
 
         companion object {
-            private val typeToInstance: Map<String, Type> by lazy {
-                values().associateByTo(CaseInsensitiveMap(), Type::type)
-            }
+            private val TYPES: Map<String, Type> = values().associateByTo(CaseInsensitiveMap(), Type::type)
 
             /**
              * Returns `true` if the given [type] represents an officially known type, otherwise `false`.
              */
             @JvmStatic
-            fun isKnownType(type: String): Boolean = type in typeToInstance
+            fun isKnownType(type: String): Boolean = type in TYPES
 
             /**
              * Returns `true` if the given [type] does not represent an officially known type, otherwise `false`.
              */
             @JvmStatic
-            fun isUnknownType(type: String): Boolean = type !in typeToInstance
+            fun isUnknownType(type: String): Boolean = type !in TYPES
+
+            /**
+             * Returns `true` if the given [type] represents an officially known type, otherwise `false`.
+             */
+            @JvmSynthetic
+            operator fun contains(type: String): Boolean = type in TYPES
 
             /**
              * Returns the [Type] that has a [type][Type.type] that matches the given [type], or throws a
              * [NoSuchElementException] if none is found.
              */
             @JvmStatic
-            fun byType(type: String): Type = typeToInstance.getOrThrow(type) { "'$type' is not a known type." }
+            fun fromType(type: String): Type = TYPES.getOrThrow(type) { "'$type' is not a known type." }
 
             /**
              * Returns the [Type] that has a [type][Type.type] that matches the given [type], or `null` if none is
              * found.
              */
             @JvmStatic
-            fun byTypeOrNull(type: String): Type? = typeToInstance[type]
+            fun fromTypeOrNull(type: String): Type? = TYPES[type]
         }
     }
 }

@@ -16,4 +16,13 @@
 
 package dev.epubby.packages
 
-class PackageCollection
+import dev.epubby.Book
+import dev.epubby.BookElement
+import dev.epubby.BookVersion.EPUB_3_0
+import dev.epubby.internal.IntroducedIn
+
+@IntroducedIn(version = EPUB_3_0)
+class PackageCollection(override val book: Book) : BookElement {
+    override val elementName: String
+        get() = "PackageCollection"
+}

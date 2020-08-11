@@ -16,38 +16,104 @@
 
 package dev.epubby.packages
 
+import com.github.michaelbull.logging.InlineLogger
 import dev.epubby.Book
-import dev.epubby.BookVersion
-import dev.epubby.internal.DeprecatedFeature
-import dev.epubby.internal.LegacyFeature
-import dev.epubby.internal.NewFeature
+import dev.epubby.BookElement
+import dev.epubby.BookVersion.EPUB_2_0
+import dev.epubby.BookVersion.EPUB_3_0
+import dev.epubby.BookVersion.EPUB_3_2
+import dev.epubby.builders.packages.PackageDocumentBuilder
+import dev.epubby.internal.IntroducedIn
+import dev.epubby.internal.MarkedAsDeprecated
+import dev.epubby.internal.MarkedAsLegacy
+import dev.epubby.internal.versioned
 import dev.epubby.prefixes.Prefixes
 import dev.epubby.utils.Direction
+import java.nio.file.Files
+import java.nio.file.Path
 import java.util.Locale
+import java.util.UUID
 
 class PackageDocument(
-    val book: Book,
     uniqueIdentifier: String,
-    var direction: Direction?,
-    var identifier: String?,
-    val prefix: Prefixes,
-    var language: Locale?,
+    override val book: Book,
     val metadata: PackageMetadata,
     val manifest: PackageManifest,
     val spine: PackageSpine,
-    @LegacyFeature(since = BookVersion.EPUB_3_0)
-    var guide: PackageGuide?,
-    @NewFeature(since = BookVersion.EPUB_3_0)
-    @DeprecatedFeature(since = BookVersion.EPUB_3_2)
-    var bindings: PackageBindings?,
-    @NewFeature(since = BookVersion.EPUB_3_0)
-    var collection: PackageCollection?,
-    @DeprecatedFeature(since = BookVersion.EPUB_2_0)
-    var tours: PackageTours?
-) {
+    var direction: Direction? = null,
+    var identifier: String? = null,
+    val prefixes: Prefixes = Prefixes.empty(),
+    // TODO: change to 'String'?
+    var language: Locale? = null,
+    @MarkedAsLegacy(`in` = EPUB_3_0)
+    var guide: PackageGuide? = null,
+    @IntroducedIn(version = EPUB_3_0)
+    @MarkedAsDeprecated(`in` = EPUB_3_2)
+    bindings: PackageBindings? = null,
+    @IntroducedIn(version = EPUB_3_0)
+    collection: PackageCollection? = null,
+    @MarkedAsDeprecated(`in` = EPUB_2_0)
+    var tours: PackageTours? = null
+) : BookElement {
+    companion object {
+        private val LOGGER: InlineLogger = InlineLogger(PackageDocument::class)
+
+        @JvmStatic
+        fun builder(): PackageDocumentBuilder = PackageDocumentBuilder()
+    }
+
+    /**
+     * TODO
+     *
+     * @see [directory]
+     */
+    val file: Path
+        get() = book.metaInf.container.packageDocument.fullPath
+
+    /**
+     * The directory where the [file] is stored.
+     *
+     * Most of the time this directory will be called `OEBPS`, but that name is not mandatory.
+     *
+     * Any *direct* changes *(i.e; [Files.delete], [Files.move])* to this directory, or any of the files stored inside
+     * of it, is ***highly discouraged***, as these modifications can put this book into a corrupted state, therefore,
+     * one should instead use the functions provided on the separate classes to do any changes. If direct changes are
+     * *required* then make sure to keep in mind that problems may arise.
+     *
+     * @see [file]
+     */
+    val directory: Path
+        get() = file.parent
+
+    /**
+     * TODO
+     *
+     * @see [generateNewUniqueIdentifier]
+     */
     var uniqueIdentifier: String = uniqueIdentifier
         set(value) {
             require(value.isNotBlank()) { "unique-identifier must not be blank" }
             field = value
         }
+
+    /**
+     * Sets the [uniqueIdentifier] of the package-document to that of [a randomly generated uuid][UUID.randomUUID].
+     */
+    // TODO: rename to 'newUniqueIdentifier'?
+    fun generateNewUniqueIdentifier() {
+        uniqueIdentifier = UUID.randomUUID().toString()
+    }
+
+    @IntroducedIn(version = EPUB_3_0)
+    @MarkedAsDeprecated(`in` = EPUB_3_2)
+    var bindings: PackageBindings? by versioned(bindings, "bindings", EPUB_3_0)
+
+    @IntroducedIn(version = EPUB_3_0)
+    var collection: PackageCollection? by versioned(collection, "collection", EPUB_3_0)
+
+    override val elementName: String
+        get() = "PackageDocument"
+
+    override fun toString(): String =
+        "PackageDocument(uniqueIdentifier='$uniqueIdentifier', direction=$direction, identifier=$identifier, prefixes=$prefixes, language=$language)"
 }

@@ -20,26 +20,29 @@ import com.github.michaelbull.logging.InlineLogger
 import dev.epubby.Book
 import dev.epubby.ParseStrictness
 import dev.epubby.internal.elementOf
-import dev.epubby.internal.models.SerialName
+import dev.epubby.internal.models.SerializedName
 import dev.epubby.packages.PackageCollection
 import dev.epubby.prefixes.Prefixes
 import org.jdom2.Element
 import dev.epubby.internal.Namespaces.OPF as NAMESPACE
 
-@SerialName("collection")
-internal data class PackageCollectionModel internal constructor(val d: Unit) {
+@SerializedName("collection")
+data class PackageCollectionModel internal constructor(val d: Unit) {
+    @JvmSynthetic
     internal fun toElement(): Element = elementOf("collection", NAMESPACE) {
         TODO("'toElement' operation is not implemented.")
     }
 
+    @JvmSynthetic
     internal fun toPackageCollection(book: Book, prefixes: Prefixes): PackageCollection {
         TODO("'toPackageCollection' operation is not implemented yet.")
     }
 
     // TODO
     internal companion object {
-        private val logger = InlineLogger(PackageCollectionModel::class)
+        private val LOGGER: InlineLogger = InlineLogger(PackageCollectionModel::class)
 
+        @JvmSynthetic
         internal fun fromElement(element: Element, strictness: ParseStrictness): PackageCollectionModel {
             TODO("'fromElement' operation is not implemented yet")
         }

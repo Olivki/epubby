@@ -24,16 +24,20 @@ import org.jdom2.Document
 import java.nio.file.FileSystem
 import java.nio.file.Path
 
-internal data class MetaInfEncryptionModel internal constructor(internal val document: Document) {
+data class MetaInfEncryptionModel internal constructor(internal val document: Document) {
+    @JvmSynthetic
     internal fun writeToFile(fileSystem: FileSystem) {
         document.writeTo(fileSystem.getPath("/META-INF/encryption.xml"))
     }
 
+    @JvmSynthetic
     internal fun toMetaInfEncryption(book: Book): MetaInfEncryption = MetaInfEncryption(book, document)
 
     internal companion object {
+        @JvmSynthetic
         internal fun fromFile(file: Path): MetaInfEncryptionModel = MetaInfEncryptionModel(documentFrom(file))
 
+        @JvmSynthetic
         internal fun fromMetaInfEncryption(origin: MetaInfEncryption): MetaInfEncryptionModel =
             MetaInfEncryptionModel(origin.document)
     }

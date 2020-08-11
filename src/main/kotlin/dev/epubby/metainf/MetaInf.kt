@@ -27,9 +27,24 @@ class MetaInf @JvmOverloads constructor(
     var rights: MetaInfRights? = null,
     var signatures: MetaInfSignatures? = null
 ) {
+
+    /**
+     * Returns `true` if the book that this meta-inf represents is encrypted in some manner, otherwise `false`.
+     *
+     * As the EPUB specification has set forth no standard for how a meta-inf [encryption] structure should look, it
+     * states that as long as an `encryption` structure is present, that means that the book is encrypted.
+     */
     val isEncrypted: Boolean
         get() = encryption != null
 
+    /**
+     * Returns `true` if the book that this meta-inf represents is governed rights *(DRM)* in some manner, otherwise
+     * `false`.
+     *
+     * As the EPUB specification has set forth no standard for how a meta-inf [rights] structure should look, it states
+     * that as long as an `rights` structure is present, that means that the book is governed by rights *(DRM)* in some
+     * manner.
+     */
     val isGovernedByRights: Boolean
         get() = rights != null
 
