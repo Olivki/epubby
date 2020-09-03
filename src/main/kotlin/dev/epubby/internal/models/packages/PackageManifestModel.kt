@@ -17,18 +17,21 @@
 package dev.epubby.internal.models.packages
 
 import com.github.michaelbull.logging.InlineLogger
-import dev.epubby.Book
-import dev.epubby.MalformedBookException
-import dev.epubby.ParseStrictness
-import dev.epubby.internal.`Resource | RemoteItem`
+import com.google.common.net.MediaType
+import dev.epubby.*
+import dev.epubby.BookVersion.EPUB_3_0
 import dev.epubby.internal.elementOf
 import dev.epubby.internal.getAttributeValueOrThrow
 import dev.epubby.internal.models.SerializedName
-import dev.epubby.mapToValues
 import dev.epubby.packages.PackageManifest
 import dev.epubby.prefixes.Prefixes
-import dev.epubby.tryMap
-import kotlinx.collections.immutable.ImmutableList
+import dev.epubby.properties.encodeToString
+import dev.epubby.properties.propertiesOf
+import dev.epubby.properties.resolveManifestProperties
+import dev.epubby.resources.LocalResource
+import dev.epubby.resources.ManifestResource
+import dev.epubby.resources.RemoteResource
+import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.toPersistentList
 import org.jdom2.Element
 import dev.epubby.internal.Namespaces.OPF as NAMESPACE
@@ -37,21 +40,26 @@ import dev.epubby.internal.Namespaces.OPF as NAMESPACE
 data class PackageManifestModel internal constructor(
     @SerializedName("id")
     val identifier: String?,
-    val items: ImmutableList<Item>
+    val items: PersistentList<ItemModel>,
 ) {
     @JvmSynthetic
     internal fun toElement(): Element = elementOf("manifest", NAMESPACE) {
         if (identifier != null) it.setAttribute("id", identifier)
-        items.forEach { item -> it.addContent(item.toElement()) }
+
+        for (item in items) {
+            it.addContent(item.toElement())
+        }
     }
 
     @JvmSynthetic
     internal fun toPackageManifest(book: Book, prefixes: Prefixes): PackageManifest {
+        // TODO: once we have converted all 'items' to their appropriate 'ManifestResource' go over them once again
+        //       to set their fallback property correctly, if it exists.
         TODO("'toPackageManifest' operation is not implemented yet.")
     }
 
     @SerializedName("item")
-    data class Item internal constructor(
+    data class ItemModel internal constructor(
         @SerializedName("id")
         val identifier: String,
         val href: String,
@@ -60,7 +68,7 @@ data class PackageManifestModel internal constructor(
         val fallback: String?,
         @SerializedName("media-overlay")
         val mediaOverlay: String?,
-        val properties: String?
+        val properties: String?,
     ) {
         @JvmSynthetic
         internal fun toElement(): Element = elementOf("item", NAMESPACE) {
@@ -73,26 +81,51 @@ data class PackageManifestModel internal constructor(
         }
 
         @JvmSynthetic
-        internal fun toItem(book: Book): `Resource | RemoteItem` {
+        internal fun toManifestResource(book: Book, prefixes: Prefixes): ManifestResource {
+            val mediaType = mediaType?.let(MediaType::parse)
+            val properties = properties?.let { resolveManifestProperties(it, prefixes) } ?: propertiesOf()
+            // TODO: just pass in 'fallback' as 'null' for now and handle it properly in 'toPackageManifest'
             TODO("'toItem' operation is not implemented yet.")
         }
 
         internal companion object {
             @JvmSynthetic
-            internal fun fromElement(element: Element): Item {
+            internal fun fromElement(element: Element): ItemModel {
                 val identifier = element.getAttributeValueOrThrow("id")
                 val href = element.getAttributeValueOrThrow("href")
                 val fallback = element.getAttributeValue("fallback")
                 val mediaType = element.getAttributeValue("media-type")
                 val mediaOverlay = element.getAttributeValue("media-overlay")
                 val properties = element.getAttributeValue("properties")
-                return Item(identifier, href, mediaType, fallback, mediaOverlay, properties)
+                return ItemModel(identifier, href, mediaType, fallback, mediaOverlay, properties)
             }
 
-            // TODO: only accept 'properties' if book version is newer than 2.0 (aka 3.x and up)
             @JvmSynthetic
-            internal fun fromItem(origin: `Resource | RemoteItem`): Item {
-                TODO("'fromItem' operation is not implemented yet.")
+            internal fun fromManifestResource(origin: ManifestResource): ItemModel {
+                val properties = when {
+                    origin.book.version.isOlder(EPUB_3_0) -> null
+                    else -> origin.properties.encodeToString()
+                }
+
+                return when (origin) {
+                    is RemoteResource -> {
+                        val mediaType = origin.mediaType?.toString()
+                        ItemModel(
+                            origin.identifier,
+                            origin.href,
+                            mediaType,
+                            origin.fallback,
+                            origin.mediaOverlay,
+                            properties
+                        )
+                    }
+                    is LocalResource -> {
+                        val href = origin.relativeHref.substringAfter("../")
+                        val mediaType = origin.mediaType.toString()
+                        val fallback = origin.fallback?.identifier
+                        ItemModel(origin.identifier, href, mediaType, fallback, origin.mediaOverlay, properties)
+                    }
+                }
             }
         }
     }
@@ -104,7 +137,7 @@ data class PackageManifestModel internal constructor(
         internal fun fromElement(element: Element, strictness: ParseStrictness): PackageManifestModel {
             val identifier = element.getAttributeValue("id")
             val items = element.getChildren("item", element.namespace)
-                .tryMap { Item.fromElement(it) }
+                .tryMap { ItemModel.fromElement(it) }
                 .mapToValues(LOGGER, strictness)
                 .ifEmpty { throw MalformedBookException.forMissing("manifest", "item") }
                 .toPersistentList()

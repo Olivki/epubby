@@ -53,6 +53,8 @@ enum class BookVersion(val major: Int, val minor: Int) {
     val isNewest: Boolean
         get() = this == values().last()
 
+    // TODO: make the below functions not be infix
+
     /**
      * Returns `true` if `this` version is newer than the [other] version, otherwise `false`.
      */

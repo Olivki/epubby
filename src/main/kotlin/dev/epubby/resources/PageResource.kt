@@ -27,19 +27,22 @@ class PageResource(
     identifier: String,
     file: Path,
     override val mediaType: MediaType
-) : Resource(book, identifier, file) {
-    override fun <R : Any> accept(visitor: ResourceVisitor<R>): R = visitor.visitPage(this)
+) : LocalResource(book, identifier, file) {
+    /**
+     * Returns the result of invoking the [visitPage][ResourceVisitor.visitPage] function of the given [visitor].
+     */
+    override fun <R> accept(visitor: ResourceVisitor<R>): R = visitor.visitPage(this)
 
     override fun toString(): String = "PageResource(identifier='$identifier', mediaType=$mediaType, file='$file')"
 }
 
-@AutoService(ResourceLocator::class)
-internal object PageResourceLocator : ResourceLocator {
+@AutoService(LocalResourceLocator::class)
+internal object PageResourceLocator : LocalResourceLocator {
     private val TYPES: Set<MediaType> = persistentHashSetOf(
         MediaType.XHTML_UTF_8,
         MediaType.XHTML_UTF_8.withoutParameters()
     )
-    private val FACTORY: ResourceFactory = ::PageResource
+    private val FACTORY: LocalResourceFactory = ::PageResource
 
-    override fun findFactory(mediaType: MediaType): ResourceFactory? = FACTORY.takeIf { mediaType in TYPES }
+    override fun findFactory(mediaType: MediaType): LocalResourceFactory? = FACTORY.takeIf { mediaType in TYPES }
 }

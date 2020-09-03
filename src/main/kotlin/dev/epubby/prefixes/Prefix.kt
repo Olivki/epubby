@@ -25,7 +25,7 @@ import java.net.URISyntaxException
 @IntroducedIn(version = BookVersion.EPUB_3_0)
 interface Prefix {
     /**
-     * The shorthand name used by properties when referring to the [uri] mapping.
+     * The shorthand name used by properties when referring to the [uri] mapping that this prefix represents.
      */
     val title: String
 
@@ -35,7 +35,9 @@ interface Prefix {
     val uri: URI
 
     /**
-     * Whether or not `this` prefix is a reserved package prefix.
+     * Whether or not this prefix is a reserved package prefix.
+     *
+     * @see [PackagePrefix]
      */
     val isReserved: Boolean
 
@@ -43,14 +45,15 @@ interface Prefix {
         /**
          * TODO
          *
-         * @throws [IllegalArgumentException] if [prefix] is not a valid `NCName`, is a reserved prefix or equal to `"_"`
+         * @throws [IllegalArgumentException] if [prefix] is not a valid `NCName` or if is a reserved prefix or equal
+         * to `"_"`
          */
         @JvmStatic
         fun of(prefix: String, uri: URI): Prefix {
             val verification = Verifier.checkElementName(prefix)
             require(verification == null) { verification }
             require(!PackagePrefix.isReservedPrefix(prefix)) { "'prefix' must not be a reserved prefix" }
-            require(prefix != "_") { "'_' is a reserved prefix name and can therefore not be used." }
+            require(prefix != "_") { "'_' is a reserved prefix name" }
             return BasicPrefix(prefix, uri)
         }
 

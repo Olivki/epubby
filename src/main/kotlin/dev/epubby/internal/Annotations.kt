@@ -97,5 +97,6 @@ internal annotation class MarkedAsDeprecated(val `in`: BookVersion)
  * Features annotated with this may be changed completely, or straight up removed without a proper deprecation cycle or
  * even notification.
  */
+// TODO: remove?
 @RequiresOptIn
 internal annotation class EpubbyInternal

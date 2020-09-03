@@ -23,14 +23,14 @@ import dev.epubby.BookVersion.EPUB_2_0
 import dev.epubby.BookVersion.EPUB_3_0
 import dev.epubby.BookVersion.EPUB_3_2
 import dev.epubby.builders.packages.PackageDocumentBuilder
-import dev.epubby.internal.IntroducedIn
-import dev.epubby.internal.MarkedAsDeprecated
-import dev.epubby.internal.MarkedAsLegacy
-import dev.epubby.internal.versioned
+import dev.epubby.files.DirectoryFile
+import dev.epubby.files.RegularFile
+import dev.epubby.internal.*
+import dev.epubby.packages.guide.PackageGuide
+import dev.epubby.packages.metadata.PackageMetadata
 import dev.epubby.prefixes.Prefixes
+import dev.epubby.prefixes.prefixesOf
 import dev.epubby.utils.Direction
-import java.nio.file.Files
-import java.nio.file.Path
 import java.util.Locale
 import java.util.UUID
 
@@ -42,7 +42,7 @@ class PackageDocument(
     val spine: PackageSpine,
     var direction: Direction? = null,
     var identifier: String? = null,
-    val prefixes: Prefixes = Prefixes.empty(),
+    val prefixes: Prefixes = prefixesOf(),
     // TODO: change to 'String'?
     var language: Locale? = null,
     @MarkedAsLegacy(`in` = EPUB_3_0)
@@ -58,6 +58,7 @@ class PackageDocument(
     companion object {
         private val LOGGER: InlineLogger = InlineLogger(PackageDocument::class)
 
+        // TODO: remove?
         @JvmStatic
         fun builder(): PackageDocumentBuilder = PackageDocumentBuilder()
     }
@@ -67,23 +68,16 @@ class PackageDocument(
      *
      * @see [directory]
      */
-    val file: Path
+    val file: RegularFile
         get() = book.metaInf.container.packageDocument.fullPath
 
     /**
      * The directory where the [file] is stored.
      *
      * Most of the time this directory will be called `OEBPS`, but that name is not mandatory.
-     *
-     * Any *direct* changes *(i.e; [Files.delete], [Files.move])* to this directory, or any of the files stored inside
-     * of it, is ***highly discouraged***, as these modifications can put this book into a corrupted state, therefore,
-     * one should instead use the functions provided on the separate classes to do any changes. If direct changes are
-     * *required* then make sure to keep in mind that problems may arise.
-     *
-     * @see [file]
      */
-    val directory: Path
-        get() = file.parent
+    val directory: DirectoryFile
+        get() = file.parent ?: throw IllegalStateException("'PackageDocument.file' should never be null!")
 
     /**
      * TODO

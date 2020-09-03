@@ -19,10 +19,10 @@ package dev.epubby.metainf
 import com.google.common.net.MediaType
 import dev.epubby.Book
 import dev.epubby.BookVersion
+import dev.epubby.files.RegularFile
 import dev.epubby.internal.IntroducedIn
 import dev.epubby.properties.Relationship
 import dev.epubby.utils.NonEmptyList
-import java.nio.file.Path
 
 class MetaInfContainer @JvmOverloads constructor(
     val book: Book,
@@ -51,7 +51,7 @@ class MetaInfContainer @JvmOverloads constructor(
 
     override fun toString(): String = "MetaInfContainer(version='$version', rootFiles=$rootFiles, links=$links)"
 
-    class RootFile(val book: Book, val fullPath: Path, val mediaType: MediaType) {
+    class RootFile(val book: Book, val fullPath: RegularFile, val mediaType: MediaType) {
         override fun equals(other: Any?): Boolean = when {
             this === other -> true
             other !is RootFile -> false

@@ -18,18 +18,17 @@ package dev.epubby.packages
 
 import dev.epubby.Book
 import dev.epubby.BookElement
-import dev.epubby.BookVersion.EPUB_3_0
-import dev.epubby.internal.IntroducedIn
-import dev.epubby.properties.Properties
-import dev.epubby.resources.PageResource
 import dev.epubby.page.Page
-import dev.epubby.resources.Resource
-import dev.epubby.resources.ResourceReference
+import dev.epubby.resources.LocalResource
+import dev.epubby.resources.PageResource
+import dev.epubby.resources.ResourceDocumentReference
 import dev.epubby.utils.PageProgressionDirection
-import kotlinx.collections.immutable.ImmutableList
-import kotlinx.collections.immutable.toImmutableList
+import dev.epubby.utils.attributes
+import kotlinx.collections.immutable.PersistentList
+import kotlinx.collections.immutable.toPersistentList
 import moe.kanon.kommons.collections.asUnmodifiable
 import moe.kanon.kommons.collections.asUnmodifiableList
+import moe.kanon.kommons.io.paths.name
 import org.jsoup.nodes.Attribute
 
 // TODO: make sure to redirect the user to the PageRepository for modifying pages.
@@ -85,28 +84,35 @@ class PackageSpine @JvmOverloads constructor(
      * is properly registered as a resource as that is what handles the creation of manifest-items.
      */
     private fun addToResources(page: Page) {
-        if (page.resource !in book.resources) {
-            book.resources.add(page.resource)
+        if (page.resource !in book.manifest) {
+            book.manifest.addLocalResource(page.resource)
         }
     }
 
-    fun getReferencesOf(resource: Resource): ImmutableList<ResourceReference> {
+    /**
+     * Returns a list of HTML entities that are referencing the given [resource] in some manner.
+     *
+     * The returned list will become stale the moment any change is done to the [file][LocalResource.file] of the
+     * `resource`, or if the document the reference heralds from gets changed in any manner, therefore it is not
+     * recommended to cache the returned list, instead one should retrieve a new one whenever needed.
+     */
+    fun getDocumentReferencesOf(resource: LocalResource): PersistentList<ResourceDocumentReference> {
         // fix for epubs where things like the images are stored in the same directory as the xhtml files
         // meaning that the src attribute can be completely relative
-        // TODO: Implement a better system for handling this?
-        fun predicate(attr: Attribute): Boolean = if ('/' in attr.value) {
-            resource.href in attr.value
-        } else attr.value.equals(resource.file.fileName.toString(), true) // should we really be ignoring case here?
+        // TODO: Implement a better system for handling this
+        fun predicate(attr: Attribute): Boolean = when {
+            '/' in attr.value -> resource.href in attr.value
+            // TODO: should we really be ignoring case here?
+            else -> attr.value.equals(resource.file.name, true)
+        }
 
         return _pages
             .asSequence()
-            .map { it.document.allElements }
-            .flatten()
-            .filter { it.attributes().any() }
-            .filter { it.attributes().any(::predicate) }
-            .map { ResourceReference(it, it.attributes().first(::predicate)) }
+            .flatMap { it.document.allElements }
+            .filter { it.attributes.any(::predicate) }
+            .map { ResourceDocumentReference(it, it.attributes.first(::predicate)) }
             .asIterable()
-            .toImmutableList()
+            .toPersistentList()
     }
 
     override fun iterator(): Iterator<Page> = _pages.iterator().asUnmodifiable()

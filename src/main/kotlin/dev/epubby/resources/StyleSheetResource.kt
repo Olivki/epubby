@@ -27,19 +27,23 @@ class StyleSheetResource(
     identifier: String,
     file: Path,
     override val mediaType: MediaType
-) : Resource(book, identifier, file) {
-    override fun <R : Any> accept(visitor: ResourceVisitor<R>): R = visitor.visitStyleSheet(this)
+) : LocalResource(book, identifier, file) {
+    /**
+     * Returns the result of invoking the [visitStyleSheet][ResourceVisitor.visitStyleSheet] function of the given
+     * [visitor].
+     */
+    override fun <R> accept(visitor: ResourceVisitor<R>): R = visitor.visitStyleSheet(this)
 
     override fun toString(): String = "StyleSheetResource(identifier='$identifier', mediaType=$mediaType, file='$file')"
 }
 
-@AutoService(ResourceLocator::class)
-internal object StyleSheetResourceLocator : ResourceLocator {
+@AutoService(LocalResourceLocator::class)
+internal object StyleSheetResourceLocator : LocalResourceLocator {
     private val TYPES: Set<MediaType> = persistentHashSetOf(
         MediaType.CSS_UTF_8,
         MediaType.CSS_UTF_8.withoutParameters()
     )
-    private val FACTORY: ResourceFactory = ::StyleSheetResource
+    private val FACTORY: LocalResourceFactory = ::StyleSheetResource
 
-    override fun findFactory(mediaType: MediaType): ResourceFactory? = FACTORY.takeIf { mediaType in TYPES }
+    override fun findFactory(mediaType: MediaType): LocalResourceFactory? = FACTORY.takeIf { mediaType in TYPES }
 }

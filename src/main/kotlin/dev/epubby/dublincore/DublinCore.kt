@@ -22,14 +22,20 @@ import dev.epubby.BookVersion.EPUB_3_0
 import dev.epubby.internal.EpubDateFormatters
 import dev.epubby.internal.MarkedAsLegacy
 import dev.epubby.internal.ifNotNull
+import dev.epubby.packages.metadata.Opf3Meta
 import dev.epubby.utils.Direction
+import kotlinx.collections.immutable.PersistentList
+import kotlinx.collections.immutable.toPersistentList
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 import java.util.Locale
+import java.util.UUID
 
 // TODO: rewrite/reword the documentations of each element so that we're not straight up plagiarizing
+// TODO: automatically convert usage of 'role', 'event', 'scheme' and any other things marked as legacy in 3.0 to the
+//       correct equivalenet? or at least provide a function for doing that?
 
 sealed class DublinCore(protected val name: String) : BookElement {
     abstract override val book: Book
@@ -49,6 +55,16 @@ sealed class DublinCore(protected val name: String) : BookElement {
      * The identifier of this dublin-core element, or `null` if no identifier has been defined.
      */
     abstract var identifier: String?
+
+    /**
+     * Returns a list of all the meta elements that are refining this dublin-core element.
+     *
+     * The returned list will become stale the moment the [refines][Opf3Meta.refines] property of any
+     * of the collected elements is changed, or when a new `Opf3Meta` element gets added to the `metadata` package,
+     * therefore it is not recommended to cache the returned list, instead one should retrieve a new one whenever needed.
+     */
+    val refinements: PersistentList<Opf3Meta>
+        get() = book.metadata.opf3MetaEntries.filter { it.refines == this }.toPersistentList()
 
     override fun equals(other: Any?): Boolean = when {
         this === other -> true
@@ -74,6 +90,11 @@ sealed class DublinCore(protected val name: String) : BookElement {
     }
 
     /**
+     * Accepts the given [visitor] and visits the appropriate function for this dublin-core implementation.
+     */
+    abstract fun <R> accept(visitor: DublinCoreVisitor<R>): R
+
+    /**
      * A point or period of time associated with an event in the lifecycle of the resource.
      *
      * `Date` may be used to express temporal information at any level of granularity.
@@ -83,7 +104,7 @@ sealed class DublinCore(protected val name: String) : BookElement {
         override var content: String,
         override var identifier: String? = null,
         @MarkedAsLegacy(`in` = EPUB_3_0)
-        var event: DateEvent? = null
+        var event: DateEvent? = null,
     ) : DublinCore("Date") {
         companion object {
             @JvmStatic
@@ -93,7 +114,7 @@ sealed class DublinCore(protected val name: String) : BookElement {
                 date: LocalDate,
                 identifier: String? = null,
                 @MarkedAsLegacy(`in` = EPUB_3_0)
-                event: DateEvent? = null
+                event: DateEvent? = null,
             ): Date = Date(book, date.format(EpubDateFormatters.LOCAL_DATE), identifier, event)
 
             @JvmStatic
@@ -103,7 +124,7 @@ sealed class DublinCore(protected val name: String) : BookElement {
                 date: LocalDateTime,
                 identifier: String? = null,
                 @MarkedAsLegacy(`in` = EPUB_3_0)
-                event: DateEvent? = null
+                event: DateEvent? = null,
             ): Date = Date(book, date.format(EpubDateFormatters.LOCAL_DATE_TIME), identifier, event)
         }
 
@@ -128,6 +149,11 @@ sealed class DublinCore(protected val name: String) : BookElement {
         @JvmOverloads
         fun toLocalDateTime(formatter: DateTimeFormatter = EpubDateFormatters.LOCAL_DATE_TIME): LocalDateTime =
             LocalDateTime.parse(content, formatter)
+
+        /**
+         * Returns the result of invoking the [visitDate][DublinCoreVisitor.visitDate] function of the given [visitor].
+         */
+        override fun <R> accept(visitor: DublinCoreVisitor<R>): R = visitor.visitDate(this)
 
         override fun equals(other: Any?): Boolean = when {
             this === other -> true
@@ -165,8 +191,14 @@ sealed class DublinCore(protected val name: String) : BookElement {
     class Format @JvmOverloads constructor(
         override val book: Book,
         override var content: String,
-        override var identifier: String? = null
-    ) : DublinCore("Format")
+        override var identifier: String? = null,
+    ) : DublinCore("Format") {
+        /**
+         * Returns the result of invoking the [visitFormat][DublinCoreVisitor.visitFormat] function of the given
+         * [visitor].
+         */
+        override fun <R> accept(visitor: DublinCoreVisitor<R>): R = visitor.visitFormat(this)
+    }
 
     /**
      * An unambiguous reference to the resource within a given context.
@@ -179,8 +211,29 @@ sealed class DublinCore(protected val name: String) : BookElement {
         override var content: String,
         override var identifier: String? = null,
         @MarkedAsLegacy(`in` = EPUB_3_0)
-        var scheme: String? = null
+        var scheme: String? = null,
     ) : DublinCore("Identifier") {
+        companion object {
+            /**
+             * Returns a new [Identifier] based on a [random uuid][UUID.randomUUID].
+             */
+            // TODO: find a better name
+            // TODO: handle this differently if book version is 3.x as 'scheme' is marked as legacy starting from 3.0
+            //       so we probably want to use a op3 meta element to refine it or something like that?
+            @JvmStatic
+            @JvmOverloads
+            fun generateRandom(book: Book, identifier: String? = null): Identifier {
+                val content = UUID.randomUUID().toString()
+                return Identifier(book, content, identifier, "UUID")
+            }
+        }
+
+        /**
+         * Returns the result of invoking the [visitIdentifier][DublinCoreVisitor.visitIdentifier] function of the given
+         * [visitor].
+         */
+        override fun <R> accept(visitor: DublinCoreVisitor<R>): R = visitor.visitIdentifier(this)
+
         override fun equals(other: Any?): Boolean = when {
             this === other -> true
             other !is Identifier -> false
@@ -217,7 +270,7 @@ sealed class DublinCore(protected val name: String) : BookElement {
     class Language @JvmOverloads constructor(
         override val book: Book,
         override var content: String,
-        override var identifier: String? = null
+        override var identifier: String? = null,
     ) : DublinCore("Language") {
         companion object {
             @JvmStatic
@@ -225,7 +278,7 @@ sealed class DublinCore(protected val name: String) : BookElement {
             fun fromLocale(
                 book: Book,
                 locale: Locale,
-                identifier: String? = null
+                identifier: String? = null,
             ): Language = Language(book, locale.toLanguageTag(), identifier)
         }
 
@@ -235,6 +288,12 @@ sealed class DublinCore(protected val name: String) : BookElement {
          * @see [Locale.forLanguageTag]
          */
         fun toLocale(): Locale = Locale.forLanguageTag(content)
+
+        /**
+         * Returns the result of invoking the [visitLanguage][DublinCoreVisitor.visitLanguage] function of the given
+         * [visitor].
+         */
+        override fun <R> accept(visitor: DublinCoreVisitor<R>): R = visitor.visitLanguage(this)
     }
 
     /**
@@ -246,8 +305,14 @@ sealed class DublinCore(protected val name: String) : BookElement {
     class Source @JvmOverloads constructor(
         override val book: Book,
         override var content: String,
-        override var identifier: String? = null
-    ) : DublinCore("Source")
+        override var identifier: String? = null,
+    ) : DublinCore("Source") {
+        /**
+         * Returns the result of invoking the [visitSource][DublinCoreVisitor.visitSource] function of the given
+         * [visitor].
+         */
+        override fun <R> accept(visitor: DublinCoreVisitor<R>): R = visitor.visitSource(this)
+    }
 
     /**
      * The nature or genre of the resource.
@@ -259,15 +324,23 @@ sealed class DublinCore(protected val name: String) : BookElement {
     class Type @JvmOverloads constructor(
         override val book: Book,
         override var content: String,
-        override var identifier: String? = null
-    ) : DublinCore("Type")
+        override var identifier: String? = null,
+    ) : DublinCore("Type") {
+        /**
+         * Returns the result of invoking the [visitType][DublinCoreVisitor.visitType] function of the given [visitor].
+         */
+        override fun <R> accept(visitor: DublinCoreVisitor<R>): R = visitor.visitType(this)
+    }
 }
 
+// TODO: rename to 'LocalizableDublinCore'?
 sealed class LocalizedDublinCore(name: String) : DublinCore(name) {
     final override val elementName: String
         get() = "LocalizedDublinCore.$name"
 
     abstract var direction: Direction?
+
+    // TODO: change this to just 'String'?
     abstract var language: Locale?
 
     override fun equals(other: Any?): Boolean = when {
@@ -310,8 +383,14 @@ sealed class LocalizedDublinCore(name: String) : DublinCore(name) {
         @MarkedAsLegacy(`in` = EPUB_3_0)
         var role: CreativeRole? = null,
         @MarkedAsLegacy(`in` = EPUB_3_0)
-        var fileAs: String? = null
+        var fileAs: String? = null,
     ) : LocalizedDublinCore("Contributor") {
+        /**
+         * Returns the result of invoking the [visitContributor][DublinCoreVisitor.visitContributor] function of the
+         * given [visitor].
+         */
+        override fun <R> accept(visitor: DublinCoreVisitor<R>): R = visitor.visitContributor(this)
+
         override fun equals(other: Any?): Boolean = when {
             this === other -> true
             other !is Contributor -> false
@@ -365,8 +444,14 @@ sealed class LocalizedDublinCore(name: String) : DublinCore(name) {
         override var content: String,
         override var identifier: String? = null,
         override var direction: Direction? = null,
-        override var language: Locale? = null
-    ) : LocalizedDublinCore("Coverage")
+        override var language: Locale? = null,
+    ) : LocalizedDublinCore("Coverage") {
+        /**
+         * Returns the result of invoking the [visitCoverage][DublinCoreVisitor.visitCoverage] function of the given
+         * [visitor].
+         */
+        override fun <R> accept(visitor: DublinCoreVisitor<R>): R = visitor.visitCoverage(this)
+    }
 
     /**
      * The entity primarily responsible for making the [Book].
@@ -386,8 +471,23 @@ sealed class LocalizedDublinCore(name: String) : DublinCore(name) {
         @MarkedAsLegacy(`in` = EPUB_3_0)
         var role: CreativeRole? = null,
         @MarkedAsLegacy(`in` = EPUB_3_0)
-        var fileAs: String? = null
+        var fileAs: String? = null,
     ) : LocalizedDublinCore("Creator") {
+        /**
+         * Returns `true` if this `creator` element defines the author of the [book], otherwise `false`.
+         */
+        val isAuthor: Boolean
+            get() = when (role) {
+                null -> false // TODO: check for enhancements belonging to this creator element in 'book'
+                else -> role == CreativeRole.AUTHOR
+            }
+
+        /**
+         * Returns the result of invoking the [visitCreator][DublinCoreVisitor.visitCreator] function of the given
+         * [visitor].
+         */
+        override fun <R> accept(visitor: DublinCoreVisitor<R>): R = visitor.visitCreator(this)
+
         override fun equals(other: Any?): Boolean = when {
             this === other -> true
             other !is Creator -> false
@@ -435,8 +535,14 @@ sealed class LocalizedDublinCore(name: String) : DublinCore(name) {
         override var content: String,
         override var identifier: String? = null,
         override var direction: Direction? = null,
-        override var language: Locale? = null
-    ) : LocalizedDublinCore("Description")
+        override var language: Locale? = null,
+    ) : LocalizedDublinCore("Description") {
+        /**
+         * Returns the result of invoking the [visitDescription][DublinCoreVisitor.visitDescription] function of the
+         * given [visitor].
+         */
+        override fun <R> accept(visitor: DublinCoreVisitor<R>): R = visitor.visitDescription(this)
+    }
 
     /**
      * An entity responsible for making the resource available.
@@ -449,8 +555,14 @@ sealed class LocalizedDublinCore(name: String) : DublinCore(name) {
         override var content: String,
         override var identifier: String? = null,
         override var direction: Direction? = null,
-        override var language: Locale? = null
-    ) : LocalizedDublinCore("Publisher")
+        override var language: Locale? = null,
+    ) : LocalizedDublinCore("Publisher") {
+        /**
+         * Returns the result of invoking the [visitPublisher][DublinCoreVisitor.visitPublisher] function of the given
+         * [visitor].
+         */
+        override fun <R> accept(visitor: DublinCoreVisitor<R>): R = visitor.visitPublisher(this)
+    }
 
     /**
      * A related resource.
@@ -463,8 +575,14 @@ sealed class LocalizedDublinCore(name: String) : DublinCore(name) {
         override var content: String,
         override var identifier: String? = null,
         override var direction: Direction? = null,
-        override var language: Locale? = null
-    ) : LocalizedDublinCore("Relation")
+        override var language: Locale? = null,
+    ) : LocalizedDublinCore("Relation") {
+        /**
+         * Returns the result of invoking the [visitRelation][DublinCoreVisitor.visitRelation] function of the given
+         * [visitor].
+         */
+        override fun <R> accept(visitor: DublinCoreVisitor<R>): R = visitor.visitRelation(this)
+    }
 
     /**
      * Information about rights held in and over the resource.
@@ -477,8 +595,14 @@ sealed class LocalizedDublinCore(name: String) : DublinCore(name) {
         override var content: String,
         override var identifier: String? = null,
         override var direction: Direction? = null,
-        override var language: Locale? = null
-    ) : LocalizedDublinCore("Rights")
+        override var language: Locale? = null,
+    ) : LocalizedDublinCore("Rights") {
+        /**
+         * Returns the result of invoking the [visitRights][DublinCoreVisitor.visitRights] function of the given
+         * [visitor].
+         */
+        override fun <R> accept(visitor: DublinCoreVisitor<R>): R = visitor.visitRights(this)
+    }
 
     /**
      * The topic of the resource.
@@ -491,8 +615,14 @@ sealed class LocalizedDublinCore(name: String) : DublinCore(name) {
         override var content: String,
         override var identifier: String? = null,
         override var direction: Direction? = null,
-        override var language: Locale? = null
-    ) : LocalizedDublinCore("Subject")
+        override var language: Locale? = null,
+    ) : LocalizedDublinCore("Subject") {
+        /**
+         * Returns the result of invoking the [visitSubject][DublinCoreVisitor.visitSubject] function of the given
+         * [visitor].
+         */
+        override fun <R> accept(visitor: DublinCoreVisitor<R>): R = visitor.visitSubject(this)
+    }
 
     /**
      * A name given to the resource.
@@ -502,6 +632,12 @@ sealed class LocalizedDublinCore(name: String) : DublinCore(name) {
         override var content: String,
         override var identifier: String? = null,
         override var direction: Direction? = null,
-        override var language: Locale? = null
-    ) : LocalizedDublinCore("Title")
+        override var language: Locale? = null,
+    ) : LocalizedDublinCore("Title") {
+        /**
+         * Returns the result of invoking the [visitTitle][DublinCoreVisitor.visitTitle] function of the given
+         * [visitor].
+         */
+        override fun <R> accept(visitor: DublinCoreVisitor<R>): R = visitor.visitTitle(this)
+    }
 }

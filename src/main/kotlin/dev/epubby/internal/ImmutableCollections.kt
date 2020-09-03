@@ -14,21 +14,10 @@
  * limitations under the License.
  */
 
-package dev.epubby.html.jsoup
+package dev.epubby.internal
 
-import dev.epubby.html.HtmlTag
-import org.jsoup.parser.Tag
+import kotlinx.collections.immutable.PersistentList
+import kotlinx.collections.immutable.persistentListOf
 
-class JsoupHtmlTagImpl(val delegate: Tag) : HtmlTag {
-    override val name: String
-        get() = delegate.name
-
-    override val normalizedName: String
-        get() = delegate.normalName()
-
-    override fun equals(other: Any?): Boolean = delegate == other
-
-    override fun hashCode(): Int = delegate.hashCode()
-
-    override fun toString(): String = delegate.toString()
-}
+internal inline fun <T> buildPersistentList(builder: MutableList<T>.() -> Unit): PersistentList<T> =
+    persistentListOf<T>().builder().apply(builder).build()

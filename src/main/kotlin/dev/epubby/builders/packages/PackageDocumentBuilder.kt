@@ -28,10 +28,7 @@ import dev.epubby.internal.MarkedAsDeprecated
 import dev.epubby.internal.MarkedAsLegacy
 import dev.epubby.internal.models.packages.*
 import dev.epubby.packages.PackageDocument
-import dev.epubby.prefixes.Prefix
-import dev.epubby.prefixes.Prefixes
-import dev.epubby.prefixes.emptyPrefixes
-import dev.epubby.prefixes.requireKnown
+import dev.epubby.prefixes.*
 import dev.epubby.utils.Direction
 import java.util.Locale
 import java.util.UUID
@@ -74,7 +71,7 @@ class PackageDocumentBuilder :
         this.identifier = identifier
     }
 
-    private var prefixes: Prefixes = emptyPrefixes()
+    private var prefixes: Prefixes = prefixesOf()
 
     @OptionalValue
     fun prefixes(prefixes: Prefixes): PackageDocumentBuilder = apply {
@@ -151,7 +148,7 @@ class PackageDocumentBuilder :
 
     override fun build(): PackageDocumentModel {
         val uniqueIdentifier = verify<String>(this::uniqueIdentifier)
-        val prefixes = prefixes.ifEmpty { null }?.toStringForm()
+        val prefixes = prefixes.ifEmpty { null }?.encodeToString()
         val metadata = verify<PackageMetadataModel>(this::metadata)
         val manifest = verify<PackageManifestModel>(this::manifest)
         val spine = verify<PackageSpineModel>(this::spine)

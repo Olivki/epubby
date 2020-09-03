@@ -17,77 +17,183 @@
 package dev.epubby.internal.models.packages
 
 import com.github.michaelbull.logging.InlineLogger
+import com.google.common.net.MediaType
 import dev.epubby.*
-import dev.epubby.internal.IntroducedIn
-import dev.epubby.internal.Namespaces
-import dev.epubby.internal.elementOf
-import dev.epubby.internal.getAttributeValueOrThrow
+import dev.epubby.BookVersion.EPUB_3_0
+import dev.epubby.dublincore.DublinCore.Identifier
+import dev.epubby.dublincore.DublinCore.Language
+import dev.epubby.dublincore.LocalizedDublinCore.Title
+import dev.epubby.internal.*
 import dev.epubby.internal.models.SerializedName
 import dev.epubby.internal.models.dublincore.DublinCoreModel
-import dev.epubby.internal.models.dublincore.LocalizedDublinCoreModel
-import dev.epubby.packages.PackageMetadata
+import dev.epubby.internal.models.dublincore.DublinCoreModel.IdentifierModel
+import dev.epubby.internal.models.dublincore.DublinCoreModel.LanguageModel
+import dev.epubby.internal.models.dublincore.LocalizedDublinCoreModel.TitleModel
+import dev.epubby.packages.metadata.*
 import dev.epubby.prefixes.Prefixes
-import kotlinx.collections.immutable.ImmutableList
-import kotlinx.collections.immutable.persistentSetOf
-import kotlinx.collections.immutable.toPersistentList
-import kotlinx.collections.immutable.toPersistentMap
+import dev.epubby.properties.*
+import dev.epubby.utils.Direction
+import dev.epubby.utils.toNonEmptyList
+import kotlinx.collections.immutable.*
 import org.jdom2.Element
 import org.jdom2.Namespace
+import java.net.URI
+import java.nio.charset.Charset
 import dev.epubby.internal.Namespaces.OPF as NAMESPACE
 
 @SerializedName("metadata")
 data class PackageMetadataModel internal constructor(
-    val identifiers: ImmutableList<DublinCoreModel.Identifier>,
-    val titles: ImmutableList<LocalizedDublinCoreModel.Title>,
-    val languages: ImmutableList<DublinCoreModel.Language>,
-    val dublinCore: ImmutableList<DublinCoreModel>,
-    val opf2Meta: ImmutableList<Opf2Meta>,
-    val opf3Meta: ImmutableList<Opf3Meta>,
-    val links: ImmutableList<Link>
+    val identifiers: PersistentList<IdentifierModel>,
+    val titles: PersistentList<TitleModel>,
+    val languages: PersistentList<LanguageModel>,
+    val dublinCoreEntries: PersistentList<DublinCoreModel>,
+    val opf2MetaEntries: PersistentList<Opf2MetaModel>,
+    val opf3MetaEntries: PersistentList<Opf3MetaModel>,
+    val links: PersistentList<LinkModel>,
 ) {
-    // TODO: group dublin-core elements with any opf3meta elements that refine it
+    // TODO: make sure we don't add any new elements in old book versions?
     @JvmSynthetic
     internal fun toElement(): Element = elementOf("metadata", NAMESPACE) {
         it.addNamespaceDeclaration(Namespaces.DUBLIN_CORE)
         it.addNamespaceDeclaration(Namespaces.OPF_WITH_PREFIX)
 
-        identifiers.forEach { dc -> it.addContent(dc.toElement()) }
-        titles.forEach { dc -> it.addContent(dc.toElement()) }
-        languages.forEach { dc -> it.addContent(dc.toElement()) }
-        dublinCore.forEach { dc -> it.addContent(dc.toElement()) }
-        opf3Meta.forEach { m -> it.addContent(m.toElement()) }
-        opf2Meta.forEach { m -> it.addContent(m.toElement()) }
-        links.forEach { l -> it.addContent(l.toElement()) }
+        val opf3Meta = opf3MetaEntries.asSequence()
+
+        fun groupedRefinements(): Map<String, List<Opf3MetaModel>> {
+            val refiningEntries = opf3Meta.filter { meta -> meta.refines != null }
+            val group = hashMapOf<String, MutableList<Opf3MetaModel>>()
+
+            for (entry in refiningEntries) {
+                val key = if (entry.refines!!.startsWith('#')) entry.refines.drop(1) else entry.refines
+                group.getOrPut(key) { mutableListOf() } += entry
+            }
+
+            return group
+        }
+
+        val refiningOpf3 = groupedRefinements()
+
+        fun addRefining(key: String?) {
+            val refinements = when (key) {
+                null -> emptyList()
+                else -> refiningOpf3[key] ?: emptyList()
+            }
+
+            for (refining in refinements) {
+                it.addContent(refining.toElement())
+            }
+        }
+
+        val nonRefiningOpf3 = opf3Meta.filter { meta -> meta.refines == null }
+
+        for (identifier in identifiers) {
+            it.addContent(identifier.toElement())
+            addRefining(identifier.identifier)
+        }
+
+        for (title in titles) {
+            it.addContent(title.toElement())
+            addRefining(title.identifier)
+        }
+
+        for (language in languages) {
+            it.addContent(language.toElement())
+            addRefining(language.identifier)
+        }
+
+        for (dublinCore in dublinCoreEntries) {
+            it.addContent(dublinCore.toElement())
+            addRefining(dublinCore.identifier)
+        }
+
+        for (meta in nonRefiningOpf3) {
+            it.addContent(meta.toElement())
+        }
+
+        for (meta in opf2MetaEntries) {
+            it.addContent(meta.toElement())
+        }
+
+        for (link in links) {
+            it.addContent(link.toElement())
+        }
     }
 
     @JvmSynthetic
     internal fun toPackageMetadata(book: Book, prefixes: Prefixes): PackageMetadata {
-        TODO("'toPackageMetadata' operation is not implemented yet.")
+        val identifiers = identifiers.map { it.toDublinCore(book) as Identifier }.toNonEmptyList()
+        val titles = titles.map { it.toDublinCore(book) as Title }.toNonEmptyList()
+        val languages = languages.map { it.toDublinCore(book) as Language }.toNonEmptyList()
+        val dublinCoreEntries = dublinCoreEntries.map { it.toDublinCore(book) }.toMutableList()
+        val allDublinCoreEntries = this.identifiers + this.titles + this.languages + this.dublinCoreEntries
+        val opf2MetaEntries = opf2MetaEntries.asSequence()
+            .mapNotNull { it.toOpf2Meta(book) }
+            .toMutableList()
+        val opf3MetaEntries = opf3MetaEntries.asSequence()
+            .map { it.toOpf3Meta(book, prefixes, allDublinCoreEntries) }
+            .onEachIndexed { i, it -> if (it == null) LOGGER.error { "Skipping ${opf3MetaEntries[i]} because it contains an unknown property." } }
+            .filterNotNull()
+            .toMutableList()
+        val links = links.asSequence()
+            .map { it.toLink(book, prefixes) }
+            .onEachIndexed { i, it -> if (it == null) LOGGER.error { "Skipping ${links[i]} because it contains unknown relation/properties." } }
+            .filterNotNull()
+            .toMutableList()
+
+        return PackageMetadata(
+            book,
+            identifiers,
+            titles,
+            languages,
+            dublinCoreEntries,
+            opf2MetaEntries,
+            opf3MetaEntries,
+            links
+        )
     }
 
     @SerializedName("meta")
-    data class Opf2Meta internal constructor(
-        val charset: String?,
-        val content: String?,
+    data class Opf2MetaModel internal constructor(
+        val charset: String? = null,
+        val content: String? = null,
         @SerializedName("http-equiv")
-        val httpEquivalent: String?,
-        val name: String?,
-        val scheme: String?,
-        val attributes: Map<String, String>
+        val httpEquiv: String? = null,
+        val name: String? = null,
+        val scheme: String? = null,
+        val attributes: PersistentMap<String, String>,
     ) {
         @JvmSynthetic
         internal fun toElement(): Element = elementOf("meta", NAMESPACE) {
             if (charset != null) it.setAttribute("charset", charset)
             if (content != null) it.setAttribute("content", content)
-            if (httpEquivalent != null) it.setAttribute("http-equiv", httpEquivalent)
+            if (httpEquiv != null) it.setAttribute("http-equiv", httpEquiv)
             if (name != null) it.setAttribute("name", name)
             if (scheme != null) it.setAttribute("scheme", scheme)
-            attributes.forEach { (k, v) -> it.setAttribute(k, v) }
+
+            for ((key, value) in attributes) {
+                it.setAttribute(key, value)
+            }
         }
 
+        // TODO: make this either throw an exception or log depending on a strictness?
         @JvmSynthetic
-        internal fun toOpf2Meta(book: Book): PackageMetadata.Opf2Meta {
-            TODO("'toOpf2Meta' operation is not implemented yet.")
+        internal fun toOpf2Meta(book: Book): Opf2Meta? {
+            val charset = charset?.let(Charset::forName)
+            return when {
+                (httpEquiv != null && content != null) && (name == null && charset == null) -> {
+                    Opf2Meta.HttpEquiv(book, httpEquiv, content, scheme, attributes)
+                }
+                (name != null && content != null) && (httpEquiv == null && charset == null) -> {
+                    Opf2Meta.Name(book, name, content, scheme, attributes)
+                }
+                (charset != null) && (name == null && httpEquiv == null && content == null) -> {
+                    Opf2Meta.Charset(book, charset, scheme, attributes)
+                }
+                else -> {
+                    LOGGER.error { "Can't convert $this to either of HttpEquiv/Name/Charset as it has a faulty combination of attributes." }
+                    null
+                }
+            }
         }
 
         internal companion object {
@@ -96,23 +202,49 @@ data class PackageMetadataModel internal constructor(
                 persistentSetOf("charset", "content", "http-equiv", "name", "scheme")
 
             @JvmSynthetic
-            internal fun fromElement(element: Element): Opf2Meta {
+            internal fun fromElement(element: Element): Opf2MetaModel {
                 val charset = element.getAttributeValue("charset")
                 val content = element.getAttributeValue("content")
                 val httpEquivalent = element.getAttributeValue("http-equiv")
                 val name = element.getAttributeValue("name")
                 val scheme = element.getAttributeValue("scheme")
                 val attributes = element.attributes
+                    .asSequence()
                     .filterNot { it.name in metaAttributes }
                     .associate { it.name to it.value }
                     .toPersistentMap()
-                return Opf2Meta(charset, content, httpEquivalent, name, scheme, attributes)
+                return Opf2MetaModel(charset, content, httpEquivalent, name, scheme, attributes)
+            }
+
+            @JvmSynthetic
+            internal fun fromOpf2Meta(meta: Opf2Meta): Opf2MetaModel = meta.accept(Opf2MetaToModel)
+
+            private object Opf2MetaToModel : Opf2MetaVisitor<Opf2MetaModel> {
+                override fun visitHttpEquiv(httpEquiv: Opf2Meta.HttpEquiv): Opf2MetaModel = Opf2MetaModel(
+                    httpEquiv = httpEquiv.httpEquiv,
+                    content = httpEquiv.content,
+                    scheme = httpEquiv.scheme,
+                    attributes = httpEquiv.globalAttributes
+                )
+
+                override fun visitName(name: Opf2Meta.Name): Opf2MetaModel = Opf2MetaModel(
+                    name = name.name,
+                    content = name.content,
+                    scheme = name.scheme,
+                    attributes = name.globalAttributes
+                )
+
+                override fun visitCharset(charset: Opf2Meta.Charset): Opf2MetaModel = Opf2MetaModel(
+                    content = charset.charset.name(),
+                    scheme = charset.scheme,
+                    attributes = charset.globalAttributes
+                )
             }
         }
     }
 
     @SerializedName("meta")
-    data class Opf3Meta internal constructor(
+    data class Opf3MetaModel internal constructor(
         val content: String,
         val property: String,
         @SerializedName("id")
@@ -122,7 +254,7 @@ data class PackageMetadataModel internal constructor(
         val refines: String?,
         val scheme: String?,
         @SerializedName("xml:lang")
-        val language: String?
+        val language: String?,
     ) {
         @JvmSynthetic
         internal fun toElement(): Element = elementOf("meta", NAMESPACE) {
@@ -135,11 +267,25 @@ data class PackageMetadataModel internal constructor(
             it.text = content
         }
 
-        // TODO: "a reading system should NOT fail when encountering an unknown property, rather it should skip that
-        //       element", so make this return Try<T> or something
         @JvmSynthetic
-        internal fun toOpf3Meta(book: Book): PackageMetadata.Opf3Meta {
-            TODO("'toOpf3Meta' operation is not implemented yet.")
+        internal fun toOpf3Meta(book: Book, prefixes: Prefixes, dublinCoreElements: List<DublinCoreModel>): Opf3Meta? {
+            fun invalidRefines(): Nothing =
+                throw MalformedBookException("'refines' of $this does not point to any known dublin-core elements")
+
+            // "a reading system should NOT fail when encountering an unknown property, rather it should skip that element"
+            val property = resolveMetaProperty(property, prefixes) ?: return null
+            val direction = direction?.let { Direction.fromString(it) }
+            val refines = when (refines) {
+                null -> null
+                else -> when {
+                    // TODO: this might not be needed?
+                    refines.startsWith("#") -> dublinCoreElements
+                        .firstOrNull { it.identifier == refines.drop(1) } ?: invalidRefines()
+                    else -> dublinCoreElements.firstOrNull { it.identifier == refines } ?: invalidRefines()
+                }
+            }?.toDublinCore(book)
+
+            return Opf3Meta(book, content, property, identifier, direction, refines, scheme, language)
         }
 
         internal companion object {
@@ -148,7 +294,7 @@ data class PackageMetadataModel internal constructor(
                 persistentSetOf("property", "id", "dir", "refines", "scheme", "lang")
 
             @JvmSynthetic
-            internal fun fromElement(element: Element): Opf3Meta {
+            internal fun fromElement(element: Element): Opf3MetaModel {
                 if (element.textNormalize.isBlank()) {
                     raiseError("value/text is blank")
                 }
@@ -160,7 +306,24 @@ data class PackageMetadataModel internal constructor(
                 val refines = element.getAttributeValue("refines")
                 val scheme = element.getAttributeValue("scheme")
                 val language = element.getAttributeValue("lang", Namespace.XML_NAMESPACE)
-                return Opf3Meta(content, property, identifier, direction, refines, scheme, language)
+                return Opf3MetaModel(content, property, identifier, direction, refines, scheme, language)
+            }
+
+            @JvmSynthetic
+            internal fun fromOpf3Meta(meta: Opf3Meta): Opf3MetaModel {
+                val property = meta.property.encodeToString()
+                val direction = meta.direction?.attributeName
+                val refines = meta.refines?.identifier
+
+                return Opf3MetaModel(
+                    meta.content,
+                    property,
+                    meta.identifier,
+                    direction,
+                    refines,
+                    meta.scheme,
+                    meta.language
+                )
             }
 
             private fun raiseError(reason: String): Nothing =
@@ -169,19 +332,19 @@ data class PackageMetadataModel internal constructor(
     }
 
     @SerializedName("link")
-    data class Link internal constructor(
+    data class LinkModel internal constructor(
         val href: String,
         @SerializedName("rel")
-        @IntroducedIn(version = BookVersion.EPUB_3_0)
+        @IntroducedIn(version = EPUB_3_0)
         val relation: String?,
         @SerializedName("media-type")
         val mediaType: String?,
         @SerializedName("id")
         val identifier: String?,
-        @IntroducedIn(version = BookVersion.EPUB_3_0)
+        @IntroducedIn(version = EPUB_3_0)
         val properties: String?,
-        @IntroducedIn(version = BookVersion.EPUB_3_0)
-        val refines: String?
+        @IntroducedIn(version = EPUB_3_0)
+        val refines: String?,
     ) {
         @JvmSynthetic
         internal fun toElement(): Element = elementOf("link", NAMESPACE) {
@@ -194,20 +357,47 @@ data class PackageMetadataModel internal constructor(
         }
 
         @JvmSynthetic
-        internal fun toLink(book: Book): PackageMetadata.Link {
-            TODO("'toLink' operation is not implemented yet.")
+        internal fun toLink(book: Book, prefixes: Prefixes): MetadataLink? {
+            val href = URI(href)
+            val relation = when {
+                book.version.isOlder(EPUB_3_0) -> null
+                else -> relation?.let { resolveLinkRelationship(it, prefixes) ?: return null }
+            }
+            val mediaType = mediaType?.let(MediaType::parse)
+            val properties = when {
+                book.version.isOlder(EPUB_3_0) -> null
+                else -> properties?.let { resolveLinkProperties(it, prefixes).ifEmpty { return null } }
+            } ?: Properties.empty()
+
+            return MetadataLink(book, href, relation, mediaType, identifier, properties, refines)
         }
 
         internal companion object {
             @JvmSynthetic
-            internal fun fromElement(element: Element): Link {
+            internal fun fromElement(element: Element): LinkModel {
                 val href = element.getAttributeValueOrThrow("href")
                 val relation = element.getAttributeValue("rel")
                 val mediaType = element.getAttributeValue("media-type")
                 val identifier = element.getAttributeValue("id")
                 val properties = element.getAttributeValue("properties")
                 val refines = element.getAttributeValue("refines")
-                return Link(href, relation, mediaType, identifier, properties, refines)
+                return LinkModel(href, relation, mediaType, identifier, properties, refines)
+            }
+
+            @JvmSynthetic
+            internal fun fromLink(link: MetadataLink): LinkModel {
+                val href = link.href.toString()
+                val relation = when {
+                    link.book.version.isOlder(EPUB_3_0) -> null
+                    else -> link.relation?.encodeToString()
+                }
+                val mediaType = link.mediaType?.toString()
+                val properties = when {
+                    link.book.version.isOlder(EPUB_3_0) -> null
+                    else -> link.properties.encodeToString()
+                }
+
+                return LinkModel(href, relation, mediaType, link.identifier, properties, link.refines)
             }
         }
     }
@@ -232,15 +422,15 @@ data class PackageMetadataModel internal constructor(
                 .filterNot { it.name == "language" }
                 .asIterable()
                 .toPersistentList()
-            val identifiers = allDublinCore.filterIsInstance<DublinCoreModel.Identifier>()
+            val identifiers = allDublinCore.filterIsInstance<IdentifierModel>()
                 .ifEmpty { throw MalformedBookException.forMissing("metadata", "dc:identifier") }
                 .asIterable()
                 .toPersistentList()
-            val titles = allDublinCore.filterIsInstance<LocalizedDublinCoreModel.Title>()
+            val titles = allDublinCore.filterIsInstance<TitleModel>()
                 .ifEmpty { throw MalformedBookException.forMissing("metadata", "dc:title") }
                 .asIterable()
                 .toPersistentList()
-            val languages = allDublinCore.filterIsInstance<DublinCoreModel.Language>()
+            val languages = allDublinCore.filterIsInstance<LanguageModel>()
                 .ifEmpty { throw MalformedBookException.forMissing("metadata", "dc:language") }
                 .asIterable()
                 .toPersistentList()
@@ -248,17 +438,17 @@ data class PackageMetadataModel internal constructor(
                 (element.getChild("x-metadata", element.namespace)?.getChildren("meta", element.namespace)
                     ?: element.getChildren("meta", element.namespace)).asSequence()
             val opf2Meta = metaElements.filter { it.isOpf2MetaElement() }
-                .tryMap { Opf2Meta.fromElement(it) }
+                .tryMap { Opf2MetaModel.fromElement(it) }
                 .mapToValues(LOGGER, strictness)
                 .asIterable()
                 .toPersistentList()
             val opf3Meta = metaElements.filter { it.isOpf3MetaElement() }
-                .tryMap { Opf3Meta.fromElement(it) }
+                .tryMap { Opf3MetaModel.fromElement(it) }
                 .mapToValues(LOGGER, strictness)
                 .asIterable()
                 .toPersistentList()
             val links = element.getChildren("link", element.namespace)
-                .tryMap { Link.fromElement(it) }
+                .tryMap { LinkModel.fromElement(it) }
                 .mapToValues(LOGGER, strictness)
                 .toPersistentList()
             return PackageMetadataModel(identifiers, titles, languages, dublinCore, opf2Meta, opf3Meta, links)
@@ -266,13 +456,43 @@ data class PackageMetadataModel internal constructor(
 
         @JvmSynthetic
         internal fun fromPackageMetadata(origin: PackageMetadata): PackageMetadataModel {
-            TODO("'fromPackageMetadata' operation is not implemented yet.")
+            val identifiers = origin.identifiers
+                .map { DublinCoreModel.fromDublinCore(it) as IdentifierModel }
+                .toPersistentList()
+            val titles = origin.titles
+                .map { DublinCoreModel.fromDublinCore(it) as TitleModel }
+                .toPersistentList()
+            val languages = origin.languages
+                .map { DublinCoreModel.fromDublinCore(it) as LanguageModel }
+                .toPersistentList()
+            val dublinCoreEntries = origin.dublinCoreEntries
+                .map { DublinCoreModel.fromDublinCore(it) }
+                .toPersistentList()
+            val opf2MetaEntries = origin.opf2MetaEntries
+                .map { Opf2MetaModel.fromOpf2Meta(it) }
+                .toPersistentList()
+            val opf3MetaEntries = origin.opf3MetaEntries
+                .map { Opf3MetaModel.fromOpf3Meta(it) }
+                .toPersistentList()
+            val links = origin.links
+                .map { LinkModel.fromLink(it) }
+                .toPersistentList()
+
+            return PackageMetadataModel(
+                identifiers,
+                titles,
+                languages,
+                dublinCoreEntries,
+                opf2MetaEntries,
+                opf3MetaEntries,
+                links
+            )
         }
 
-        private fun Element.isOpf2MetaElement(): Boolean = attributes.none { it.name in Opf3Meta.metaAttributes }
-            && attributes.any { it.name in Opf2Meta.metaAttributes }
+        private fun Element.isOpf2MetaElement(): Boolean = attributes.none { it.name in Opf3MetaModel.metaAttributes }
+            && attributes.any { it.name in Opf2MetaModel.metaAttributes }
 
-        private fun Element.isOpf3MetaElement(): Boolean = attributes.any { it.name in Opf3Meta.metaAttributes }
-            && attributes.none { it.name in Opf2Meta.metaAttributes }
+        private fun Element.isOpf3MetaElement(): Boolean = attributes.any { it.name in Opf3MetaModel.metaAttributes }
+            && attributes.none { it.name in Opf2MetaModel.metaAttributes }
     }
 }

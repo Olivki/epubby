@@ -14,74 +14,68 @@
  * limitations under the License.
  */
 
+@file:JvmName("_kt_properties_extensions")
+
 package dev.epubby.properties
 
+import dev.epubby.BookElement
 import dev.epubby.BookVersion
 import dev.epubby.internal.IntroducedIn
-import moe.kanon.kommons.affirm
+
+// TODO: when I originally implemented this class, I made it so that it couldn't be empty, but now after thinking about
+//       it for a bit, I can't recall that being an *actual* requirement set forth by the standard, as an empty
+//       'properties' attribute is not uncommon, so this has been removed because it seems like me misunderstanding
+//       something quite severely. Maybe look further into this later? Maybe only some 'properties' attributes need to
+//       actually contain data? If so, maybe make a 'NonEmptyProperties' class or something like that?
 
 /**
- * Represents a list of [Property] instances used by a book.
+ * Represents a list of [Property] instances used by various [BookElement]s.
  *
- * A properties instance is not allowed to be empty, and therefore invoking [clear] or invoking [remove]/[removeAt]
- * when the element is the last one in the properties instance will result in a [UnsupportedOperationException] being
- * thrown.
+ * Only [Property] implementations known by the Epubby system is allowed to be contained in a `Properties` instance.
  */
 @IntroducedIn(version = BookVersion.EPUB_3_0)
-class Properties private constructor(private val delegate: MutableList<Property>) : AbstractMutableList<Property>() {
+class Properties private constructor(private val delegate: MutableSet<Property>) : AbstractMutableSet<Property>() {
     override val size: Int
         get() = delegate.size
 
-    override fun add(index: Int, element: Property) {
-        requireKnown(element)
-        delegate.add(index, element)
-    }
+    override fun add(element: Property): Boolean = delegate.add(element)
 
-    override fun get(index: Int): Property = delegate[index]
-
-    override fun removeAt(index: Int): Property {
-        affirm(size > 1) { "Removing the last element of a properties instance is not allowed." }
-        return delegate.removeAt(index)
-    }
-
-    override fun set(index: Int, element: Property): Property {
-        requireKnown(element)
-        return delegate.set(index, element)
-    }
-
-    override fun clear() {
-        throw UnsupportedOperationException("Clearing a properties instance is not allowed.")
-    }
-
-    /**
-     * Returns a string containing all the [property][Property] instances stored in this `properties`, separated by a
-     * space.
-     */
-    // TODO: should this only be returning 'reference'?
-    @JvmSynthetic
-    internal fun toStringForm(): String = joinToString(separator = " ") { it.reference.toString() }
+    override fun iterator(): MutableIterator<Property> = delegate.iterator()
 
     companion object {
-        /**
-         * Returns a new properties instance that contains the [first] property and any values defined in [rest].
-         */
+        // TODO: document
         @JvmStatic
-        fun of(first: Property, vararg rest: Property): Properties = Properties(mutableListOf(first, *rest))
+        fun withInitialCapacity(initialCapacity: Int): Properties = Properties(LinkedHashSet(initialCapacity))
 
         /**
-         * Returns a new properties instance containing the property values in the given [properties].
-         *
-         * @throws [IllegalArgumentException] if [properties] is empty
+         * Returns a new [Properties] instance that contains no entries.
          */
         @JvmStatic
-        fun copyOf(properties: Iterable<Property>): Properties {
-            require(properties.any<Any?>()) { "expected 'properties' to not be empty" }
-            return Properties(properties.toMutableList())
+        fun empty(): Properties = Properties(linkedSetOf())
+
+        /**
+         * Returns a new [Properties] instance that contains the property instances contained in the given
+         * [properties].
+         */
+        @JvmStatic
+        fun of(vararg properties: Property): Properties = when (properties.size) {
+            0 -> empty()
+            else -> copyOf(properties.asList())
         }
 
-        @JvmSynthetic
-        internal fun empty(): Properties = Properties(mutableListOf())
-
-        // TODO: parse?
+        /**
+         * Returns a new [Properties] instance containing the property values in the given [properties].
+         */
+        @JvmStatic
+        fun copyOf(properties: Iterable<Property>): Properties = Properties(properties.toMutableSet())
     }
 }
+
+fun Iterable<Property>.toProperties(): Properties = Properties.copyOf(this)
+
+fun propertiesOf(vararg properties: Property): Properties = when (properties.size) {
+    0 -> Properties.empty()
+    else -> properties.asList().toProperties()
+}
+
+fun propertiesOf(): Properties = Properties.empty()

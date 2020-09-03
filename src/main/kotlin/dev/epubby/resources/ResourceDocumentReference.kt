@@ -17,11 +17,13 @@
 package dev.epubby.resources
 
 import dev.epubby.page.Page
+import dev.epubby.utils.setAttribute
 import org.jsoup.nodes.Attribute
 import org.jsoup.nodes.Element
+import java.nio.file.Path
 
 /**
- * Represents a reference to a [Resource] implementation from a [Page].
+ * Represents a reference to a [LocalResource] implementation from a [Page].
  *
  * @property [element] The element that referenced the resource.
  * @property [attribute] The [Attribute] that stores the actual reference.
@@ -30,14 +32,15 @@ import org.jsoup.nodes.Element
  */
 // TODO: Name
 // TODO: Change this class? Maybe make it internal only?..
-data class ResourceReference internal constructor(
+data class ResourceDocumentReference internal constructor(
     val element: Element,
     val attribute: Attribute,
     val fragmentIdentifier: String? = if ('#' in attribute.value) attribute.value.substringAfter('#') else null
 ) {
     @JvmSynthetic
-    internal fun updateReferenceTo(resource: Resource) {
-        val location = "${resource.relativeFile}${fragmentIdentifier?.let { "#$it" } ?: ""}"
-        element.attr(attribute.key, location)
+    internal fun updateReferenceTo(resource: LocalResource, newFile: Path) {
+        val relativeFile = resource.book.packageDocument.file.relativize(newFile)
+        val location = "$relativeFile${fragmentIdentifier?.let { "#$it" } ?: ""}"
+        element.setAttribute(attribute.key, location)
     }
 }

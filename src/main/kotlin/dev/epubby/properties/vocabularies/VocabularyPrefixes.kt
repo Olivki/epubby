@@ -22,14 +22,14 @@ import java.net.URI
 
 object VocabularyPrefixes {
     @JvmField
-    val MANIFEST_PREFIX: Prefix = VocabularyPrefix(URI.create("http://idpf.org/epub/vocab/package/item/#"))
+    val MANIFEST: Prefix = VocabularyPrefix(URI.create("http://idpf.org/epub/vocab/package/item/#"))
 
     @JvmField
-    val METADATA_LINK_PREFIX: Prefix = VocabularyPrefix(URI.create("http://idpf.org/epub/vocab/package/link/#"))
+    val METADATA_LINK: Prefix = VocabularyPrefix(URI.create("http://idpf.org/epub/vocab/package/link/#"))
 
     @JvmField
-    val METADATA_META_PREFIX: Prefix = VocabularyPrefix(URI.create("http://idpf.org/epub/vocab/package/meta/#"))
+    val METADATA_META: Prefix = VocabularyPrefix(URI.create("http://idpf.org/epub/vocab/package/meta/#"))
 
     @JvmField
-    val SPINE_PREFIX: Prefix = VocabularyPrefix(URI.create("http://idpf.org/epub/vocab/package/itemref/#"))
+    val SPINE: Prefix = VocabularyPrefix(URI.create("http://idpf.org/epub/vocab/package/itemref/#"))
 }

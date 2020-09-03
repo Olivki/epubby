@@ -21,8 +21,8 @@ import dev.epubby.Book
 import dev.epubby.builders.AbstractModelBuilder
 import dev.epubby.builders.OptionalValue
 import dev.epubby.internal.models.metainf.MetaInfContainerModel
-import dev.epubby.internal.models.metainf.MetaInfContainerModel.Link
-import dev.epubby.internal.models.metainf.MetaInfContainerModel.RootFile
+import dev.epubby.internal.models.metainf.MetaInfContainerModel.LinkModel
+import dev.epubby.internal.models.metainf.MetaInfContainerModel.RootFileModel
 import dev.epubby.metainf.ContainerVersion
 import dev.epubby.metainf.MetaInfContainer
 import dev.epubby.prefixes.Prefixes
@@ -43,43 +43,43 @@ class MetaInfContainerBuilder :
         this.version = version
     }
 
-    private var rootFiles: MutableList<RootFile> = mutableListOf()
+    private var rootFiles: MutableList<RootFileModel> = mutableListOf()
 
     /**
      * TODO
      *
      * @throws [IllegalArgumentException] if [rootFiles] is empty
      */
-    fun rootFiles(rootFiles: Iterable<RootFile>): MetaInfContainerBuilder = apply {
+    fun rootFiles(rootFiles: Iterable<RootFileModel>): MetaInfContainerBuilder = apply {
         require(rootFiles.any()) { "'rootFiles' must not be empty" }
         this.rootFiles = rootFiles.toMutableList()
     }
 
     @OptionalValue
-    fun rootFile(rootFile: RootFile): MetaInfContainerBuilder = apply {
+    fun rootFile(rootFile: RootFileModel): MetaInfContainerBuilder = apply {
         rootFiles.add(rootFile)
     }
 
     @OptionalValue
     fun rootFile(path: Path, mediaType: MediaType): MetaInfContainerBuilder =
-        rootFile(RootFile(path.toString().substring(1), mediaType.toString()))
+        rootFile(RootFileModel(path.toString().substring(1), mediaType.toString()))
 
-    private var links: MutableList<Link> = mutableListOf()
+    private var links: MutableList<LinkModel> = mutableListOf()
 
     @OptionalValue
-    fun links(links: Iterable<Link>): MetaInfContainerBuilder = apply {
+    fun links(links: Iterable<LinkModel>): MetaInfContainerBuilder = apply {
         this.links = links.toMutableList()
     }
 
     @OptionalValue
-    fun link(link: Link): MetaInfContainerBuilder = apply {
+    fun link(link: LinkModel): MetaInfContainerBuilder = apply {
         links.add(link)
     }
 
     @JvmOverloads
     @OptionalValue
     fun link(href: String, mediaType: MediaType, relation: String? = null): MetaInfContainerBuilder =
-        link(Link(href, relation, mediaType.toString()))
+        link(LinkModel(href, relation, mediaType.toString()))
 
     override fun build(): MetaInfContainerModel {
         val rootFiles = rootFiles.ifEmpty { malformedValue("rootFiles", "must not be empty") }.toPersistentList()

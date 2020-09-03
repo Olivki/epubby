@@ -25,8 +25,11 @@ class MiscResource(
     identifier: String,
     file: Path,
     override val mediaType: MediaType
-) : Resource(book, identifier, file) {
-    override fun <R : Any> accept(visitor: ResourceVisitor<R>): R = visitor.visitMisc(this)
+) : LocalResource(book, identifier, file) {
+    /**
+     * Returns the result of invoking the [visitMisc][ResourceVisitor.visitMisc] function of the given [visitor].
+     */
+    override fun <R> accept(visitor: ResourceVisitor<R>): R = visitor.visitMisc(this)
 
     override fun toString(): String = "MiscResource(identifier='$identifier', mediaType=$mediaType, file='$file')"
 }

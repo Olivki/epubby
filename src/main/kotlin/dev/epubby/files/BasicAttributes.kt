@@ -14,20 +14,18 @@
  * limitations under the License.
  */
 
-package dev.epubby.html
+package dev.epubby.files
 
-interface HtmlDocument : HtmlElement {
-    var title: String?
+// TODO: name
+interface BasicAttributes<T> {
+    /**
+     * Returns the value of the given file [attribute], or throws a [IllegalArgumentException] if no  such attribute is
+     * defined.
+     */
+    operator fun get(attribute: String): T
 
-    // TODO: should 'head' and 'body' be nullable?
-
-    val head: HtmlElement?
-
-    val body: HtmlElement?
-
-    override fun equals(other: Any?): Boolean
-
-    override fun hashCode(): Int
-
-    override fun toString(): String
+    /**
+     * Sets the value of the given file [attribute] to the given [value].
+     */
+    operator fun set(attribute: String, value: T)
 }

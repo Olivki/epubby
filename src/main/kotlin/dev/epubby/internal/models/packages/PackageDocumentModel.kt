@@ -24,7 +24,7 @@ import dev.epubby.internal.*
 import dev.epubby.internal.models.SerializedName
 import dev.epubby.internal.parser.PrefixesParser
 import dev.epubby.packages.PackageDocument
-import dev.epubby.prefixes.emptyPrefixes
+import dev.epubby.prefixes.prefixesOf
 import dev.epubby.utils.Direction
 import moe.kanon.kommons.io.paths.name
 import org.jdom2.Document
@@ -76,13 +76,14 @@ data class PackageDocumentModel internal constructor(
     internal fun toPackageDocument(book: Book): PackageDocument {
         // TODO: make use of 'version' ?
         val version = BookVersion.parse(version)
-        val direction = direction?.let { Direction.fromTag(it) }
-        val prefixes = prefixes?.let { PrefixesParser.parse(it) } ?: emptyPrefixes()
+        val direction = direction?.let { Direction.fromString(it) }
+        val prefixes = prefixes?.let { PrefixesParser.parse(it) } ?: prefixesOf()
         val language = language?.let(Locale::forLanguageTag)
+
         val metadata = metadata.toPackageMetadata(book, prefixes)
         val manifest = manifest.toPackageManifest(book, prefixes)
-        val spine = spine.toPackageSpine(book, prefixes)
-        val guide = guide?.toPackageGuide(book)
+        val spine = spine.toPackageSpine(book, prefixes, manifest)
+        val guide = guide?.toPackageGuide(book, manifest)
         val bindings = bindings?.toPackageBindings(book)
         val collection = collection?.toPackageCollection(book, prefixes)
         val tours = tours?.toPackageTours(book)

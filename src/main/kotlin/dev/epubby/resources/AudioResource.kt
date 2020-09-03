@@ -27,16 +27,19 @@ class AudioResource(
     identifier: String,
     file: Path,
     override val mediaType: MediaType
-) : Resource(book, identifier, file) {
-    override fun <R : Any> accept(visitor: ResourceVisitor<R>): R = visitor.visitAudio(this)
+) : LocalResource(book, identifier, file) {
+    /**
+     * Returns the result of invoking the [visitAudio][ResourceVisitor.visitAudio] function of the given [visitor].
+     */
+    override fun <R> accept(visitor: ResourceVisitor<R>): R = visitor.visitAudio(this)
 
     override fun toString(): String = "AudioResource(identifier='$identifier', mediaType=$mediaType, file='$file')"
 }
 
-@AutoService(ResourceLocator::class)
-internal object AudioResourceLocator : ResourceLocator {
+@AutoService(LocalResourceLocator::class)
+internal object AudioResourceLocator : LocalResourceLocator {
     private val TYPES: Set<MediaType> = persistentHashSetOf(MediaType.MPEG_AUDIO)
-    private val FACTORY: ResourceFactory = ::AudioResource
+    private val FACTORY: LocalResourceFactory = ::AudioResource
 
-    override fun findFactory(mediaType: MediaType): ResourceFactory? = FACTORY.takeIf { mediaType in TYPES }
+    override fun findFactory(mediaType: MediaType): LocalResourceFactory? = FACTORY.takeIf { mediaType in TYPES }
 }

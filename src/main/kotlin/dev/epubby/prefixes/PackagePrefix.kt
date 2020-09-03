@@ -16,11 +16,29 @@
 
 package dev.epubby.prefixes
 
+import dev.epubby.Book
 import dev.epubby.BookVersion
 import dev.epubby.internal.IntroducedIn
+import dev.epubby.packages.PackageDocument
+import dev.epubby.properties.Property
+import kotlinx.collections.immutable.toPersistentHashMap
 import moe.kanon.kommons.collections.getOrThrow
 import java.net.URI
 
+/**
+ * Represents a [Prefix] that is reserved by the EPUB specification.
+ *
+ * This prefix can be used in any [Property] without needing to have it defined in the
+ * [prefixes][PackageDocument.prefixes] property of the [PackageDocument] of the [Book].
+ *
+ * Any entry defined here basically serves as an inbuilt prefix that all EPUB readers should be able to understand.
+ *
+ * Usage of any of these entries should be done with care, as they may be removed, or completely changed, with each
+ * new version of the EPUB specification.
+ */
+// TODO: fact check the last sentence in the documentation
+// TODO: mark these with some 'Experimental' annotation so that the user is more aware that these entries are basically
+//       seen as experimental by the EPUB specification?
 @IntroducedIn(version = BookVersion.EPUB_3_0)
 enum class PackagePrefix(override val title: String, override val uri: URI) : Prefix {
     A11Y("a11y", URI.create("http://www.idpf.org/epub/vocab/package/a11y/#")),
@@ -37,19 +55,19 @@ enum class PackagePrefix(override val title: String, override val uri: URI) : Pr
         get() = true
 
     companion object {
-        private val prefixToInstance: MutableMap<String, PackagePrefix> = values().associateByTo(hashMapOf(), PackagePrefix::title)
+        private val ENTRIES: Map<String, PackagePrefix> = values().associateBy { it.title }.toPersistentHashMap()
 
         @JvmStatic
         fun fromPrefix(prefix: String): PackagePrefix =
-            prefixToInstance.getOrThrow(prefix) { "'$prefix' is not a reserved prefix." }
+            ENTRIES.getOrThrow(prefix) { "'$prefix' is not a reserved prefix." }
 
         @JvmStatic
-        fun fromPrefixOrNull(prefix: String): PackagePrefix? = prefixToInstance[prefix]
+        fun fromPrefixOrNull(prefix: String): PackagePrefix? = ENTRIES[prefix]
 
         /**
          * Returns `true` if the given [prefix] is a reserved prefix, otherwise `false`.
          */
         @JvmStatic
-        fun isReservedPrefix(prefix: String): Boolean = prefix in prefixToInstance
+        fun isReservedPrefix(prefix: String): Boolean = prefix in ENTRIES
     }
 }

@@ -28,6 +28,10 @@ import dev.epubby.internal.Namespaces.OPF as NAMESPACE
 
 @SerializedName("collection")
 data class PackageCollectionModel internal constructor(val d: Unit) {
+    init {
+        TODO("Implement 'PackageCollectionModel'")
+    }
+
     @JvmSynthetic
     internal fun toElement(): Element = elementOf("collection", NAMESPACE) {
         TODO("'toElement' operation is not implemented.")

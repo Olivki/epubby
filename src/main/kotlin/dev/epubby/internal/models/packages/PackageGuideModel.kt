@@ -17,17 +17,15 @@
 package dev.epubby.internal.models.packages
 
 import com.github.michaelbull.logging.InlineLogger
-import dev.epubby.Book
-import dev.epubby.ParseStrictness
+import dev.epubby.*
 import dev.epubby.internal.`Reference | CustomReference`
 import dev.epubby.internal.elementOf
 import dev.epubby.internal.getAttributeValueOrThrow
 import dev.epubby.internal.models.SerializedName
-import dev.epubby.mapToValues
-import dev.epubby.packages.PackageGuide
+import dev.epubby.packages.PackageManifest
+import dev.epubby.packages.guide.*
 import dev.epubby.resources.PageResource
-import dev.epubby.tryMap
-import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.plus
 import kotlinx.collections.immutable.toPersistentList
 import moe.kanon.kommons.collections.emptyEnumMap
@@ -35,38 +33,31 @@ import moe.kanon.kommons.func.Either
 import org.apache.commons.collections4.map.CaseInsensitiveMap
 import org.jdom2.Element
 import dev.epubby.internal.Namespaces.OPF as NAMESPACE
-import dev.epubby.packages.PackageGuide.CustomReference as PackageCustomReference
-import dev.epubby.packages.PackageGuide.Reference as PackageReference
-import dev.epubby.packages.PackageGuide.Type.Companion as ReferenceType
 
 @SerializedName("guide")
-data class PackageGuideModel internal constructor(val references: ImmutableList<Reference>) {
+data class PackageGuideModel internal constructor(val references: PersistentList<ReferenceModel>) {
     @JvmSynthetic
     internal fun toElement(): Element = elementOf("guide", NAMESPACE) {
-        references.forEach { reference -> it.addContent(reference.toElement()) }
+        for (reference in references) {
+            it.addContent(reference.toElement())
+        }
     }
 
     @JvmSynthetic
-    internal fun toPackageGuide(book: Book): PackageGuide {
-        val allReferences = references.asSequence().map { it.toReference(book) }
+    internal fun toPackageGuide(book: Book, manifest: PackageManifest): PackageGuide {
+        val allReferences = references.asSequence()
+            .mapNotNull { it.toReference(book, manifest) }
         val references = allReferences.filter { it.isLeft }
             .map { it.leftValue }
             .associateByTo(emptyEnumMap()) { it.type }
         val customReferences = allReferences.filter { it.isRight }
             .map { it.rightValue }
             .associateByTo(CaseInsensitiveMap()) { it.type }
-        return PackageGuide(book).also {
-            it._references.putAll(references as Map<PackageGuide.Type, PackageReference>)
-            it._customReferences.putAll(customReferences)
-        }
+        return PackageGuide(book, references, customReferences)
     }
 
     @SerializedName("reference")
-    data class Reference internal constructor(
-        val type: String,
-        val href: String,
-        val title: String?
-    ) {
+    data class ReferenceModel internal constructor(val type: String, val href: String, val title: String?) {
         private val hasCustomType: Boolean
             get() = type.startsWith("other.", ignoreCase = true)
 
@@ -78,32 +69,40 @@ data class PackageGuideModel internal constructor(val references: ImmutableList<
         }
 
         @JvmSynthetic
-        internal fun toReference(book: Book): `Reference | CustomReference` {
-            val resource = getPageResourceByHref(book)
+        internal fun toReference(book: Book, manifest: PackageManifest): `Reference | CustomReference`? {
+            val resource = getPageResourceOrNull(manifest) ?: return null
             return when {
-                hasCustomType -> Either.right(PackageCustomReference(book, type.substring(6), resource, title))
+                hasCustomType -> Either.right(CustomGuideReference(book, type.substring(6), resource, title))
                 else -> {
                     val type = ReferenceType.fromType(type)
-                    Either.left(PackageReference(book, type, resource, title))
+                    Either.left(GuideReference(book, type, resource, title))
                 }
             }
         }
 
-        private fun getPageResourceByHref(book: Book): PageResource = TODO()
+        private fun getPageResourceOrNull(manifest: PackageManifest): PageResource? = manifest.localResources
+            .asSequence()
+            .filterIsInstance<PageResource>()
+            .filter { it.isHrefEqual(href) }
+            .firstOrNull().also {
+                if (it == null) {
+                    LOGGER.error { "Could not find a resource with a 'href' matching the 'href' of $this." }
+                }
+            }
 
         internal companion object {
-            private val LOGGER: InlineLogger = InlineLogger(Reference::class)
+            private val LOGGER: InlineLogger = InlineLogger(ReferenceModel::class)
 
             @JvmSynthetic
-            internal fun fromElement(element: Element): Reference {
+            internal fun fromElement(element: Element): ReferenceModel {
                 val type = handleType(element.getAttributeValueOrThrow("type"), shouldLog = true)
                 val href = element.getAttributeValueOrThrow("href")
                 val title = element.getAttributeValue("href")
-                return Reference(type, href, title)
+                return ReferenceModel(type, href, title)
             }
 
             private fun handleType(value: String, shouldLog: Boolean): String = when {
-                !(value.startsWith("other.", ignoreCase = true)) && ReferenceType.isUnknownType(value) -> {
+                !(value.startsWith("other.", ignoreCase = true)) && value !in ReferenceType -> {
                     if (shouldLog) {
                         LOGGER.debug { "Fixing unknown guide type '$value' to 'other.$value'." }
                     }
@@ -114,19 +113,19 @@ data class PackageGuideModel internal constructor(val references: ImmutableList<
             }
 
             @JvmSynthetic
-            internal fun fromReference(origin: PackageReference): Reference {
+            internal fun fromReference(origin: GuideReference): ReferenceModel {
                 val type = origin.type.type
                 val href = origin.reference.relativeHref.substringAfter("../")
                 val title = origin.title
-                return Reference(type, href, title)
+                return ReferenceModel(type, href, title)
             }
 
             @JvmSynthetic
-            internal fun fromCustomReference(origin: PackageCustomReference): Reference {
+            internal fun fromCustomReference(origin: CustomGuideReference): ReferenceModel {
                 val type = handleType(origin.type, shouldLog = false)
                 val href = origin.reference.relativeHref.substringAfter("../")
                 val title = origin.title
-                return Reference(type, href, title)
+                return ReferenceModel(type, href, title)
             }
         }
     }
@@ -137,7 +136,7 @@ data class PackageGuideModel internal constructor(val references: ImmutableList<
         @JvmSynthetic
         internal fun fromElement(element: Element, strictness: ParseStrictness): PackageGuideModel {
             val references = element.getChildren("reference", element.namespace)
-                .tryMap { Reference.fromElement(it) }
+                .tryMap { ReferenceModel.fromElement(it) }
                 .mapToValues(LOGGER, strictness)
                 .toPersistentList()
             return PackageGuideModel(references)
@@ -145,11 +144,11 @@ data class PackageGuideModel internal constructor(val references: ImmutableList<
 
         @JvmSynthetic
         internal fun fromPackageGuide(origin: PackageGuide): PackageGuideModel {
-            val references = origin._references
-                .map { (_, ref) -> Reference.fromReference(ref) }
+            val references = origin.references
+                .map { (_, ref) -> ReferenceModel.fromReference(ref) }
                 .toPersistentList()
-            val customReferences = origin._customReferences
-                .map { (_, ref) -> Reference.fromCustomReference(ref) }
+            val customReferences = origin.customReferences
+                .map { (_, ref) -> ReferenceModel.fromCustomReference(ref) }
                 .toPersistentList()
             return PackageGuideModel(references + customReferences)
         }

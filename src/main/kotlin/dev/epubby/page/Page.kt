@@ -23,12 +23,10 @@ import dev.epubby.resources.PageResource
 import moe.kanon.kommons.io.paths.newInputStream
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
-import org.jsoup.nodes.Element
 import org.jsoup.nodes.Entities
 import java.io.IOException
 
 class Page private constructor(
-    val document: Document,
     val resource: PageResource,
     // TODO: update things that reference this 'identifier' ?
     var identifier: String? = null,
@@ -36,6 +34,13 @@ class Page private constructor(
     // TODO: validate that this is empty if version is lower than 3.0 at some point ?
     val properties: Properties = Properties.empty()
 ) : BookElement {
+    val document: Document by lazy {
+        val file = resource.file
+        val document = file.newInputStream().use { Jsoup.parse(it, "UTF-8", file.toUri().toString()) }
+        setupOutputSettings(document)
+        document
+    }
+
     override val book: Book
         get() = resource.book
 
@@ -73,10 +78,7 @@ class Page private constructor(
             properties: Properties = Properties.empty()
         ): Page {
             check(resource in resource.book.resources)
-            val file = resource.file
-            val document = file.newInputStream().use { Jsoup.parse(it, "UTF-8", file.toUri().toString()) }
-            setupOutputSettings(document)
-            return Page(document, resource, identifier, isLinear, properties)
+            return Page(resource, identifier, isLinear, properties)
         }
 
         private fun setupOutputSettings(document: Document) {

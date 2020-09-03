@@ -16,29 +16,30 @@
 
 package dev.epubby
 
+import dev.epubby.files.BookFile
+import dev.epubby.files.DirectoryFile
 import dev.epubby.metainf.MetaInf
 import dev.epubby.packages.PackageDocument
 import dev.epubby.packages.PackageManifest
-import dev.epubby.packages.PackageMetadata
 import dev.epubby.packages.PackageSpine
-import dev.epubby.resources.ResourceRepository
+import dev.epubby.packages.metadata.PackageMetadata
 import java.io.Closeable
 import java.nio.file.FileSystem
 import java.nio.file.Files
-import java.nio.file.Path
 
 /**
  * Represents an EPUB file.
+ *
+ * TODO: more documentation
  *
  * @property [version] The version of the EPUB specification that this book adheres to.
  * @property [fileSystem] TODO
  */
 class Book internal constructor(
     val version: BookVersion,
-    val fileSystem: FileSystem
+    @get:JvmSynthetic
+    internal val fileSystem: FileSystem,
 ) : Closeable {
-    val resources: ResourceRepository = ResourceRepository(this)
-
     @set:JvmSynthetic
     lateinit var metaInf: MetaInf
         internal set
@@ -63,35 +64,54 @@ class Book internal constructor(
      * should be located at the root of a book. Any *direct* changes *(i.e; [Files.delete], [Files.move])* to any of
      * these files is ***highly discouraged***, as that can, and most likely will, cause severe issues for the system.
      */
-    val root: Path
-        get() = fileSystem.getPath("/")
+    // TODO: will this work correctly?
+    val root: DirectoryFile = newPath("/").getOrCreateDirectory()
 
     /**
-     * The primary title of this book.
+     * The primary title of the book.
+     *
+     * @see [PackageMetadata.primaryTitle]
      */
     var title: String
-        get() = TODO()
+        get() = metadata.primaryTitle.content
         set(value) {
-            TODO()
+            metadata.primaryTitle.content = value
         }
 
     /**
-     * The primary author of this book, or `null` if no primary author is defined.
+     * The primary author of the book, or `null` if no primary author is defined.
+     *
+     * @see [PackageMetadata.primaryAuthor]
      */
     var author: String?
-        get() = TODO()
+        get() = metadata.primaryAuthor?.content
         set(value) {
-            TODO()
+            if (value != null) {
+                metadata.primaryAuthor?.content = value
+            } else {
+                metadata.primaryAuthor = null
+            }
         }
 
     /**
-     * The primary language of this book.
+     * The primary language of the book.
+     *
+     * @see [PackageMetadata.primaryLanguage]
      */
     var language: String
-        get() = TODO()
+        get() = metadata.primaryLanguage.content
         set(value) {
-            TODO()
+            metadata.primaryLanguage.content = value
         }
+
+    /**
+     * Returns a new [BookFile] that belongs to this book.
+     *
+     * @see [FileSystem.getPath]
+     */
+    // TODO: rename to something better?
+    fun newPath(first: String, vararg more: String): BookFile =
+        BookFile.newInstance(fileSystem.getPath(first, *more), this)
 
     /**
      * Closes the [fileSystem] belonging to this book, signaling the end of any and all modification to the book.

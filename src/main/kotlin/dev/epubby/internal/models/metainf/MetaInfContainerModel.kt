@@ -24,10 +24,10 @@ import dev.epubby.internal.models.SerializedName
 import dev.epubby.metainf.ContainerVersion
 import dev.epubby.metainf.MetaInfContainer
 import dev.epubby.prefixes.Prefixes
+import dev.epubby.properties.encodeToString
 import dev.epubby.properties.resolveLinkRelationship
-import dev.epubby.properties.toStringForm
 import dev.epubby.utils.toNonEmptyList
-import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.toPersistentList
 import org.jdom2.Document
 import org.jdom2.Element
@@ -37,8 +37,8 @@ import dev.epubby.internal.Namespaces.META_INF_CONTAINER as NAMESPACE
 
 data class MetaInfContainerModel internal constructor(
     val version: String,
-    val rootFiles: ImmutableList<RootFile>,
-    val links: ImmutableList<Link>
+    val rootFiles: PersistentList<RootFileModel>,
+    val links: PersistentList<LinkModel>,
 ) {
     private fun toDocument(): Document = documentOf("container", NAMESPACE) { _, root ->
         root.addContent(elementOf("rootfiles", root.namespace) {
@@ -74,11 +74,11 @@ data class MetaInfContainerModel internal constructor(
     }
 
     @SerializedName("rootfile")
-    data class RootFile internal constructor(
+    data class RootFileModel internal constructor(
         @SerializedName("full-path")
         val fullPath: String,
         @SerializedName("media-type")
-        val mediaType: String
+        val mediaType: String,
     ) {
         @JvmSynthetic
         internal fun toElement(): Element = elementOf("rootfile", NAMESPACE) {
@@ -95,27 +95,27 @@ data class MetaInfContainerModel internal constructor(
 
         internal companion object {
             @JvmSynthetic
-            internal fun fromElement(element: Element): RootFile {
+            internal fun fromElement(element: Element): RootFileModel {
                 val fullPath = element.getAttributeValueOrThrow("full-path")
                 val mediaType = element.getAttributeValueOrThrow("media-type")
-                return RootFile(fullPath, mediaType)
+                return RootFileModel(fullPath, mediaType)
             }
 
             @JvmSynthetic
-            internal fun fromRootFile(origin: MetaInfContainer.RootFile): RootFile {
+            internal fun fromRootFile(origin: MetaInfContainer.RootFile): RootFileModel {
                 val fullPath = origin.fullPath.toString().substring(1)
                 val mediaType = origin.mediaType.toString()
-                return RootFile(fullPath, mediaType)
+                return RootFileModel(fullPath, mediaType)
             }
         }
     }
 
     @SerializedName("link")
-    data class Link internal constructor(
+    data class LinkModel internal constructor(
         val href: String,
         @SerializedName("rel")
         val relation: String? = null,
-        val mediaType: String? = null
+        val mediaType: String? = null,
     ) {
         @JvmSynthetic
         internal fun toElement(): Element = elementOf("link", NAMESPACE) {
@@ -133,22 +133,22 @@ data class MetaInfContainerModel internal constructor(
 
         internal companion object {
             @JvmSynthetic
-            internal fun fromElement(element: Element): Link {
+            internal fun fromElement(element: Element): LinkModel {
                 val href = element.getAttributeValueOrThrow("href")
                 val relation = element.getAttributeValue("rel")
                 val mediaType = element.getAttributeValue("mediaType")
-                return Link(href, relation, mediaType)
+                return LinkModel(href, relation, mediaType)
             }
 
             @JvmSynthetic
-            internal fun fromLink(origin: MetaInfContainer.Link): Link {
+            internal fun fromLink(origin: MetaInfContainer.Link): LinkModel {
                 val href = origin.href
                 val relation = when {
-                    origin.book.version.isNewer(BookVersion.EPUB_2_0) -> origin.relation?.toStringForm()
+                    origin.book.version.isNewer(BookVersion.EPUB_2_0) -> origin.relation?.encodeToString()
                     else -> null
                 }
                 val mediaType = origin.mediaType.toString()
-                return Link(href, relation, mediaType)
+                return LinkModel(href, relation, mediaType)
             }
         }
     }
@@ -159,18 +159,18 @@ data class MetaInfContainerModel internal constructor(
         @JvmSynthetic
         internal fun fromFile(
             file: Path,
-            strictness: ParseStrictness
+            strictness: ParseStrictness,
         ): MetaInfContainerModel = documentFrom(file).use { _, root ->
             val version = root.getAttributeValueOrThrow("version")
             val rootFiles = root.getChild("rootfiles", root.namespace)
                 .getChildren("rootfile", root.namespace)
-                .tryMap { RootFile.fromElement(it) }
+                .tryMap { RootFileModel.fromElement(it) }
                 .mapToValues(LOGGER, strictness)
                 .ifEmpty { throw MalformedBookException("'rootfiles' in meta-inf container is empty.") }
                 .toPersistentList()
             val links = root.getChild("links", root.namespace)
                 .getChildren("link", root.namespace)
-                .tryMap { Link.fromElement(it) }
+                .tryMap { LinkModel.fromElement(it) }
                 .mapToValues(LOGGER, strictness)
                 .toPersistentList()
             return@use MetaInfContainerModel(version, rootFiles, links)
@@ -179,8 +179,8 @@ data class MetaInfContainerModel internal constructor(
         @JvmSynthetic
         internal fun fromMetaInfContainer(origin: MetaInfContainer): MetaInfContainerModel {
             val version = origin.version.toString()
-            val rootFiles = origin.rootFiles.map { RootFile.fromRootFile(it) }.toPersistentList()
-            val links = origin.links.map { Link.fromLink(it) }.toPersistentList()
+            val rootFiles = origin.rootFiles.map { RootFileModel.fromRootFile(it) }.toPersistentList()
+            val links = origin.links.map { LinkModel.fromLink(it) }.toPersistentList()
             return MetaInfContainerModel(version, rootFiles, links)
         }
     }

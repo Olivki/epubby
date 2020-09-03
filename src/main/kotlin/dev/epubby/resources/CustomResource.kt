@@ -14,22 +14,17 @@
  * limitations under the License.
  */
 
-package dev.epubby.html
+package dev.epubby.resources
 
-interface HtmlElement : HtmlNode {
-    override val parent: HtmlElement?
+import dev.epubby.Book
+import java.nio.file.Path
 
-    val parents: HtmlElementList
+abstract class CustomResource(book: Book, identifier: String, file: Path) : LocalResource(book, identifier, file) {
+    /**
+     * Returns the result of invoking the [visitCustom][ResourceVisitor.visitCustom] function of the given
+     * [visitor].
+     */
+    final override fun <R> accept(visitor: ResourceVisitor<R>): R = visitor.visitCustom(this)
 
-    var id: String
-
-    val tag: HtmlTag
-
-    var tagName: String
-
-    override fun equals(other: Any?): Boolean
-
-    override fun hashCode(): Int
-
-    override fun toString(): String
+    override fun toString(): String = "CustomResource(identifier='$identifier', mediaType=$mediaType, file='$file')"
 }

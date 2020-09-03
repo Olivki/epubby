@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+@file:JvmName("_kt_prefixes_extensions")
+
 package dev.epubby.prefixes
 
 import dev.epubby.BookVersion
@@ -46,13 +48,15 @@ class Prefixes private constructor(private val delegate: MutableMap<String, Pref
         return delegate.put(key, value)
     }
 
-    // unsure if this the correct form to output this to
     @JvmSynthetic
-    internal fun toStringForm(): String = values.joinToString(separator = " ", transform = Prefix::toStringForm)
+    operator fun contains(value: Prefix): Boolean = containsValue(value)
 
     companion object {
+        // a cached empty prefixes instance used internally for functions, should never be cached anywhere else but
+        // here, as the delegate of this instance is an empty-map, meaning that modification operations
+        // are *not allowed*
         @get:JvmSynthetic
-        internal val EMPTY: Prefixes = Prefixes(Collections.emptyMap())
+        internal val empty: Prefixes = Prefixes(Collections.emptyMap())
 
         // TODO: documentation
 
@@ -60,7 +64,7 @@ class Prefixes private constructor(private val delegate: MutableMap<String, Pref
         fun empty(): Prefixes = Prefixes(hashMapOf())
 
         @JvmStatic
-        fun of(vararg prefixes: Prefix): Prefixes = copyOf(prefixes.asIterable())
+        fun of(vararg prefixes: Prefix): Prefixes = copyOf(prefixes.asList())
 
         @JvmStatic
         fun copyOf(prefixes: Iterable<Prefix>): Prefixes {
@@ -79,20 +83,23 @@ class Prefixes private constructor(private val delegate: MutableMap<String, Pref
                 requireKnown(prefix)
 
                 if (prefix.isDefaultVocabularyPrefix()) {
-                    throw IllegalArgumentException("prefix must not map to default vocabularies (${prefix.toStringForm()})")
+                    throw IllegalArgumentException("prefix must not map to default vocabularies (${prefix.encodeToString()})")
                 }
 
                 if (prefix.title.isBlank()) {
-                    throw IllegalArgumentException("prefix 'title' must not be blank (${prefix.toStringForm()})")
+                    throw IllegalArgumentException("prefix 'title' must not be blank (${prefix.encodeToString()})")
                 }
             }
         }
     }
 }
 
-fun emptyPrefixes(): Prefixes = Prefixes.empty()
+fun prefixesOf(): Prefixes = Prefixes.empty()
 
-fun prefixesOf(vararg prefixes: Prefix): Prefixes = Prefixes.copyOf(prefixes.asIterable())
+fun prefixesOf(vararg prefixes: Prefix): Prefixes = when (prefixes.size) {
+    0 -> Prefixes.empty()
+    else -> prefixes.asList().toPrefixes()
+}
 
 fun Iterable<Prefix>.toPrefixes(): Prefixes = Prefixes.copyOf(this)
 

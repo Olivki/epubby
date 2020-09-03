@@ -18,6 +18,7 @@ package dev.epubby.properties.vocabularies
 
 import dev.epubby.prefixes.Prefix
 import dev.epubby.properties.Property
+import kotlinx.collections.immutable.toPersistentHashMap
 import moe.kanon.kommons.collections.getOrThrow
 import java.net.URI
 
@@ -102,16 +103,16 @@ enum class MetadataLinkRelVocabulary(reference: String, private val refinesRelat
 
     override val reference: URI = URI.create(reference)
 
-    override val prefix: Prefix = VocabularyPrefixes.METADATA_LINK_PREFIX
+    override val prefix: Prefix = VocabularyPrefixes.METADATA_LINK
 
     companion object {
-        private val referenceToInstance = values().associateByTo(hashMapOf()) { it.reference.toString() }
+        private val REFERENCES = values().associateBy { it.reference.toString() }.toPersistentHashMap()
 
         @JvmStatic
         fun fromReference(reference: String): MetadataLinkRelVocabulary =
-            referenceToInstance.getOrThrow(reference) { "No vocabulary entry found with the given reference '$reference'." }
+            REFERENCES.getOrThrow(reference) { "No vocabulary entry found with the given reference '$reference'." }
 
         @JvmStatic
-        fun fromReferenceOrNull(reference: String): MetadataLinkRelVocabulary? = referenceToInstance[reference]
+        fun fromReferenceOrNull(reference: String): MetadataLinkRelVocabulary? = REFERENCES[reference]
     }
 }

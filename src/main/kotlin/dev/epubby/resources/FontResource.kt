@@ -28,19 +28,22 @@ class FontResource(
     identifier: String,
     file: Path,
     override val mediaType: MediaType
-) : Resource(book, identifier, file) {
-    override fun <R : Any> accept(visitor: ResourceVisitor<R>): R = visitor.visitFont(this)
+) : LocalResource(book, identifier, file) {
+    /**
+     * Returns the result of invoking the [visitFont][ResourceVisitor.visitFont] function of the given [visitor].
+     */
+    override fun <R> accept(visitor: ResourceVisitor<R>): R = visitor.visitFont(this)
 
     override fun toString(): String = "FontResource(identifier='$identifier', mediaType=$mediaType, file='$file')"
 }
 
-@AutoService(ResourceLocator::class)
-internal object FontResourceLocator : ResourceLocator {
+@AutoService(LocalResourceLocator::class)
+internal object FontResourceLocator : LocalResourceLocator {
     private val TYPES: Set<MediaType> = persistentHashSetOf(
         MediaType.create("application", "vnd.ms-opentype"),
         MediaType.WOFF
     )
-    private val FACTORY: ResourceFactory = ::FontResource
+    private val FACTORY: LocalResourceFactory = ::FontResource
 
-    override fun findFactory(mediaType: MediaType): ResourceFactory? = FACTORY.takeIf { mediaType in TYPES }
+    override fun findFactory(mediaType: MediaType): LocalResourceFactory? = FACTORY.takeIf { mediaType in TYPES }
 }

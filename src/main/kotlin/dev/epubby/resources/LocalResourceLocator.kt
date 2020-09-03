@@ -20,12 +20,14 @@ import com.google.common.net.MediaType
 import dev.epubby.Book
 import java.nio.file.Path
 
-interface ResourceLocator {
+interface LocalResourceLocator {
     /**
-     * Returns a [Resource] implementation if the given [mediaType] corresponds to `this` locator, otherwise `null` if
-     * it doesn't.
+     * Returns a [LocalResource] implementation if the given [mediaType] corresponds to `this` locator, otherwise
+     * `null` if it doesn't.
      */
-    fun findFactory(mediaType: MediaType): ResourceFactory?
+    fun findFactory(mediaType: MediaType): LocalResourceFactory?
 }
 
-typealias ResourceFactory = (book: Book, identifier: String, file: Path, mediaType: MediaType) -> Resource
+// TODO: replace this with a 'fun interface' whenever Kotlins type inference engine can properly convert between
+//       function literals and SAM interfaces
+typealias LocalResourceFactory = (book: Book, identifier: String, file: Path, mediaType: MediaType) -> LocalResource

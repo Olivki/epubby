@@ -14,18 +14,15 @@
  * limitations under the License.
  */
 
-package dev.epubby.html
+package dev.epubby.packages.guide
 
-interface HtmlAttribute : Map.Entry<String, String> {
-    override var key: String
-
-    override var value: String
-
-    fun toHtml(): String
-
-    override fun equals(other: Any?): Boolean
-
-    override fun hashCode(): Int
-
-    override fun toString(): String
+/**
+ * A service interface that handles the correction of misspelling / errors that should be converted to a
+ * [ReferenceType].
+ */
+interface ReferenceTypeCorrector {
+    /**
+     * Returns the equivalent [ReferenceType] for the given [type], or `null` if no equivalent exists.
+     */
+    fun getEquivalent(type: String): ReferenceType?
 }

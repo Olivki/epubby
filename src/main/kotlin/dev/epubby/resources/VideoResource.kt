@@ -27,16 +27,19 @@ class VideoResource(
     identifier: String,
     file: Path,
     override val mediaType: MediaType
-) : Resource(book, identifier, file) {
-    override fun <R : Any> accept(visitor: ResourceVisitor<R>): R = visitor.visitVideo(this)
+) : LocalResource(book, identifier, file) {
+    /**
+     * Returns the result of invoking the [visitVideo][ResourceVisitor.visitVideo] function of the given [visitor].
+     */
+    override fun <R> accept(visitor: ResourceVisitor<R>): R = visitor.visitVideo(this)
 
     override fun toString(): String = "VideoResource(identifier='$identifier', mediaType=$mediaType, file='$file')"
 }
 
-@AutoService(ResourceLocator::class)
-internal object VideoResourceLocator : ResourceLocator {
+@AutoService(LocalResourceLocator::class)
+internal object VideoResourceLocator : LocalResourceLocator {
     private val TYPES: Set<MediaType> = persistentHashSetOf(MediaType.MP4_VIDEO)
-    private val FACTORY: ResourceFactory = ::VideoResource
+    private val FACTORY: LocalResourceFactory = ::VideoResource
 
-    override fun findFactory(mediaType: MediaType): ResourceFactory? = FACTORY.takeIf { mediaType in TYPES }
+    override fun findFactory(mediaType: MediaType): LocalResourceFactory? = FACTORY.takeIf { mediaType in TYPES }
 }

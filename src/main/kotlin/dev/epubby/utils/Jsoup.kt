@@ -21,341 +21,710 @@ package dev.epubby.utils
 
 // TODO: migrate to it's own library?
 
+import kotlinx.html.*
+import kotlinx.html.consumers.onFinalize
+import kotlinx.html.stream.createHTML
+import org.jsoup.Jsoup
 import org.jsoup.nodes.*
+import org.jsoup.parser.Parser
 import org.jsoup.parser.Tag
-import org.jsoup.select.Elements
+import org.jsoup.select.*
+import org.w3c.dom.events.Event
+import java.nio.charset.Charset
+import java.util.Deque
+import java.util.LinkedList
+import kotlinx.html.Entities as KEntities
+import kotlinx.html.Tag as KTag
 
-inline var Document.title: String
-    get() = title()
-    set(value) {
-        title(value)
-    }
+// NODE
+val Node.parent: Node?
+    @JvmSynthetic
+    get() = parent()
 
-inline val Document.location: String
-    get() = location()
+val Node.parentNode: Node?
+    @JvmSynthetic
+    get() = parentNode()
 
-inline val Document.head: Element
-    get() = head()
+val Node.root: Node
+    @JvmSynthetic
+    get() = root()
 
-inline val Document.body: Element
-    get() = body()
+val Node.ownerDocument: Document?
+    @JvmSynthetic
+    get() = ownerDocument()
 
-inline val Element.attributes: Attributes
+val Node.siblingNodes: List<Node>
+    @JvmSynthetic
+    get() = siblingNodes()
+
+val Node.previousSibling: Node?
+    @JvmSynthetic
+    get() = previousSibling()
+
+val Node.nextSibling: Node?
+    @JvmSynthetic
+    get() = nextSibling()
+
+val Node.attributes: Attributes
+    @JvmSynthetic
     get() = attributes()
 
-inline val Element.baseUri: String
+var Node.baseUri: String
+    @JvmSynthetic
     get() = baseUri()
+    @JvmSynthetic
+    set(value) {
+        setBaseUri(value)
+    }
 
-inline val Element.childNodeSize: Int
-    get() = childNodeSize()
-
-inline val Element.nodeName: String
+val Node.nodeName: String
+    @JvmSynthetic
     get() = nodeName()
 
-inline var Element.tagName: String
+val Node.childNodes: List<Node>
+    @JvmSynthetic
+    get() = childNodes()
+
+@JvmSynthetic
+fun Node.toOuterHtml(): String = outerHtml()
+
+inline fun Node.traverse(
+    crossinline head: (node: Node, depth: Int) -> Unit,
+    crossinline tail: (node: Node, depth: Int) -> Unit,
+): Node = apply {
+    traverse(object : NodeVisitor {
+        override fun head(node: Node, depth: Int) {
+            head(node, depth)
+        }
+
+        override fun tail(node: Node, depth: Int) {
+            tail(node, depth)
+        }
+    })
+}
+
+typealias NodeFilterResult = NodeFilter.FilterResult
+
+inline fun Node.filter(
+    crossinline head: (node: Node, depth: Int) -> NodeFilterResult,
+    crossinline tail: (node: Node, depth: Int) -> NodeFilterResult,
+): Node = apply {
+    filter(object : NodeFilter {
+        override fun head(node: Node, depth: Int): NodeFilterResult = head(node, depth)
+
+        override fun tail(node: Node, depth: Int): NodeFilterResult = tail(node, depth)
+    })
+}
+
+@JvmSynthetic
+fun Node.setAttribute(name: String, value: String) {
+    attr(name, value)
+}
+
+@JvmSynthetic
+fun Node.setAttribute(name: String, value: Boolean) {
+    attributes[name] = value
+}
+
+@JvmSynthetic
+fun Node.containsAttribute(name: String): Boolean = hasAttr(name)
+
+@JvmSynthetic
+fun Node.removeAttribute(name: String): Boolean = when {
+    containsAttribute(name) -> {
+        removeAttr(name)
+        true
+    }
+    else -> false
+}
+
+/**
+ * Returns the value of the attribute with the given [name], or `null` if none can be found.
+ *
+ * @see [Node.attr]
+ */
+@JvmSynthetic
+fun Node.getAttribute(name: String): String? = when {
+    containsAttribute(name) -> attr(name)
+    else -> null
+}
+
+// ELEMENT
+var Element.tagName: String
+    @JvmSynthetic
     get() = tagName()
+    @JvmSynthetic
     set(value) {
         tagName(value)
     }
 
-inline val Element.normalName: String
+val Element.normalName: String
+    @JvmSynthetic
     get() = normalName()
 
-inline val Element.tag: Tag
+val Element.tag: Tag
+    @JvmSynthetic
     get() = tag()
 
-inline val Element.id: String
+val Element.id: String
+    @JvmSynthetic
     get() = id()
 
-inline val Element.dataSet: Map<String, String>
+val Element.dataset: Map<String, String>
+    @JvmSynthetic
     get() = dataset()
 
-inline val Element.parent: Element?
+val Element.parent: Element?
+    @JvmSynthetic
     get() = parent()
 
-inline val Element.parents: Elements
+val Element.parents: Elements
+    @JvmSynthetic
     get() = parents()
 
-inline val Element.children: List<Element>
+val Element.children: List<Element>
+    @JvmSynthetic
     get() = children()
 
-inline val Element.textNodes: List<TextNode>
+val Element.textNodes: List<TextNode>
+    @JvmSynthetic
     get() = textNodes()
 
-inline val Element.dataNodes: List<DataNode>
+val Element.dataNodes: List<DataNode>
+    @JvmSynthetic
     get() = dataNodes()
 
-inline var Element.text: String
+var Element.text: String
+    @JvmSynthetic
     get() = text()
+    @JvmSynthetic
     set(value) {
         text(value)
     }
 
-inline val Element.ownText: String
+val Element.wholeText: String
+    @JvmSynthetic
+    get() = wholeText()
+
+val Element.ownText: String
+    @JvmSynthetic
     get() = ownText()
 
-inline val Element.data: String
+val Element.data: String
+    @JvmSynthetic
     get() = data()
 
-inline val Element.className: String
+var Element.className: String
+    @JvmSynthetic
     get() = className()
+    @JvmSynthetic
+    set(value) {
+        attributes["class"] = value.trim()
+    }
 
-inline var Element.classNames: Set<String>
+var Element.classNames: Set<String>
+    @JvmSynthetic
     get() = classNames()
+    @JvmSynthetic
     set(value) {
         classNames(value)
     }
 
-inline var Element.value: String
+var Element.value: String
+    @JvmSynthetic
     get() = `val`()
+    @JvmSynthetic
     set(value) {
         `val`(value)
     }
 
-inline var Element.html: String
+var Element.html: String
+    @JvmSynthetic
     get() = html()
+    @JvmSynthetic
     set(value) {
         html(value)
     }
 
-inline val Element.outerHtml: String
-    get() = outerHtml()
+@JvmSynthetic
+fun Element.filter(cssQuery: String): Elements = select(cssQuery)
+
+fun Element.first(cssQuery: String): Element =
+    firstOrNull(cssQuery) ?: throw NoSuchElementException("No element found with css query '$cssQuery'")
+
+@JvmSynthetic
+fun Element.firstOrNull(cssQuery: String): Element? = selectFirst(cssQuery)
+
+@JvmSynthetic
+fun Element.anyMatch(cssQuery: String): Boolean = `is`(cssQuery)
+
+@JvmSynthetic
+fun Element.anyMatch(evaluator: Evaluator): Boolean = `is`(evaluator)
+
+@JvmSynthetic
+fun Element.toCssSelector(): String = cssSelector()
 
 /**
- * Returns `true` if the [text][Element.text] of `this` element [is blank][String.isBlank], otherwise `false`.
- */
-val Element.isTextBlank: Boolean
-    get() = text.isBlank()
-
-/**
- * Returns `true` if the [text][Element.text] of `this` element [is not blank][String.isNotBlank], otherwise `false`.
- */
-val Element.isTextNotBlank: Boolean
-    get() = text.isNotBlank()
-
-/**
- * Returns `true` if the [own text][Element.ownText] of `this` element [is blank][String.isBlank], otherwise `false`.
- */
-val Element.isOwnTextBlank: Boolean
-    get() = ownText.isBlank()
-
-/**
- * Returns `true` if the [own text][Element.ownText] of `this` element [is not blank][String.isBlank], `false`
- * otherwise.
- */
-val Element.isOwnTextNotBlank: Boolean
-    get() = ownText.isNotBlank()
-
-/**
- * Infix function for [Element. is].
+ * Returns `true` if `this` element has a `class` attribute defined, otherwise `false`.
  *
- * This is mainly because `is` *is* a keyword in Kotlin, so every time that function needs to be used, you have to do
- * `` `is` `` to actually use it, which is just ugly.
+ * @see [Element.hasClass]
  */
-@Suppress("NOTHING_TO_INLINE")
-inline infix fun Element.matches(query: String): Boolean = this.`is`(query)
+val Element.isClassDefined: Boolean
+    get() = attributes.hasKeyIgnoreCase("class")
 
 /**
- * Checks if this [Element] has a `class` attribute *at all*, returns `true` if it does, `false` if not.
- *
- * Unlike the other `hasClass` method that accepts a `String`, this one doesn't check for a specific class, but rather
- * if the `element` has the `attribute` "class" at all.
+ * Returns `true` if `this` element has any children, otherwise `false`.
  */
-val Element.hasClass: Boolean
-    @JvmName("hasClass")
-    get() = this.hasClass(this.className())
-
-/**
- * Returns `true` if `this` element has no [children][Element.children] and its [text][Element.text] is empty, `false`
- * otherwise.
- */
-// TODO: name
-val Element.isEmpty: Boolean
-    get() = this.children().size <= 0 && this.isOwnTextBlank
-
-/**
- * Returns `true` if `this` element has [children][Element.children] and its [text][Element.text] is not empty, `false`
- * otherwise.
- */
-// TODO: name
-val Element.isNotEmpty: Boolean
-    get() = !this.isEmpty
+fun Element.isParent(): Boolean = childNodes.isNotEmpty()
 
 /**
  * Returns `true` if `this` element is the only child of its [parent][Element.parent], otherwise `false`.
- * Returns whether or not the `parent` of `this` element is empty.
  *
- * Note that if the `parent` of `this` elements [own text][Element.ownText] is not blank, then `false` will be returned,
- * as text content is considered to be a child in this context.
+ * If the `parent` of `this` elements [own text][Element.ownText] is not blank, then `false` will be returned,
+ * as text content is considered to be a child in this context, likewise, if `parent` is `null`, then `false` will also
+ * be returned.
  */
-val Element.isOnlyChildOfParent: Boolean
-    get() = this.parent().children().size <= 1 && this.parent().isOwnTextBlank
+fun Element.isOnlyChild(): Boolean = (parent?.children?.size ?: 0) <= 1 && parent?.ownText?.isBlank() ?: false
 
 /**
- * Removes the "class" `attribute` of this [Element], without needing to know the name of it.
+ * Completely removes the `class` attribute of `this` element.
  *
- * @param force Whether or not the "class" `attribute` should be **forcefully** removed.
- *
- * When this is `true`, this function doesn't use the inbuilt `removeClass(String)` method, but rather uses the
- * [removeAttr][Element.removeAttr] method to accomplish it.
- *
- * This is sometimes needed, as JSoup decides to *not* remove classes when using the inbuilt method for it every now
- * and then.
+ * @see [Element.removeClass]
  */
-@JvmOverloads
-fun Element.removeClass(force: Boolean = false) {
-    if (force) {
-        for (it in this.attributes().filter { it.key.equals("class", true) }) this.removeAttr(it.key)
-    } else {
-        this.removeClass(this.className())
-    }
+fun Element.removeClass() {
+    attributes.removeIgnoreCase("class")
 }
 
 /**
- * Replaces the "class" `attribute` of this [Element] with the specified [newClass].
- *
- * This is accomplished by first removing the class of this element, and then adding the `newClass` to it.
- *
- * @param force Whether or not the "class" `attribute` should be **forcefully** removed.
- *
- * When this is `true`, this function doesn't use the inbuilt `removeClass(String)` method, but rather uses the
- * [removeAttr][Element.removeAttr] method to accomplish it.
- *
- * This is sometimes needed, as JSoup decides to *not* remove classes when using the inbuilt method for it every now
- * and then.
+ * Completely replaces the `class` attribute of `this` element with the specified [newClass].
  */
-@JvmOverloads
-fun Element.replaceClass(newClass: String, force: Boolean = false) {
-    this.removeClass(force)
-    this.addClass(newClass)
+fun Element.replaceClass(newClass: String) {
+    attributes["class"] = newClass
 }
 
 /**
- * Returns whether or not any of the children of `this` [Element] `matches` the specified [query].
- *
- * This is done by *recursively* calling this function on all of the children of this element.
- *
- * **Note:** It does *not* check if `this` element [matches] the query.
+ * Replaces the given [targetClass] with the given [newClass] in the [classNames] of `this` element.
  */
-// TODO: Check if this one actually works.
-operator fun Element.contains(query: String): Boolean = this.children().any { it.contains(query) }
+fun Element.replaceClass(targetClass: String, newClass: String) {
+    removeClass(targetClass)
+    addClass(newClass)
+}
 
 /**
- * Returns `true` if `this` element *only* contains the specified [query], ignoring the given [ignoredBodies] and
- * [ignoredElements].
- *
- * @param [ignoredBodies] which element "bodies" to ignore when looking through the document
- * @param [ignoredElements] which elements to ignore when looking through the document
+ * Returns `true` if `this` element *only* contains the specified [cssQuery], ignoring any elements that match the
+ * given [ignoredQuery].
  */
 @JvmOverloads
 fun Element.onlyContains(
-    query: String,
-    ignoredBodies: Array<String> = arrayOf("div", "section", "body"),
-    ignoredElements: Array<String> = arrayOf("p", "span")
-): Boolean = this.allElements
+    cssQuery: String,
+    ignoredQuery: Array<String> = arrayOf("p", "span", "div", "section", "body"),
+): Boolean = allElements
     .asSequence()
-    .filter { !(it matches query) }
-    .any { element ->
-        ((ignoredBodies.any { element matches it }) || ((ignoredElements.any { element matches it }) && element.isTextBlank))
+    .filter { it.anyMatch(cssQuery) }
+    .any { element -> ignoredQuery.any { element.anyMatch(it) } && element.text.isBlank() }
+
+/**
+ * Returns `true` if `this` element has a child that matches the given [query], otherwise `false`.
+ *
+ * Note that `this` element does *not* get checked if it matches `query`, only it's children do.
+ */
+fun Element.anyChild(query: String): Boolean = children.any { it.anyMatch(query) }
+
+// ELEMENTS
+var Elements.value: String
+    @JvmSynthetic
+    get() = `val`()
+    @JvmSynthetic
+    set(value) {
+        `val`(value)
     }
 
-/**
- * Returns `true` if `this` element has a child that [matches] the given [query], otherwise `false`.
- */
-fun Element.hasChild(query: String): Boolean = this.children().any { it matches query }
+var Elements.html: String
+    @JvmSynthetic
+    get() = html()
+    @JvmSynthetic
+    set(value) {
+        html(value)
+    }
 
-/**
- * Returns `true` if `this` elment has *any* children that matches *any* of the given [queries], otherwise `false`.
- */
-fun Element.hasChildren(vararg queries: String): Boolean =
-    this.children().any { queries.any { query -> it matches query } }
+val Elements.texts: List<String>
+    @JvmSynthetic
+    get() = eachText()
 
-// -- ELEMENTS -- \\
-/**
- * Returns `true` if `this` element has a child that [matches] the given [query], otherwise `false`.
- */
-fun Elements.hasChild(query: String): Boolean = this.any { it matches query }
+@JvmSynthetic
+fun Elements.toOuterHtml(): String = outerHtml()
 
-/**
- * Returns `true` if `this` element has *any* children that matches *any* of the given [queries], otherwise `false`.
- */
-fun Elements.hasChildren(vararg queries: String): Boolean =
-    this.any { queries.any { query -> it matches query } }
+@JvmSynthetic
+operator fun Elements.get(cssQuery: String): Elements = select(cssQuery)
 
-/**
- * Returns `true` if `this` elements does not have any children, otherwise `false`.
- */
-fun Elements.isNotEmpty(): Boolean = !this.isEmpty()
+@JvmSynthetic
+fun Elements.filter(cssQuery: String): Elements = select(cssQuery)
 
-/**
- * Removes the "class" `attributes` from all [Element]s contained in this [Elements].
- *
- * @param force Whether or not the "class" `attribute` should be **forcefully** removed.
- *
- * When this is `true`, this function doesn't use the inbuilt `removeClass(String)` method, but rather uses the
- * [removeAttr][Element.removeAttr] method to accomplish it.
- *
- * This is sometimes needed, as JSoup decides to *not* remove classes when using the inbuilt method for it every now
- * and then.
- */
-@JvmOverloads
-fun Elements.removeClasses(force: Boolean = false) {
-    for (element in this) {
-        if (force) {
-            for (it in element.attributes().filter { it.key.equals("class", true) }) {
-                this.removeAttr(it.key)
+@JvmSynthetic
+fun Elements.filterNot(cssQuery: String): Elements = not(cssQuery)
+
+fun Elements.first(cssQuery: String): Element =
+    firstOrNull(cssQuery) ?: throw NoSuchElementException("No element found with css query '$cssQuery'")
+
+@JvmSynthetic
+fun Elements.firstOrNull(cssQuery: String): Element? = filter(cssQuery).firstOrNull()
+
+@JvmSynthetic
+fun Elements.anyMatch(cssQuery: String): Boolean = `is`(cssQuery)
+
+@JvmSynthetic
+operator fun Elements.contains(cssQuery: String): Boolean = `is`(cssQuery)
+
+@JvmSynthetic
+operator fun Elements.inc(): Elements = next()
+
+@JvmSynthetic
+operator fun Elements.dec(): Elements = prev()
+
+@JvmSynthetic
+inline fun Elements.prepend(block: TagConsumer<Element>.() -> Unit): Elements = apply {
+    for (ogElement in this) {
+        ElementDomBuilder(ogElement.ownerDocumentSafe).onFinalize { element, partial ->
+            if (!partial) {
+                ogElement.prependChild(element)
             }
+        }.apply(block)
+    }
+}
+
+@JvmSynthetic
+inline fun Elements.append(block: TagConsumer<Element>.() -> Unit): Elements = apply {
+    for (ogElement in this) {
+        ElementDomBuilder(ogElement.ownerDocumentSafe).onFinalize { element, partial ->
+            if (!partial) {
+                ogElement.appendChild(element)
+            }
+        }.apply(block)
+    }
+}
+
+@JvmSynthetic
+inline fun Elements.before(block: TagConsumer<Element>.() -> Unit): Elements = apply {
+    for (ogElement in this) {
+        ElementDomBuilder(ogElement.ownerDocumentSafe).onFinalize { element, partial ->
+            if (!partial) {
+                ogElement.before(element)
+            }
+        }.apply(block)
+    }
+}
+
+@JvmSynthetic
+inline fun Elements.after(block: TagConsumer<Element>.() -> Unit): Elements = apply {
+    for (ogElement in this) {
+        ElementDomBuilder(ogElement.ownerDocumentSafe).onFinalize { element, partial ->
+            if (!partial) {
+                ogElement.after(element)
+            }
+        }.apply(block)
+    }
+}
+
+@JvmSynthetic
+inline fun Elements.wrap(block: TagConsumer<Element>.() -> Unit): Elements = apply {
+    for (ogElement in this) {
+        ElementDomBuilder(ogElement.ownerDocumentSafe).onFinalize { element, partial ->
+            if (!partial) {
+                ogElement.wrap(element.toOuterHtml())
+            }
+        }.apply(block)
+    }
+}
+
+/**
+ * Completely removes the `class` attribute of all the elements contained in `this`.
+ */
+fun Elements.removeClasses() {
+    for (element in this) {
+        element.removeClass()
+    }
+}
+
+/**
+ * Completely replaces the `class` attribute of `this` element with the specified [newClass].
+ */
+fun Elements.replaceClass(newClass: String) {
+    for (element in this) {
+        element.replaceClass(newClass)
+    }
+}
+
+/**
+ * Replaces the given [targetClass] with the given [newClass] in the [classNames] of `this` element.
+ */
+fun Elements.replaceClass(targetClass: String, newClass: String) {
+    for (element in this) {
+        element.replaceClass(targetClass, newClass)
+    }
+}
+
+// DOCUMENT
+var Document.title: String
+    @JvmSynthetic
+    get() = title()
+    @JvmSynthetic
+    set(value) {
+        title(value)
+    }
+
+var Document.charset: Charset
+    @JvmSynthetic
+    get() = charset()
+    @JvmSynthetic
+    set(value) {
+        charset(value)
+    }
+
+var Document.outputSettings: Document.OutputSettings
+    @JvmSynthetic
+    get() = outputSettings()
+    @JvmSynthetic
+    set(value) {
+        outputSettings(value)
+    }
+
+var Document.parser: Parser
+    @JvmSynthetic
+    get() = parser()
+    @JvmSynthetic
+    set(value) {
+        parser(value)
+    }
+
+typealias QuirksMode = Document.QuirksMode
+
+var Document.quirksMode: QuirksMode
+    @JvmSynthetic
+    get() = quirksMode()
+    @JvmSynthetic
+    set(value) {
+        quirksMode(value)
+    }
+
+val Document.location: String
+    @JvmSynthetic
+    get() = location()
+
+val Document.head: Element
+    @JvmSynthetic
+    get() = head() ?: throw IllegalStateException("'head' should not be null")
+
+val Document.body: Element
+    @JvmSynthetic
+    get() = body() ?: throw IllegalStateException("'body' should not be null")
+
+@JvmSynthetic
+@HtmlTagMarker
+inline fun document(namespace: String? = null, crossinline body: HTML.() -> Unit): Document {
+    val content = createHTML(prettyPrint = false, xhtmlCompatible = true).html(namespace) { apply(body) }
+    return Jsoup.parse(content)
+}
+
+// adapted from the 'HTMLDOMBuilder' from 'kotlinx.html'
+@PublishedApi
+internal class ElementDomBuilder(val document: Document) : TagConsumer<Element> {
+    private val elements: Deque<Element> = LinkedList()
+    private var lastElement: Element? = null
+
+    override fun onTagStart(tag: KTag) {
+        val element = document.createElement(tag.tagName)
+
+        for ((key, value) in tag.attributesEntries) {
+            element.attributes[key] = value
+        }
+
+        if (elements.isNotEmpty()) {
+            elements.last.appendChild(element)
+        }
+
+        elements.add(element)
+    }
+
+    override fun onTagAttributeChange(tag: KTag, attribute: String, value: String?) {
+        if (elements.isEmpty()) {
+            throw IllegalStateException("No current tag")
+        }
+
+        val element = elements.peekLast()
+
+        if (element != null && value != null) {
+            element.attributes[attribute] = value
         } else {
-            element.removeClass(element.className())
+            element.attributes -= attribute
         }
     }
+
+    override fun onTagEvent(tag: KTag, event: String, value: (Event) -> Unit) {
+        throw UnsupportedOperationException()
+    }
+
+    override fun onTagEnd(tag: KTag) {
+        if (elements.isEmpty() || elements.last().tagName.toLowerCase() != tag.tagName.toLowerCase()) {
+            throw IllegalStateException("Tag '${tag.tagName}' has not been entered, but an attempt to leave it was made.")
+        }
+
+        val element = elements.removeLast()
+        lastElement = element
+    }
+
+    override fun onTagContent(content: CharSequence) {
+        if (elements.isEmpty()) {
+            throw IllegalStateException("No current element available")
+        }
+
+        elements.last.appendText(content.toString())
+    }
+
+    override fun onTagComment(content: CharSequence) {
+        if (elements.isEmpty()) {
+            throw IllegalStateException("No current element available")
+        }
+
+        elements.last.appendChild(Comment(content.toString()))
+    }
+
+    override fun onTagContentEntity(entity: KEntities) {
+        if (elements.isEmpty()) {
+            throw IllegalStateException("No current element available")
+        }
+
+        elements.last.appendText(Entities.getByName(entity.name))
+    }
+
+    override fun onTagContentUnsafe(block: Unsafe.() -> Unit) {
+        unsafe.apply(block)
+    }
+
+    private val unsafe: Unsafe = object : Unsafe {
+        override operator fun String.unaryPlus() {
+            val last = elements.last()
+            last.append(this)
+        }
+    }
+
+    override fun finalize(): Element = lastElement ?: throw IllegalStateException("No elements were created")
+}
+
+@PublishedApi
+internal val Element.ownerDocumentSafe: Document
+    get() = when (this) {
+        is Document -> this
+        else -> ownerDocument ?: throw IllegalStateException("'$this' does not belong to a document")
+    }
+
+@JvmSynthetic
+inline fun <T : Element> T.prepend(block: TagConsumer<Element>.() -> Unit): T = apply {
+    ElementDomBuilder(ownerDocumentSafe).onFinalize { element, partial ->
+        if (!partial) {
+            prependChild(element)
+        }
+    }.apply(block)
+}
+
+@JvmSynthetic
+inline fun <T : Element> T.append(block: TagConsumer<Element>.() -> Unit): T = apply {
+    ElementDomBuilder(ownerDocumentSafe).onFinalize { element, partial ->
+        if (!partial) {
+            appendChild(element)
+        }
+    }.apply(block)
+}
+
+@JvmSynthetic
+inline fun <T : Element> T.before(block: TagConsumer<Element>.() -> Unit): T = apply {
+    ElementDomBuilder(ownerDocumentSafe).onFinalize { element, partial ->
+        if (!partial) {
+            before(element)
+        }
+    }.apply(block)
+}
+
+@JvmSynthetic
+inline fun <T : Element> T.after(block: TagConsumer<Element>.() -> Unit): T = apply {
+    ElementDomBuilder(ownerDocumentSafe).onFinalize { element, partial ->
+        if (!partial) {
+            after(element)
+        }
+    }.apply(block)
+}
+
+@JvmSynthetic
+inline fun <T : Element> T.wrap(block: TagConsumer<Element>.() -> Unit): T = apply {
+    ElementDomBuilder(ownerDocumentSafe).onFinalize { element, partial ->
+        if (!partial) {
+            wrap(element.toOuterHtml())
+        }
+    }.apply(block)
+}
+
+// ATTRIBUTES
+val Attributes.size: Int
+    @JvmSynthetic
+    get() = size()
+
+@JvmSynthetic
+internal fun Attributes.isEmpty(): Boolean = size <= 0
+
+@JvmSynthetic
+internal fun Attributes.isNotEmpty(): Boolean = size > 0
+
+@JvmSynthetic
+operator fun Attributes.set(key: String, value: String) {
+    put(key.toLowerCase(), value)
+}
+
+@JvmSynthetic
+operator fun Attributes.set(key: String, value: Boolean) {
+    put(key.toLowerCase(), value)
 }
 
 /**
- * Replaces **all** "class" `attributes` of the [Element]s in this [Elements] with the specified [newClass].
- *
- * This is accomplished by first removing all of the classes on the elements, and then adding the `newClass` to all
- * of them.
- *
- * @param force Whether or not the "class" `attribute` should be **forcefully** removed.
- *
- * When this is `true`, this function doesn't use the inbuilt `removeClass(String)` method, but rather uses the
- * [removeAttr][Element.removeAttr] method to accomplish it.
- *
- * This is sometimes needed, as JSoup decides to *not* remove classes when using the inbuilt method for it every now
- * and then.
+ * Returns the value stored by attribute with the given [key], or `null` if none can be found, or if the found
+ * attribute is a [BooleanAttribute].
  */
-@JvmOverloads
-fun Elements.replaceAllClasses(newClass: String, force: Boolean = false) {
-    this.removeClasses(force)
-    this.addClass(newClass)
+fun Attributes.getOrNull(key: String): String? = when (key) {
+    in this -> getIgnoreCase(key)
+    else -> null
 }
 
-inline val Attributes.size: Int
-    get() = size()
-
-inline operator fun Attributes.set(key: String, value: String) {
-    put(key, value)
-}
-
-inline operator fun Attributes.set(key: String, value: Boolean) {
-    put(key, value)
-}
-
-inline operator fun Attributes.plusAssign(attribute: Attribute) {
+@JvmSynthetic
+operator fun Attributes.plusAssign(attribute: Attribute) {
     put(attribute)
 }
 
-inline operator fun Attributes.minusAssign(key: String) {
+@JvmSynthetic
+operator fun Attributes.minusAssign(key: String) {
     remove(key)
 }
 
-inline operator fun Attributes.contains(key: String): Boolean = hasKey(key)
+@JvmSynthetic
+operator fun Attributes.contains(key: String): Boolean = hasKeyIgnoreCase(key)
 
-inline fun Attributes.toHtml(): String = html()
+@JvmSynthetic
+fun Attributes.toHtml(): String = html()
 
+/**
+ * Adds all the entries stored in the given [attributes] to this collection.
+ */
 fun Attributes.addAll(attributes: Iterable<Attribute>) {
     for (attribute in attributes) {
         this += attribute
+    }
+}
+
+/**
+ * Removes all the entries of this collection.
+ */
+fun Attributes.clear() {
+    val iterator = iterator()
+
+    while (iterator.hasNext()) {
+        iterator.next()
+        iterator.remove()
     }
 }

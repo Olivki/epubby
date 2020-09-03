@@ -19,7 +19,6 @@ package dev.epubby.internal.parser
 import dev.epubby.prefixes.PackagePrefix
 import dev.epubby.prefixes.Prefixes
 import dev.epubby.properties.Property
-import moe.kanon.kommons.collections.getOrThrow
 import org.jdom2.Verifier
 import java.net.URI
 import java.net.URISyntaxException
@@ -51,17 +50,16 @@ internal class PropertyParser internal constructor(source: String) {
         private val EMPTY_ARRAY: CharArray = charArrayOf()
 
         @JvmSynthetic
-        internal fun parse(source: String, prefixes: Prefixes): Property = PropertyParser(source).parse(prefixes)
+        internal fun parse(source: String, prefixes: Prefixes): Property? = PropertyParser(source).parse(prefixes)
     }
 
     private val tokenizer: StringTokenizer = StringTokenizer(source, EMPTY_ARRAY)
 
-    fun parse(prefixes: Prefixes): Property = property(prefixes)
+    fun parse(prefixes: Prefixes): Property? = property(prefixes)
 
-    private fun property(prefixes: Prefixes): Property {
+    private fun property(prefixes: Prefixes): Property? {
         val rawPrefix = prefix()
-        val prefix = PackagePrefix.fromPrefixOrNull(rawPrefix)
-            ?: prefixes.getOrThrow(rawPrefix) { "Unknown prefix '$rawPrefix'." }
+        val prefix = PackagePrefix.fromPrefixOrNull(rawPrefix) ?: prefixes[rawPrefix] ?: return null
         tokenizer.eat(':')
         val reference = reference()
 

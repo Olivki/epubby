@@ -17,23 +17,19 @@
 package dev.epubby.internal.models.packages
 
 import com.github.michaelbull.logging.InlineLogger
-import dev.epubby.Book
-import dev.epubby.MalformedBookException
-import dev.epubby.ParseStrictness
+import dev.epubby.*
 import dev.epubby.internal.elementOf
 import dev.epubby.internal.getAttributeValueOrThrow
 import dev.epubby.internal.models.SerializedName
-import dev.epubby.mapToValues
 import dev.epubby.packages.PackageTours
-import dev.epubby.tryMap
 import dev.epubby.utils.toNonEmptyList
-import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.toPersistentList
 import org.jdom2.Element
 import dev.epubby.internal.Namespaces.OPF as NAMESPACE
 
 @SerializedName("tours")
-data class PackageToursModel internal constructor(val entries: ImmutableList<Tour>) {
+data class PackageToursModel internal constructor(val entries: PersistentList<TourModel>) {
     @JvmSynthetic
     internal fun toElement(): Element = elementOf("tours", NAMESPACE) {
         entries.forEach { entry -> it.addContent(entry.toElement()) }
@@ -46,11 +42,11 @@ data class PackageToursModel internal constructor(val entries: ImmutableList<Tou
     }
 
     @SerializedName("tour")
-    data class Tour internal constructor(
+    data class TourModel internal constructor(
         @SerializedName("id")
         val identifier: String,
         val title: String,
-        val sites: ImmutableList<Site>
+        val sites: PersistentList<SiteModel>,
     ) {
         @JvmSynthetic
         internal fun toElement(): Element = elementOf("tour", NAMESPACE) {
@@ -66,7 +62,7 @@ data class PackageToursModel internal constructor(val entries: ImmutableList<Tou
         }
 
         @SerializedName("site")
-        data class Site internal constructor(val href: String, val title: String) {
+        data class SiteModel internal constructor(val href: String, val title: String) {
             @JvmSynthetic
             internal fun toElement(): Element = elementOf("site", NAMESPACE) {
                 it.setAttribute("href", href)
@@ -78,33 +74,33 @@ data class PackageToursModel internal constructor(val entries: ImmutableList<Tou
 
             internal companion object {
                 @JvmSynthetic
-                internal fun fromElement(element: Element): Site {
+                internal fun fromElement(element: Element): SiteModel {
                     val href = element.getAttributeValueOrThrow("href")
                     val title = element.getAttributeValueOrThrow("title")
-                    return Site(href, title)
+                    return SiteModel(href, title)
                 }
 
                 @JvmSynthetic
-                internal fun fromSite(origin: PackageTours.Tour.Site): Site = Site(origin.href, origin.title)
+                internal fun fromSite(origin: PackageTours.Tour.Site): SiteModel = SiteModel(origin.href, origin.title)
             }
         }
 
         internal companion object {
             @JvmSynthetic
-            internal fun fromElement(element: Element): Tour {
+            internal fun fromElement(element: Element): TourModel {
                 val identifier = element.getAttributeValueOrThrow("id")
                 val title = element.getAttributeValueOrThrow("title")
                 val sites = element.getChildren("site", element.namespace)
-                    .map { Site.fromElement(it) }
+                    .map { SiteModel.fromElement(it) }
                     .ifEmpty { throw MalformedBookException.forMissing("tour", "site") }
                     .toPersistentList()
-                return Tour(identifier, title, sites)
+                return TourModel(identifier, title, sites)
             }
 
             @JvmSynthetic
-            internal fun fromTour(origin: PackageTours.Tour): Tour {
-                val sites = origin.sites.map { Site.fromSite(it) }.toPersistentList()
-                return Tour(origin.identifier, origin.title, sites)
+            internal fun fromTour(origin: PackageTours.Tour): TourModel {
+                val sites = origin.sites.map { SiteModel.fromSite(it) }.toPersistentList()
+                return TourModel(origin.identifier, origin.title, sites)
             }
         }
     }
@@ -115,7 +111,7 @@ data class PackageToursModel internal constructor(val entries: ImmutableList<Tou
         @JvmSynthetic
         internal fun fromElement(element: Element, strictness: ParseStrictness): PackageToursModel {
             val tours = element.getChildren("tour", element.namespace)
-                .tryMap { Tour.fromElement(it) }
+                .tryMap { TourModel.fromElement(it) }
                 .mapToValues(LOGGER, strictness)
                 .toPersistentList()
             return PackageToursModel(tours)
@@ -123,7 +119,7 @@ data class PackageToursModel internal constructor(val entries: ImmutableList<Tou
 
         @JvmSynthetic
         internal fun fromPackageTours(origin: PackageTours): PackageToursModel {
-            val entries = origin.entries.map { Tour.fromTour(it) }.toPersistentList()
+            val entries = origin.entries.map { TourModel.fromTour(it) }.toPersistentList()
             return PackageToursModel(entries)
         }
     }

@@ -16,11 +16,8 @@
 
 package dev.epubby.internal
 
-import dev.epubby.packages.PackageGuide
-import dev.epubby.packages.PackageManifest
-import dev.epubby.resources.Resource
+import dev.epubby.packages.guide.CustomGuideReference
+import dev.epubby.packages.guide.GuideReference
 import moe.kanon.kommons.func.Either
 
-internal typealias `Reference | CustomReference` = Either<PackageGuide.Reference, PackageGuide.CustomReference>
-
-internal typealias `Resource | RemoteItem` = Either<Resource, PackageManifest.RemoteItem>
+internal typealias `Reference | CustomReference` = Either<GuideReference, CustomGuideReference>

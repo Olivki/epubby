@@ -51,7 +51,7 @@ class NonEmptyList<E> private constructor(
     }
 
     override fun removeAt(index: Int): E = when (index) {
-        0 -> throw UnsupportedOperationException("Removing the 'head' of a NonEmptyList is not supported")
+        0 -> throw UnsupportedOperationException("Can't remove the head of a NonEmptyList")
         else -> tail.removeAt(index - 1)
     }
 
@@ -67,8 +67,12 @@ class NonEmptyList<E> private constructor(
         return prevElement
     }
 
+    /**
+     * Throws a [UnsupportedOperationException], as a `NonEmptyList` can never be cleared.
+     */
+    @Throws(UnsupportedOperationException::class)
     override fun clear() {
-        throw UnsupportedOperationException("Clearing a NonEmptyList is not supported")
+        throw UnsupportedOperationException("Can't clear a NonEmptyList")
     }
 
     /**

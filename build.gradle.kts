@@ -10,12 +10,13 @@ buildscript {
 
     dependencies {
         classpath("name.remal:gradle-plugins:1.0.129")
+        classpath("org.jetbrains.kotlinx:atomicfu-gradle-plugin:0.14.4")
     }
 }
 
 plugins {
-    kotlin("jvm").version("1.3.72")
-    kotlin("kapt").version("1.3.72")
+    kotlin("jvm").version("1.4.0")
+    kotlin("kapt").version("1.4.0")
 
     id("com.github.ben-manes.versions").version("0.21.0")
     
@@ -23,6 +24,7 @@ plugins {
 }
 
 apply(plugin = "name.remal.maven-publish-bintray")
+apply(plugin = "kotlinx-atomicfu")
 
 group = "epubby.dev"
 description = "Framework for working with the EPUB file format for Kotlin and Java."
@@ -44,9 +46,9 @@ dependencies {
     // Kanon
     implementation(group = "moe.kanon.kommons", name = "kommons.func", version = "2.0.0")
     implementation(group = "moe.kanon.kommons", name = "kommons.reflection", version = "0.6.0")
-    implementation(group = "moe.kanon.kommons", name = "kommons.io", version = "1.4.2")
+    implementation(group = "moe.kanon.kommons", name = "kommons.io", version = "1.5.1")
     implementation(group = "moe.kanon.kommons", name = "kommons.lang", version = "0.6.0")
-    implementation(group = "moe.kanon.kommons", name = "kommons.collections", version = "0.14.0")
+    implementation(group = "moe.kanon.kommons", name = "kommons.collections", version = "0.14.1")
 
     // kassava
     implementation(group = "au.com.console", name = "kassava", version = "2.1.0-rc.1")
@@ -56,9 +58,8 @@ dependencies {
 
     // Apache
     implementation(group = "commons-validator", name = "commons-validator", version = "1.6")
-    // TODO: remove this V
-    implementation(group = "org.apache.logging.log4j", name = "log4j-api-kotlin", version = "1.0.0")
     implementation(group = "org.apache.commons", name = "commons-collections4", version = "4.4")
+    implementation(group = "commons-io", name = "commons-io", version = "2.7")
 
     // logging
     implementation(group = "com.michael-bull.kotlin-inline-logger", name = "kotlin-inline-logger", version = "1.0.2")
@@ -78,6 +79,9 @@ dependencies {
     compileOnly(group = "com.google.auto.service", name = "auto-service", version = "1.0-rc4")
     kapt(group = "com.google.auto.service", name = "auto-service", version = "1.0-rc4")
 
+    // scalr
+    api(group = "org.imgscalr", name = "imgscalr-lib", version = "4.2")
+
     // Test Dependencies
     testImplementation(group = "io.kotlintest", name = "kotlintest-runner-junit5", version = "3.1.11")
     testImplementation(group = "org.apache.logging.log4j", name = "log4j-core", version = "2.12.0")
@@ -91,7 +95,7 @@ dependencies {
 tasks.withType<KotlinCompile> {
     kotlinOptions {
         jvmTarget = "1.8"
-        freeCompilerArgs = listOf("-Xuse-experimental=kotlin.Experimental", "-Xjvm-default=enable")
+        freeCompilerArgs = listOf("-Xuse-experimental=kotlin.Experimental", "-Xjvm-default=all")
     }
 }
 

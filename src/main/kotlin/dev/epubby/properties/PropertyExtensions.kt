@@ -21,11 +21,7 @@ package dev.epubby.properties
 import dev.epubby.internal.Patterns
 import dev.epubby.internal.parser.PropertyParser
 import dev.epubby.prefixes.Prefixes
-import dev.epubby.properties.vocabularies.ManifestVocabulary
-import dev.epubby.properties.vocabularies.MetadataLinkRelVocabulary
-import dev.epubby.properties.vocabularies.MetadataLinkVocabulary
-import dev.epubby.properties.vocabularies.MetadataMetaVocabulary
-import dev.epubby.properties.vocabularies.SpineVocabulary
+import dev.epubby.properties.vocabularies.*
 
 typealias Relationship = Property
 
@@ -41,40 +37,47 @@ internal fun requireKnown(property: Property) {
     }
 }
 
-fun Property.toStringForm(): String = when {
+fun Property.encodeToString(): String = when {
     prefix.title.isBlank() -> reference.toString()
     else -> "${prefix.title}:$reference"
 }
 
+/**
+ * Returns a string containing all the [property][Property] instances stored in this `properties`, separated by a
+ * space.
+ */
+// TODO: should this only be returning 'reference'?
+fun Properties.encodeToString(): String = joinToString(separator = " ") { it.reference.toString() }
+
 // resolving single
 @JvmSynthetic
-internal fun resolveManifestProperty(input: String, prefixes: Prefixes): Property = when {
+internal fun resolveManifestProperty(input: String, prefixes: Prefixes): Property? = when {
     ':' in input -> PropertyParser.parse(input, prefixes)
-    else -> ManifestVocabulary.fromReference(input)
+    else -> ManifestVocabulary.fromReferenceOrNull(input)
 }
 
 @JvmSynthetic
-internal fun resolveLinkProperty(input: String, prefixes: Prefixes): Property = when {
+internal fun resolveLinkProperty(input: String, prefixes: Prefixes): Property? = when {
     ':' in input -> PropertyParser.parse(input, prefixes)
-    else -> MetadataLinkVocabulary.fromReference(input)
+    else -> MetadataLinkVocabulary.fromReferenceOrNull(input)
 }
 
 @JvmSynthetic
-internal fun resolveLinkRelationship(input: String, prefixes: Prefixes): Relationship = when {
+internal fun resolveLinkRelationship(input: String, prefixes: Prefixes): Relationship? = when {
     ':' in input -> PropertyParser.parse(input, prefixes)
-    else -> MetadataLinkRelVocabulary.fromReference(input)
+    else -> MetadataLinkRelVocabulary.fromReferenceOrNull(input)
 }
 
 @JvmSynthetic
-internal fun resolveMetaProperty(input: String, prefixes: Prefixes): Property = when {
+internal fun resolveMetaProperty(input: String, prefixes: Prefixes): Property? = when {
     ':' in input -> PropertyParser.parse(input, prefixes)
-    else -> MetadataMetaVocabulary.fromReference(input)
+    else -> MetadataMetaVocabulary.fromReferenceOrNull(input)
 }
 
 @JvmSynthetic
-internal fun resolveSpineProperty(input: String, prefixes: Prefixes): Property = when {
+internal fun resolveSpineProperty(input: String, prefixes: Prefixes): Property? = when {
     ':' in input -> PropertyParser.parse(input, prefixes)
-    else -> SpineVocabulary.fromReference(input)
+    else -> SpineVocabulary.fromReferenceOrNull(input)
 }
 
 // resolving many
@@ -83,6 +86,7 @@ internal fun resolveManifestProperties(input: String, prefixes: Prefixes): Prope
     val props = input.replace(Patterns.EXCESSIVE_WHITESPACE, "")
         .splitToSequence(' ')
         .map { resolveManifestProperty(input, prefixes) }
+        .filterNotNull()
     return Properties.copyOf(props.asIterable())
 }
 
@@ -91,6 +95,7 @@ internal fun resolveLinkProperties(input: String, prefixes: Prefixes): Propertie
     val props = input.replace(Patterns.EXCESSIVE_WHITESPACE, "")
         .splitToSequence(' ')
         .map { resolveLinkProperty(input, prefixes) }
+        .filterNotNull()
     return Properties.copyOf(props.asIterable())
 }
 
@@ -99,6 +104,7 @@ internal fun resolveMetaProperties(input: String, prefixes: Prefixes): Propertie
     val props = input.replace(Patterns.EXCESSIVE_WHITESPACE, "")
         .splitToSequence(' ')
         .map { resolveMetaProperty(input, prefixes) }
+        .filterNotNull()
     return Properties.copyOf(props.asIterable())
 }
 
@@ -107,5 +113,6 @@ internal fun resolveSpineProperties(input: String, prefixes: Prefixes): Properti
     val props = input.replace(Patterns.EXCESSIVE_WHITESPACE, "")
         .splitToSequence(' ')
         .map { resolveSpineProperty(input, prefixes) }
+        .filterNotNull()
     return Properties.copyOf(props.asIterable())
 }

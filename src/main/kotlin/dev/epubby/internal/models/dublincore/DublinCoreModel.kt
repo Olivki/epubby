@@ -20,8 +20,9 @@ import com.google.common.collect.Maps
 import dev.epubby.Book
 import dev.epubby.BookVersion.EPUB_3_0
 import dev.epubby.MalformedBookException
-import dev.epubby.dublincore.CreativeRole
-import dev.epubby.dublincore.DateEvent
+import dev.epubby.dublincore.*
+import dev.epubby.dublincore.DublinCore.*
+import dev.epubby.dublincore.LocalizedDublinCore.*
 import dev.epubby.internal.Namespaces
 import dev.epubby.internal.elementOf
 import dev.epubby.internal.ifNotNull
@@ -32,8 +33,6 @@ import org.jdom2.Element
 import org.jdom2.Namespace
 import java.util.Collections
 import java.util.Locale
-import dev.epubby.dublincore.DublinCore as DC
-import dev.epubby.dublincore.LocalizedDublinCore as LDC
 
 sealed class DublinCoreModel(val name: String) {
     abstract val identifier: String?
@@ -43,9 +42,9 @@ sealed class DublinCoreModel(val name: String) {
     @get:JvmSynthetic
     internal val attributes: MutableMap<String, String> by lazy {
         when (this) {
-            is Date, is Identifier -> Maps.newHashMapWithExpectedSize<String, String>(1)
-            is Contributor, is Creator -> Maps.newHashMapWithExpectedSize<String, String>(2)
-            else -> Collections.emptyMap<String, String>()
+            is DateModel, is IdentifierModel -> Maps.newHashMapWithExpectedSize(1)
+            is ContributorModel, is CreatorModel -> Maps.newHashMapWithExpectedSize(2)
+            else -> Collections.emptyMap()
         }
     }
 
@@ -73,13 +72,13 @@ sealed class DublinCoreModel(val name: String) {
     }
 
     @JvmSynthetic
-    internal fun toDublinCore(book: Book): DC {
+    internal fun toDublinCore(book: Book): DublinCore {
         val event = attributes["event"]?.let { DateEvent.of(it) }
         val scheme = attributes["scheme"]
         val role = attributes["role"]?.let { CreativeRole.create(it) }
         val fileAs = attributes["file-as"]
         val direction = when (this) {
-            is LocalizedDublinCoreModel -> direction?.let { Direction.fromTag(it) }
+            is LocalizedDublinCoreModel -> direction?.let { Direction.fromStringOrNull(it) }
             else -> null
         }
         val language = when (this) {
@@ -88,58 +87,58 @@ sealed class DublinCoreModel(val name: String) {
         }
 
         return when (this) {
-            is Date -> DC.Date(book, content, identifier, event)
-            is Format -> DC.Format(book, content, identifier)
-            is Identifier -> DC.Identifier(book, content, identifier, scheme)
-            is Language -> DC.Language(book, content, identifier)
-            is Source -> DC.Source(book, content, identifier)
-            is Type -> DC.Type(book, content, identifier)
-            is Contributor -> LDC.Contributor(book, content, identifier, direction, language, role, fileAs)
-            is Coverage -> LDC.Coverage(book, content, identifier, direction, language)
-            is Creator -> LDC.Creator(book, content, identifier, direction, language, role, fileAs)
-            is Description -> LDC.Description(book, content, identifier, direction, language)
-            is Publisher -> LDC.Publisher(book, content, identifier, direction, language)
-            is Relation -> LDC.Relation(book, content, identifier, direction, language)
-            is Rights -> LDC.Rights(book, content, identifier, direction, language)
-            is Subject -> LDC.Subject(book, content, identifier, direction, language)
-            is Title -> LDC.Title(book, content, identifier, direction, language)
+            is DateModel -> Date(book, content, identifier, event)
+            is FormatModel -> Format(book, content, identifier)
+            is IdentifierModel -> Identifier(book, content, identifier, scheme)
+            is LanguageModel -> Language(book, content, identifier)
+            is SourceModel -> Source(book, content, identifier)
+            is TypeModel -> Type(book, content, identifier)
+            is ContributorModel -> Contributor(book, content, identifier, direction, language, role, fileAs)
+            is CoverageModel -> Coverage(book, content, identifier, direction, language)
+            is CreatorModel -> Creator(book, content, identifier, direction, language, role, fileAs)
+            is DescriptionModel -> Description(book, content, identifier, direction, language)
+            is PublisherModel -> Publisher(book, content, identifier, direction, language)
+            is RelationModel -> Relation(book, content, identifier, direction, language)
+            is RightsModel -> Rights(book, content, identifier, direction, language)
+            is SubjectModel -> Subject(book, content, identifier, direction, language)
+            is TitleModel -> Title(book, content, identifier, direction, language)
         }
     }
 
     @SerializedName("date")
-    data class Date internal constructor(
+    data class DateModel internal constructor(
         override val content: String,
-        override val identifier: String?
+        override val identifier: String?,
     ) : DublinCoreModel("date")
 
     @SerializedName("format")
-    data class Format internal constructor(
+    data class FormatModel internal constructor(
         override val content: String,
-        override val identifier: String?
+        override val identifier: String?,
     ) : DublinCoreModel("format")
 
     @SerializedName("identifier")
-    data class Identifier internal constructor(
+    data class IdentifierModel internal constructor(
         override val content: String,
-        override val identifier: String?
+        override val identifier: String?,
     ) : DublinCoreModel("identifier")
 
     @SerializedName("language")
-    data class Language internal constructor(
+    data class LanguageModel internal constructor(
         override val content: String,
-        override val identifier: String?
+        override val identifier: String?,
     ) : DublinCoreModel("language")
 
     @SerializedName("source")
-    data class Source internal constructor(
+    data class SourceModel internal constructor(
         override val content: String,
-        override val identifier: String?
+        override val identifier: String?,
     ) : DublinCoreModel("source")
 
     @SerializedName("type")
-    data class Type internal constructor(
+    data class TypeModel internal constructor(
         override val content: String,
-        override val identifier: String?
+        override val identifier: String?,
     ) : DublinCoreModel("type")
 
     internal companion object {
@@ -148,12 +147,12 @@ sealed class DublinCoreModel(val name: String) {
             val content = element.textNormalize
             val identifier = element.getAttributeValue("id")
             val dublinCore = when (element.name.toLowerCase()) {
-                "language" -> Language(content, identifier)
-                "identifier" -> Identifier(content, identifier)
-                "date" -> Date(content, identifier)
-                "format" -> Format(content, identifier)
-                "source" -> Source(content, identifier)
-                "type" -> Type(content, identifier)
+                "language" -> LanguageModel(content, identifier)
+                "identifier" -> IdentifierModel(content, identifier)
+                "date" -> DateModel(content, identifier)
+                "format" -> FormatModel(content, identifier)
+                "source" -> SourceModel(content, identifier)
+                "type" -> TypeModel(content, identifier)
                 else -> LocalizedDublinCoreModel.fromElement(element, content, identifier)
             }
             val attributes = element.attributes
@@ -164,90 +163,106 @@ sealed class DublinCoreModel(val name: String) {
             return dublinCore
         }
 
-        @JvmSynthetic
-        internal fun fromDublinCore(origin: DC): DublinCoreModel = when (origin) {
-            is DC.Date -> Date(
-                origin.content,
-                origin.identifier
+        private object DublinCoreToModelVisitor : DublinCoreVisitor<DublinCoreModel> {
+            override fun visitDate(date: Date): DateModel = DateModel(date.content, date.identifier).apply {
+                if (date.book.version.isOlder(EPUB_3_0)) {
+                    date.event ifNotNull { attributes["event"] = it.name }
+                }
+            }
+
+            override fun visitFormat(format: Format): FormatModel = FormatModel(format.content, format.identifier)
+
+            override fun visitIdentifier(
+                identifier: Identifier,
+            ): IdentifierModel = IdentifierModel(identifier.content, identifier.identifier).apply {
+                if (identifier.book.version.isOlder(EPUB_3_0)) {
+                    identifier.scheme ifNotNull { attributes["scheme"] = it }
+                }
+            }
+
+            override fun visitLanguage(language: Language): LanguageModel =
+                LanguageModel(language.content, language.identifier)
+
+            override fun visitSource(source: Source): SourceModel = SourceModel(source.content, source.identifier)
+
+            override fun visitType(type: Type): TypeModel = TypeModel(type.content, type.identifier)
+
+            override fun visitContributor(contributor: Contributor): ContributorModel = ContributorModel(
+                contributor.content,
+                contributor.identifier,
+                contributor.direction?.attributeName,
+                contributor.language?.toLanguageTag()
             ).apply {
-                if (origin.book.version isOlder EPUB_3_0) {
-                    origin.event.ifNotNull { attributes["event"] = it.name }
+                if (contributor.book.version.isOlder(EPUB_3_0)) {
+                    contributor.role ifNotNull { attributes["role"] = it.code }
+                    contributor.fileAs ifNotNull { attributes["file-as"] = it }
                 }
             }
-            is DC.Format -> Format(origin.content, origin.identifier)
-            is DC.Identifier -> Identifier(origin.content, origin.identifier).apply {
-                if (origin.book.version isOlder EPUB_3_0) {
-                    origin.scheme.ifNotNull { attributes["scheme"] = it }
-                }
-            }
-            is DC.Language -> Language(origin.content, origin.identifier)
-            is DC.Source -> Source(origin.content, origin.identifier)
-            is DC.Type -> Type(origin.content, origin.identifier)
-            is LDC.Contributor -> Contributor(
-                origin.content,
-                origin.identifier,
-                origin.direction?.attributeName,
-                origin.language?.toLanguageTag()
+
+            override fun visitCoverage(coverage: Coverage): CoverageModel = CoverageModel(
+                coverage.content,
+                coverage.identifier,
+                coverage.direction?.attributeName,
+                coverage.language?.toLanguageTag()
+            )
+
+            override fun visitCreator(creator: Creator): CreatorModel = CreatorModel(
+                creator.content,
+                creator.identifier,
+                creator.direction?.attributeName,
+                creator.language?.toLanguageTag()
             ).apply {
-                if (origin.book.version isOlder EPUB_3_0) {
-                    origin.role.ifNotNull { attributes["role"] = it.code }
-                    origin.fileAs.ifNotNull { attributes["file-as"] = it }
+                if (creator.book.version.isOlder(EPUB_3_0)) {
+                    creator.role ifNotNull { attributes["role"] = it.code }
+                    creator.fileAs ifNotNull { attributes["file-as"] = it }
                 }
             }
-            is LDC.Coverage -> Coverage(
-                origin.content,
-                origin.identifier,
-                origin.direction?.attributeName,
-                origin.language?.toLanguageTag()
+
+            override fun visitDescription(description: Description): DescriptionModel = DescriptionModel(
+                description.content,
+                description.identifier,
+                description.direction?.attributeName,
+                description.language?.toLanguageTag()
             )
-            is LDC.Creator -> Creator(
-                origin.content,
-                origin.identifier,
-                origin.direction?.attributeName,
-                origin.language?.toLanguageTag()
-            ).apply {
-                if (origin.book.version isOlder EPUB_3_0) {
-                    origin.role.ifNotNull { attributes["role"] = it.code }
-                    origin.fileAs.ifNotNull { attributes["file-as"] = it }
-                }
-            }
-            is LDC.Description -> Description(
-                origin.content,
-                origin.identifier,
-                origin.direction?.attributeName,
-                origin.language?.toLanguageTag()
+
+            override fun visitPublisher(publisher: Publisher): PublisherModel = PublisherModel(
+                publisher.content,
+                publisher.identifier,
+                publisher.direction?.attributeName,
+                publisher.language?.toLanguageTag()
             )
-            is LDC.Publisher -> Publisher(
-                origin.content,
-                origin.identifier,
-                origin.direction?.attributeName,
-                origin.language?.toLanguageTag()
+
+            override fun visitRelation(relation: Relation): RelationModel = RelationModel(
+                relation.content,
+                relation.identifier,
+                relation.direction?.attributeName,
+                relation.language?.toLanguageTag()
             )
-            is LDC.Relation -> Relation(
-                origin.content,
-                origin.identifier,
-                origin.direction?.attributeName,
-                origin.language?.toLanguageTag()
+
+            override fun visitRights(rights: Rights): RightsModel = RightsModel(
+                rights.content,
+                rights.identifier,
+                rights.direction?.attributeName,
+                rights.language?.toLanguageTag()
             )
-            is LDC.Rights -> Rights(
-                origin.content,
-                origin.identifier,
-                origin.direction?.attributeName,
-                origin.language?.toLanguageTag()
+
+            override fun visitSubject(subject: Subject): SubjectModel = SubjectModel(
+                subject.content,
+                subject.identifier,
+                subject.direction?.attributeName,
+                subject.language?.toLanguageTag()
             )
-            is LDC.Subject -> Subject(
-                origin.content,
-                origin.identifier,
-                origin.direction?.attributeName,
-                origin.language?.toLanguageTag()
-            )
-            is LDC.Title -> Title(
-                origin.content,
-                origin.identifier,
-                origin.direction?.attributeName,
-                origin.language?.toLanguageTag()
+
+            override fun visitTitle(title: Title): TitleModel = TitleModel(
+                title.content,
+                title.identifier,
+                title.direction?.attributeName,
+                title.language?.toLanguageTag()
             )
         }
+
+        @JvmSynthetic
+        internal fun fromDublinCore(origin: DublinCore): DublinCoreModel = origin.accept(DublinCoreToModelVisitor)
     }
 }
 
@@ -256,75 +271,75 @@ sealed class LocalizedDublinCoreModel(name: String) : DublinCoreModel(name) {
     abstract val language: String?
 
     @SerializedName("contributor")
-    data class Contributor internal constructor(
+    data class ContributorModel internal constructor(
         override val content: String,
         override val identifier: String?,
         override val direction: String?,
-        override val language: String?
+        override val language: String?,
     ) : LocalizedDublinCoreModel("contributor")
 
     @SerializedName("coverage")
-    data class Coverage internal constructor(
+    data class CoverageModel internal constructor(
         override val content: String,
         override val identifier: String?,
         override val direction: String?,
-        override val language: String?
+        override val language: String?,
     ) : LocalizedDublinCoreModel("coverage")
 
     @SerializedName("creator")
-    data class Creator internal constructor(
+    data class CreatorModel internal constructor(
         override val content: String,
         override val identifier: String?,
         override val direction: String?,
-        override val language: String?
+        override val language: String?,
     ) : LocalizedDublinCoreModel("creator")
 
     @SerializedName("description")
-    data class Description internal constructor(
+    data class DescriptionModel internal constructor(
         override val content: String,
         override val identifier: String?,
         override val direction: String?,
-        override val language: String?
+        override val language: String?,
     ) : LocalizedDublinCoreModel("description")
 
     @SerializedName("publisher")
-    data class Publisher internal constructor(
+    data class PublisherModel internal constructor(
         override val content: String,
         override val identifier: String?,
         override val direction: String?,
-        override val language: String?
+        override val language: String?,
     ) : LocalizedDublinCoreModel("publisher")
 
     @SerializedName("relation")
-    data class Relation internal constructor(
+    data class RelationModel internal constructor(
         override val content: String,
         override val identifier: String?,
         override val direction: String?,
-        override val language: String?
+        override val language: String?,
     ) : LocalizedDublinCoreModel("relation")
 
     @SerializedName("rights")
-    data class Rights internal constructor(
+    data class RightsModel internal constructor(
         override val content: String,
         override val identifier: String?,
         override val direction: String?,
-        override val language: String?
+        override val language: String?,
     ) : LocalizedDublinCoreModel("rights")
 
     @SerializedName("subject")
-    data class Subject internal constructor(
+    data class SubjectModel internal constructor(
         override val content: String,
         override val identifier: String?,
         override val direction: String?,
-        override val language: String?
+        override val language: String?,
     ) : LocalizedDublinCoreModel("subject")
 
     @SerializedName("title")
-    data class Title internal constructor(
+    data class TitleModel internal constructor(
         override val content: String,
         override val identifier: String?,
         override val direction: String?,
-        override val language: String?
+        override val language: String?,
     ) : LocalizedDublinCoreModel("title")
 
     internal companion object {
@@ -334,15 +349,15 @@ sealed class LocalizedDublinCoreModel(name: String) : DublinCoreModel(name) {
             val language = element.getAttributeValue("lang", Namespace.XML_NAMESPACE)
 
             return when (element.name.toLowerCase()) {
-                "title" -> Title(content, identifier, direction, language)
-                "contributor" -> Contributor(content, identifier, direction, language)
-                "coverage" -> Coverage(content, identifier, direction, language)
-                "creator" -> Creator(content, identifier, direction, language)
-                "description" -> Description(content, identifier, direction, language)
-                "publisher" -> Publisher(content, identifier, direction, language)
-                "relation" -> Relation(content, identifier, direction, language)
-                "rights" -> Rights(content, identifier, direction, language)
-                "subject" -> Subject(content, identifier, direction, language)
+                "title" -> TitleModel(content, identifier, direction, language)
+                "contributor" -> ContributorModel(content, identifier, direction, language)
+                "coverage" -> CoverageModel(content, identifier, direction, language)
+                "creator" -> CreatorModel(content, identifier, direction, language)
+                "description" -> DescriptionModel(content, identifier, direction, language)
+                "publisher" -> PublisherModel(content, identifier, direction, language)
+                "relation" -> RelationModel(content, identifier, direction, language)
+                "rights" -> RightsModel(content, identifier, direction, language)
+                "subject" -> SubjectModel(content, identifier, direction, language)
                 else -> throw MalformedBookException("Unknown dublin-core element '${element.name}'.")
             }
         }

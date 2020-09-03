@@ -27,20 +27,24 @@ class ScriptResource(
     identifier: String,
     file: Path,
     override val mediaType: MediaType
-) : Resource(book, identifier, file) {
-    override fun <R : Any> accept(visitor: ResourceVisitor<R>): R = visitor.visitScript(this)
+) : LocalResource(book, identifier, file) {
+    /**
+     * Returns the result of invoking the [visitScript][ResourceVisitor.visitScript] function of the given
+     * [visitor].
+     */
+    override fun <R> accept(visitor: ResourceVisitor<R>): R = visitor.visitScript(this)
 
     override fun toString(): String = "ScriptResource(identifier='$identifier', mediaType=$mediaType, file='$file')"
 }
 
-@AutoService(ResourceLocator::class)
-internal object ScriptResourceLocator : ResourceLocator {
+@AutoService(LocalResourceLocator::class)
+internal object ScriptResourceLocator : LocalResourceLocator {
     private val TYPES: Set<MediaType> = persistentHashSetOf(
         MediaType.create("text", "javascript"),
         MediaType.TEXT_JAVASCRIPT_UTF_8,
         MediaType.create("application", "javascript")
     )
-    private val FACTORY: ResourceFactory = ::ScriptResource
+    private val FACTORY: LocalResourceFactory = ::ScriptResource
 
-    override fun findFactory(mediaType: MediaType): ResourceFactory? = FACTORY.takeIf { mediaType in TYPES }
+    override fun findFactory(mediaType: MediaType): LocalResourceFactory? = FACTORY.takeIf { mediaType in TYPES }
 }

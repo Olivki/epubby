@@ -26,14 +26,21 @@ enum class Direction(val attributeName: String) {
 
     companion object {
         /**
-         * Returns the [Direction] that matches the given [tag], or throws a [IllegalArgumentException] if `tag` does
-         * not match a direction.
+         * Returns the [Direction] that matches the given [string], or throws a [IllegalArgumentException] if `string`
+         * does not match a direction.
          */
         @JvmStatic
-        fun fromTag(tag: String): Direction = when (tag.toLowerCase()) {
+        fun fromString(string: String): Direction =
+            fromStringOrNull(string) ?: throw IllegalArgumentException("Expected 'ltr' or 'rtl', got '$string'.")
+
+        /**
+         * Returns the [Direction] that matches the given [string], or `null` if `string` does not match a direction.
+         */
+        @JvmStatic
+        fun fromStringOrNull(string: String): Direction? = when (string.toLowerCase()) {
             "ltr" -> LEFT_TO_RIGHT
             "rtl" -> RIGHT_TO_LEFT
-            else -> throw IllegalArgumentException("Expected 'ltr' or 'rtl', got '$tag'.")
+            else -> null
         }
     }
 }
