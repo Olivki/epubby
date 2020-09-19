@@ -16,20 +16,20 @@
 
 package dev.epubby.packages.metadata
 
-import dev.epubby.Book
-import dev.epubby.BookElement
+import dev.epubby.Epub
+import dev.epubby.EpubElement
 import dev.epubby.dublincore.*
 import dev.epubby.dublincore.DublinCore.Identifier
 import dev.epubby.dublincore.DublinCore.Language
 import dev.epubby.dublincore.LocalizedDublinCore.Creator
 import dev.epubby.dublincore.LocalizedDublinCore.Title
-import dev.epubby.internal.buildPersistentList
+import dev.epubby.internal.utils.buildPersistentList
 import dev.epubby.utils.NonEmptyList
 import kotlinx.collections.immutable.PersistentList
 import moe.kanon.kommons.collections.asUnmodifiableList
 
 class PackageMetadata(
-    override val book: Book,
+    override val epub: Epub,
     val identifiers: NonEmptyList<Identifier>,
     val titles: NonEmptyList<Title>,
     val languages: NonEmptyList<Language>,
@@ -37,7 +37,7 @@ class PackageMetadata(
     val opf2MetaEntries: MutableList<Opf2Meta> = arrayListOf(),
     val opf3MetaEntries: MutableList<Opf3Meta> = arrayListOf(),
     val links: MutableList<MetadataLink> = arrayListOf(),
-) : BookElement {
+) : EpubElement {
     override val elementName: String
         get() = "PackageMetadata"
 
@@ -60,7 +60,7 @@ class PackageMetadata(
         }
 
     /**
-     * The primary author of the book, or `null` if no primary author is defined.
+     * The primary author of the epub, or `null` if no primary author is defined.
      *
      * Note that this doesn't look for just the first instance of [LocalizedDublinCore.Creator], but rather looks for
      * the first instance of `LocalizedDublinCore.Creator` that is defined as

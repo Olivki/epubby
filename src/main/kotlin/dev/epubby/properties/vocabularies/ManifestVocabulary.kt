@@ -24,7 +24,7 @@ import java.net.URI
 
 enum class ManifestVocabulary(reference: String) : Property {
     /**
-     * The `cover-image` property identifies the described [resource][Resource] as the cover image for the book.
+     * The `cover-image` property identifies the described [resource][Resource] as the cover image for the epub.
      */
     COVER_IMAGE("cover-image"),
 

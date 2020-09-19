@@ -16,7 +16,7 @@
 
 package dev.epubby.utils
 
-enum class PageProgressionDirection(val attributeName: String) {
+enum class PageProgressionDirection(val value: String) {
     LEFT_TO_RIGHT("ltr"),
     RIGHT_TO_LEFT("rtl"),
     DEFAULT("default");

@@ -17,10 +17,10 @@
 package dev.epubby.internal.models.packages
 
 import com.github.michaelbull.logging.InlineLogger
-import dev.epubby.*
-import dev.epubby.internal.elementOf
-import dev.epubby.internal.getAttributeValueOrThrow
+import dev.epubby.Epub
+import dev.epubby.ParseMode
 import dev.epubby.internal.models.SerializedName
+import dev.epubby.internal.utils.*
 import dev.epubby.packages.PackageBindings
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.toPersistentList
@@ -28,22 +28,22 @@ import org.jdom2.Element
 import dev.epubby.internal.Namespaces.OPF as NAMESPACE
 
 @SerializedName("bindings")
-data class PackageBindingsModel internal constructor(val mediaTypes: PersistentList<MediaTypeModel>) {
+internal data class PackageBindingsModel internal constructor(internal val mediaTypes: PersistentList<MediaTypeModel>) {
     @JvmSynthetic
     internal fun toElement(): Element = elementOf("bindings", NAMESPACE) {
         mediaTypes.forEach { mediaType -> it.addContent(mediaType.toElement()) }
     }
 
     @JvmSynthetic
-    internal fun toPackageBindings(book: Book): PackageBindings {
+    internal fun toPackageBindings(epub: Epub): PackageBindings {
         TODO("'toPackageBindings' operation is not implemented yet.")
     }
 
     @SerializedName("mediaType")
-    data class MediaTypeModel internal constructor(
+    internal data class MediaTypeModel internal constructor(
         @SerializedName("media-type")
-        val mediaType: String,
-        val handler: String,
+        internal val mediaType: String,
+        internal val handler: String,
     ) {
         @JvmSynthetic
         internal fun toElement(): Element = elementOf("mediaType", NAMESPACE) {
@@ -52,7 +52,7 @@ data class PackageBindingsModel internal constructor(val mediaTypes: PersistentL
         }
 
         @JvmSynthetic
-        internal fun toMediaType(book: Book): PackageBindings.MediaType {
+        internal fun toMediaType(epub: Epub): PackageBindings.MediaType {
             TODO("'toMediaType' operation is not implemented yet.")
         }
 
@@ -75,16 +75,16 @@ data class PackageBindingsModel internal constructor(val mediaTypes: PersistentL
         private val LOGGER: InlineLogger = InlineLogger(PackageBindingsModel::class)
 
         @JvmSynthetic
-        internal fun fromElement(element: Element, strictness: ParseStrictness): PackageBindingsModel {
+        internal fun fromElement(element: Element, mode: ParseMode): PackageBindingsModel {
             val mediaTypes = element.getChildren("mediaType", element.namespace)
                 .tryMap { MediaTypeModel.fromElement(it) }
-                .mapToValues(LOGGER, strictness)
+                .mapToValues(LOGGER, mode)
                 .toPersistentList()
             return PackageBindingsModel(mediaTypes)
         }
 
         @JvmSynthetic
-        internal fun fromPackageBindings(origin: PackageBindings): PackageBindings {
+        internal fun fromPackageBindings(origin: PackageBindings): PackageBindingsModel {
             TODO("'fromPackageBindings' operation is not implemented yet.")
         }
     }

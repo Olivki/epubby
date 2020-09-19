@@ -16,17 +16,17 @@
 
 package dev.epubby.packages.guide
 
-import dev.epubby.Book
-import dev.epubby.BookElement
-import dev.epubby.internal.ifNotNull
+import dev.epubby.Epub
+import dev.epubby.EpubElement
+import dev.epubby.internal.utils.ifNotNull
 import dev.epubby.resources.PageResource
 
-class GuideReference @JvmOverloads constructor(
-    override val book: Book,
+class GuideReference internal constructor(
+    override val epub: Epub,
     val type: ReferenceType,
     var reference: PageResource,
-    var title: String? = null,
-) : BookElement {
+    var title: String?,
+) : EpubElement {
     override val elementName: String
         get() = "PackageGuide.Reference"
 

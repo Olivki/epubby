@@ -1,5 +1,3 @@
-import name.remal.gradle_plugins.dsl.extensions.convention
-import name.remal.gradle_plugins.dsl.extensions.get
 import name.remal.gradle_plugins.plugins.publish.bintray.RepositoryHandlerBintrayExtension
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
@@ -10,13 +8,12 @@ buildscript {
 
     dependencies {
         classpath("name.remal:gradle-plugins:1.0.129")
-        classpath("org.jetbrains.kotlinx:atomicfu-gradle-plugin:0.14.4")
     }
 }
 
 plugins {
-    kotlin("jvm").version("1.4.0")
-    kotlin("kapt").version("1.4.0")
+    kotlin("jvm").version("1.4.10")
+    kotlin("kapt").version("1.4.10")
 
     id("com.github.ben-manes.versions").version("0.21.0")
     
@@ -24,7 +21,6 @@ plugins {
 }
 
 apply(plugin = "name.remal.maven-publish-bintray")
-apply(plugin = "kotlinx-atomicfu")
 
 group = "epubby.dev"
 description = "Framework for working with the EPUB file format for Kotlin and Java."

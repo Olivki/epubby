@@ -16,23 +16,20 @@
 
 package dev.epubby.internal.verifiers
 
-import dev.epubby.Book
-import dev.epubby.BookVersion
-import dev.epubby.BookVersion.EPUB_3_0
-import dev.epubby.MalformedBookException
+import dev.epubby.EpubVersion
+import dev.epubby.EpubVersion.EPUB_3_0
 import dev.epubby.packages.PackageDocument
 
-internal object PackageDocumentVerifier {
-    @Throws(MalformedBookException::class)
-    internal fun verify(book: Book, packageDocument: PackageDocument) {
-        checkFeaturesAlignsWithVersion(book.version, packageDocument)
+internal object VerifierPackageDocument {
+    // TODO: verify more things
+    internal fun verify(packageDocument: PackageDocument) {
+        checkFeaturesAlignsWithVersion(packageDocument.epub.version, packageDocument)
     }
 
-    @Throws(MalformedBookException::class)
-    internal fun checkFeaturesAlignsWithVersion(
-        version: BookVersion,
-        packageDocument: PackageDocument
-    ) = checkVersion("PackageDocument", version) {
+    private fun checkFeaturesAlignsWithVersion(
+        version: EpubVersion,
+        packageDocument: PackageDocument,
+    ): Unit = checkVersion("PackageDocument", version) {
         verify(EPUB_3_0, packageDocument::bindings)
         verify(EPUB_3_0, packageDocument::collection)
     }

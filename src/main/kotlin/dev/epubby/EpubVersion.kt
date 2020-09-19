@@ -16,7 +16,7 @@
 
 package dev.epubby
 
-enum class BookVersion(val major: Int, val minor: Int) {
+enum class EpubVersion(val major: Int, val minor: Int) {
     /**
      * Represents the [EPUB 2.0](http://www.idpf.org/epub/dir/#epub201) format.
      */
@@ -33,7 +33,7 @@ enum class BookVersion(val major: Int, val minor: Int) {
      * The EPUB 3.1 format is [officially discouraged](http://www.idpf.org/epub/dir/#epub31) from use, and as such
      * the format is explicitly ***not*** supported by epubby, and it should never be used.
      */
-    // TODO: disallow usage of this version when creating a book from scratch
+    // TODO: disallow usage of this version when creating a epub from scratch
     EPUB_3_1(3, 1),
 
     /**
@@ -58,28 +58,28 @@ enum class BookVersion(val major: Int, val minor: Int) {
     /**
      * Returns `true` if `this` version is newer than the [other] version, otherwise `false`.
      */
-    infix fun isNewer(other: BookVersion): Boolean = compareVersions(other) > 0
+    infix fun isNewer(other: EpubVersion): Boolean = compareVersions(other) > 0
 
     /**
      * Returns `true` if `this` version is newer, or equal, to  the [other] version, otherwise `false`.
      */
-    infix fun isNewerOrEqual(other: BookVersion): Boolean = compareVersions(other) >= 0
+    infix fun isNewerOrEqual(other: EpubVersion): Boolean = compareVersions(other) >= 0
 
     /**
      * Returns `true` if `this` version is older than the [other] version, otherwise `false`.
      */
-    infix fun isOlder(other: BookVersion): Boolean = compareVersions(other) < 0
+    infix fun isOlder(other: EpubVersion): Boolean = compareVersions(other) < 0
 
     /**
      * Returns `true` if `this` version is older, or equal, to the [other] version, otherwise `false`.
      */
-    infix fun isOlderOrEqual(other: BookVersion): Boolean = compareVersions(other) <= 0
+    infix fun isOlderOrEqual(other: EpubVersion): Boolean = compareVersions(other) <= 0
 
     /**
      * Acts the same as the [compareTo] function, except that it works on the [major] & [minor] versions of the
      * version instances.
      */
-    private fun compareVersions(other: BookVersion): Int = when {
+    private fun compareVersions(other: EpubVersion): Int = when {
         major > other.major -> 1
         major < other.major -> -1
         minor > other.minor -> 1
@@ -90,12 +90,12 @@ enum class BookVersion(val major: Int, val minor: Int) {
     override fun toString(): String = "$major.$minor"
 
     internal companion object {
-        private fun fromInteger(major: Int, minor: Int): BookVersion =
+        private fun fromInteger(major: Int, minor: Int): EpubVersion =
             values().firstOrNull { it.major == major && it.minor == minor }
                 ?: throw UnknownBookVersionException("$major.$minor")
 
         @JvmSynthetic
-        internal fun parse(version: String): BookVersion {
+        internal fun parse(version: String): EpubVersion {
             require(version.isNotBlank()) { "expected 'version' to not be blank" }
             require(version.first().isDigit()) { "expected 'version' to start with a digit (0-9); '$version'" }
             require(version.last().isDigit()) { "expected 'version' to end with a digit (0-9); '$version'" }

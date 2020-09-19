@@ -16,10 +16,11 @@
 
 package dev.epubby.resources
 
-import dev.epubby.Book
-import java.nio.file.Path
+import dev.epubby.Epub
+import dev.epubby.files.RegularFile
 
-abstract class CustomResource(book: Book, identifier: String, file: Path) : LocalResource(book, identifier, file) {
+abstract class CustomResource(epub: Epub, identifier: String, file: RegularFile) :
+    LocalResource(epub, identifier, file) {
     /**
      * Returns the result of invoking the [visitCustom][ResourceVisitor.visitCustom] function of the given
      * [visitor].

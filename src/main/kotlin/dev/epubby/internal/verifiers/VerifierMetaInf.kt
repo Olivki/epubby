@@ -14,15 +14,14 @@
  * limitations under the License.
  */
 
-package dev.epubby.packages.guide
+package dev.epubby.internal.verifiers
 
-/**
- * A service interface that handles the correction of misspelling / errors that should be converted to a
- * [ReferenceType].
- */
-interface ReferenceTypeCorrector {
-    /**
-     * Returns the equivalent [ReferenceType] for the given [type], or `null` if no equivalent exists.
-     */
-    fun getEquivalent(type: String): ReferenceType?
+import dev.epubby.metainf.MetaInf
+
+internal object VerifierMetaInf {
+    // TODO: verify more things
+    @JvmSynthetic
+    internal fun verify(metaInf: MetaInf) {
+        VerifierMetaInfContainer.verify(metaInf.container)
+    }
 }

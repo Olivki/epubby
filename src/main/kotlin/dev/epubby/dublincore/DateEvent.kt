@@ -34,17 +34,17 @@ class DateEvent private constructor(val name: String) {
         private fun getOrCreate(name: String): DateEvent = CACHE.getOrPut(name) { DateEvent(name) }
 
         /**
-         * Represents the date when the e-book was created.
+         * Represents the date when the e-epub was created.
          */
         @JvmField val CREATION: DateEvent = getOrCreate("creation")
 
         /**
-         * Represents the date when the e-book was published.
+         * Represents the date when the e-epub was published.
          */
         @JvmField val PUBLICATION: DateEvent = getOrCreate("publication")
 
         /**
-         * Represents the date when the e-book was last modified.
+         * Represents the date when the e-epub was last modified.
          */
         @JvmField val MODIFICATION: DateEvent = getOrCreate("modification")
 

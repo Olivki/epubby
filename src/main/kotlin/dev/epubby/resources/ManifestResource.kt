@@ -16,10 +16,12 @@
 
 package dev.epubby.resources
 
+import com.github.michaelbull.logging.InlineLogger
 import com.google.common.net.MediaType
-import dev.epubby.Book
-import dev.epubby.BookElement
-import dev.epubby.BookVersion.EPUB_3_0
+import dev.epubby.Epub
+import dev.epubby.EpubElement
+import dev.epubby.EpubVersion.EPUB_3_0
+import dev.epubby.files.DirectoryFile
 import dev.epubby.files.RegularFile
 import dev.epubby.internal.IntroducedIn
 import dev.epubby.packages.PackageDocument
@@ -27,23 +29,16 @@ import dev.epubby.packages.PackageManifest
 import dev.epubby.packages.metadata.Opf2Meta
 import dev.epubby.properties.Properties
 import dev.epubby.properties.vocabularies.ManifestVocabulary
-import dev.epubby.utils.verifyFile
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.toPersistentList
-import moe.kanon.kommons.io.paths.*
-import moe.kanon.kommons.reflection.KServiceLoader
 import moe.kanon.kommons.reflection.loadServices
 import java.io.IOException
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.StandardCopyOption.COPY_ATTRIBUTES
-import java.nio.file.StandardCopyOption.REPLACE_EXISTING
 import kotlin.properties.Delegates
 
 // TODO: documentation
 
-sealed class ManifestResource : BookElement {
-    abstract override val book: Book
+sealed class ManifestResource : EpubElement {
+    abstract override val epub: Epub
 
     /**
      * The identifier of this resource.
@@ -56,15 +51,15 @@ sealed class ManifestResource : BookElement {
     /**
      * A URI pointing to the location of the file that this resource is wrapping around.
      *
-     * For [LocalResource] instances this will be pointing towards a local file, while a [RemoteResource] will be
+     * For [LocalResource] instances this will be pointing towards a local file, while a [ExternalResource] will be
      * pointing towards an URI.
      */
     abstract val href: String
 
     /**
-     * The [MediaType] of this resource, or `null` if none is defined.
+     * The [MediaType] of this resource.
      */
-    abstract val mediaType: MediaType?
+    abstract val mediaType: MediaType
 
     /**
      * The resource that a reading system should use instead if it can't properly display this resource.
@@ -84,12 +79,12 @@ sealed class ManifestResource : BookElement {
     /**
      * Returns a list of [Opf2Meta.Name] instances that provide additional metadata for this resource.
      *
-     * The returned list will become stale the moment any `meta` element is added or removed from the book, or when the
+     * The returned list will become stale the moment any `meta` element is added or removed from the epub, or when the
      * [content][Opf2Meta.Name.content] property of the `meta` element is changed, therefore it is not recommended to
      * cache the returned list, instead one should retrieve a new one when needed.
      */
     val additionalMetadata: PersistentList<Opf2Meta.Name>
-        get() = book.metadata
+        get() = epub.metadata
             .opf2MetaEntries
             .asSequence()
             .filterIsInstance<Opf2Meta.Name>()
@@ -104,33 +99,10 @@ sealed class ManifestResource : BookElement {
 }
 
 abstract class LocalResource internal constructor(
-    override val book: Book,
+    override val epub: Epub,
     identifier: String,
-    file: Path,
+    file: RegularFile,
 ) : ManifestResource() {
-    companion object {
-        private val LOCATORS: KServiceLoader<LocalResourceLocator> = loadServices()
-
-        @JvmStatic
-        @JvmOverloads
-        @Throws(IOException::class)
-        fun fromFile(
-            file: Path,
-            book: Book,
-            identifier: String = "x_${file.name}",
-        ): LocalResource {
-            require(identifier !in book.manifest) { "Identifier '$identifier' must be unique." }
-            verifyFile(book, file)
-            val mediaType =
-                requireNotNull(file.contentType?.let(MediaType::parse)) { "Could not determine media type of file '$file'." }
-            return LOCATORS.asSequence()
-                .map { it.findFactory(mediaType) }
-                .filterNotNull()
-                .firstOrNull()
-                ?.invoke(book, identifier, file, mediaType) ?: MiscResource(book, identifier, file, mediaType)
-        }
-    }
-
     final override val elementName: String
         get() = "PackageManifest.LocalResource"
 
@@ -139,47 +111,55 @@ abstract class LocalResource internal constructor(
      *
      * TODO: more documentation
      */
-    abstract override val mediaType: MediaType?
+    abstract override val mediaType: MediaType
 
     /**
      * The file that this resource is wrapping around.
      *
-     * It is ***HIGHLY DISCOURAGED*** to do any operations on this file outside of the functions provided *([renameTo],
-     * [moveTo])*, as the ability to change this property is *internal only*, any outside operations, like [Files.move]
-     * and the like will leave this property pointing to a non-existent file, which will result in a
-     * [IllegalStateException] being thrown at some point.
-     *
      * If one wants to delete the `file` of a resource in a *safe* manner, see [PackageManifest.removeLocalResource].
      */
-    var file: Path = file
+    var file: RegularFile = file
         get() {
-            checkExistence()
+            check(field.exists) {
+                if (isDeleted) {
+                    "Resource '$identifier' does not exist anymore as it has been deleted, this resource should not be used anymore."
+                } else {
+                    "The file for resource '$identifier' does not exist anymore, illegal user operations have most likely been done."
+                }
+            }
             return field
         }
         @JvmSynthetic
-        internal set(value) {
-            checkExistence()
-            require(value.isRegularFile) { "value must not be a directory" }
+        internal set(newFile) {
             val oldFile = field
-            verifyFile(book, file)
-            require(isValidDirectoryTarget(value.parent)) { "'${value.parent}' is not an allowed directory for resources" }
-            field = value
-            updateReferences(value)
-            onFileChanged(oldFile, value)
+            LOGGER.debug { "Changing file of resource '$identifier' from '$oldFile' to '$newFile'" }
+            field = newFile
+            epub.manifest.updateLocalResourceFile(oldFile, newFile)
+            updateReferences(newFile)
+            onFileSet(oldFile, newFile)
         }
+
+    /**
+     * Returns the directory that this resource would like to belong to.
+     *
+     * The desired directory of a resource is determined by the [fileOrganizer][PackageManifest.fileOrganizer] of the
+     * `manifest` of the book that the resource belongs to.
+     */
+    val desiredDirectory: DirectoryFile
+        get() = epub.manifest.fileOrganizer.getDirectory(javaClass)
 
     @get:JvmSynthetic
     @set:JvmSynthetic
     internal var isDeleted: Boolean = false
 
     /**
-     * Returns a path that's relative to the [OPF file][PackageDocument.file] of the [book].
+     * Returns a path that's relative to the [OPF file][PackageDocument.file] of the [epub].
      */
     val relativeFile: RegularFile
-        get() = book.packageDocument.file.relativize(file)
+        get() = epub.opfFile.relativizeFile(file)
 
     override val href: String
-        get() = book.packageDocument.directory.relativize(file).fullPath
+        get() = epub.opfDirectory.relativize(file).toString()
 
     // TODO: replace any 'relativeHref.substringAfter("../")' with a function that just uses the index instead for
     //       faster speed? or maybe make a property/function specifically for returning a value like that?
@@ -191,9 +171,9 @@ abstract class LocalResource internal constructor(
     override var fallback: ManifestResource? = null
 
     override var identifier: String by Delegates.observable(identifier) { _, old, new ->
-        book.manifest.updateLocalResourceIdentifier(this, old, new)
+        epub.manifest.updateLocalResourceIdentifier(this, old, new)
 
-        book.metadata
+        epub.metadata
             .opf2MetaEntries
             .asSequence()
             .filterIsInstance<Opf2Meta.Name>()
@@ -209,27 +189,11 @@ abstract class LocalResource internal constructor(
      * returned list, instead one should retrieve a new one when needed.
      */
     val documentReferences: PersistentList<ResourceDocumentReference>
-        get() = book.spine.getDocumentReferencesOf(this)
+        get() = epub.spine.getDocumentReferencesOf(this)
 
     override var mediaOverlay: String? = null
 
-    private fun checkExistence() {
-        check(file.exists) {
-            if (isDeleted) {
-                "Resource '$this' does not exist anymore as it has been deleted, this resource should not be used anymore."
-            } else {
-                "The file for resource '$this' does not exist anymore, illegal user operations have most likely been done."
-            }
-        }
-    }
-
-    private fun isValidDirectoryTarget(directory: Path): Boolean = when {
-        directory.name.equals("META-INF", ignoreCase = true) -> false
-        directory isSameAs book.root -> false
-        else -> true
-    }
-
-    private fun updateReferences(newFile: Path) {
+    private fun updateReferences(newFile: RegularFile) {
         for (reference in documentReferences) {
             reference.updateReferenceTo(this, newFile)
         }
@@ -242,33 +206,40 @@ abstract class LocalResource internal constructor(
      */
     @JvmOverloads
     fun isHrefEqual(href: String, ignoreCase: Boolean = false): Boolean {
-        val realHref = href.substringAfter('#')
+        // TODO: is this correct?
+        val realHref = when {
+            href.startsWith('#') -> href.drop(1).substringBefore('#').substringAfter("../")
+            else -> href.substringBefore('#').substringAfter("../")
+        }
 
-        return realHref.equals(this.href, ignoreCase) ||
-            realHref.equals(relativeHref, ignoreCase) ||
-            realHref.equals(relativeHref.substringAfter("../"), ignoreCase)
+        return realHref.equals(this.href, ignoreCase)
     }
 
-    // TODO: document these two
+    /**
+     * Gets invoked when this resource is being removed from the [epub].
+     */
+    protected open fun onRemoval() {}
 
-    @JvmOverloads
-    fun renameTo(simpleName: String, replaceExisting: Boolean = false) {
-        val options = if (replaceExisting) arrayOf(COPY_ATTRIBUTES, REPLACE_EXISTING) else arrayOf(COPY_ATTRIBUTES)
-        file = file.renameTo(file.extension?.let { "$simpleName.$it" } ?: simpleName, *options)
-    }
+    /**
+     * Gets invoked when the [file] of this resource has been changed.
+     */
+    protected open fun onFileSet(oldFile: RegularFile, newFile: RegularFile) {}
 
-    @JvmOverloads
-    fun moveTo(directory: Path, replaceExisting: Boolean = false) {
-        require(isValidDirectoryTarget(directory)) { "'$directory' is not an allowed directory for resources" }
-        val options = if (replaceExisting) arrayOf(COPY_ATTRIBUTES, REPLACE_EXISTING) else arrayOf(COPY_ATTRIBUTES)
-        file = file.moveTo(directory, keepName = true, *options)
-    }
+    /**
+     * Gets invoked when the [file] of this resource has been modified in some manner.
+     *
+     * For example, invoking [RegularFile.writeLines] on `file` would result in this function being invoked.
+     */
+    protected open fun onFileModified() {}
 
-    protected open fun onFileChanged(oldFile: Path, newFile: Path) {}
+    /**
+     * Invoked when the [epub] that this resource belongs to is being saved.
+     */
+    protected open fun writeToFile() {}
 
     abstract override fun <R> accept(visitor: ResourceVisitor<R>): R
 
-    // TODO: document and make sure to mention that 'book' is not used for equality checks
+    // TODO: document and make sure to mention that 'epub' is not used for equality checks
     final override fun equals(other: Any?): Boolean = when {
         this === other -> true
         other !is LocalResource -> false
@@ -281,7 +252,7 @@ abstract class LocalResource internal constructor(
         else -> true
     }
 
-    // TODO: document and make sure to mention that 'book' is not used for hashCode generation
+    // TODO: document and make sure to mention that 'epub' is not used for hashCode generation
     final override fun hashCode(): Int {
         var result = mediaType.hashCode()
         result = 31 * result + identifier.hashCode()
@@ -291,14 +262,59 @@ abstract class LocalResource internal constructor(
         result = 31 * result + href.hashCode()
         return result
     }
+
+    @JvmSynthetic
+    internal fun triggerRemoval() {
+        onRemoval()
+    }
+
+    @JvmSynthetic
+    internal fun triggerFileModified() {
+        onFileModified()
+    }
+
+    @JvmSynthetic
+    internal fun triggerWriteToFile() {
+        writeToFile()
+    }
+
+    companion object {
+        private val LOGGER: InlineLogger = InlineLogger(LocalResource::class)
+        private val LOCATORS: List<LocalResourceLocator> by lazy { loadServices<LocalResourceLocator>().toPersistentList() }
+        private val FACTORY_CACHE: MutableMap<MediaType, LocalResourceFactory> = hashMapOf()
+
+        private fun getFactory(mediaType: MediaType): LocalResourceFactory? = when (mediaType) {
+            in FACTORY_CACHE -> FACTORY_CACHE.getValue(mediaType)
+            else -> LOCATORS.asSequence()
+                // TODO: .map { it.findFactory(mediaType.withoutParameters()) } ?
+                .map { it.findFactory(mediaType) }
+                .filterNotNull()
+                .firstOrNull()
+                ?.also { FACTORY_CACHE.putIfAbsent(mediaType, it) }
+        }
+
+        @JvmStatic
+        @JvmOverloads
+        @Throws(IOException::class)
+        fun create(
+            file: RegularFile,
+            epub: Epub,
+            identifier: String = "x_${file.name}",
+            mediaType: MediaType = getMediaType(file),
+        ): LocalResource = getFactory(mediaType)?.invoke(epub, identifier, file, mediaType)
+            ?: MiscResource(epub, identifier, file, mediaType)
+
+        private fun getMediaType(file: RegularFile): MediaType =
+            file.mediaType ?: throw IllegalArgumentException("Could not determine the media-type of file '$file'")
+    }
 }
 
-class RemoteResource @JvmOverloads constructor(
-    override val book: Book,
+class ExternalResource @JvmOverloads constructor(
+    override val epub: Epub,
     override val identifier: String,
     // TODO: make this into a 'URL' or 'URI'?
     override var href: String,
-    override val mediaType: MediaType? = null,
+    override val mediaType: MediaType,
     override var fallback: ManifestResource? = null,
     override var mediaOverlay: String? = null,
     // TODO: verify that the version isn't older than 3.0 if this is used at some point
@@ -306,16 +322,16 @@ class RemoteResource @JvmOverloads constructor(
     override val properties: Properties = Properties.empty(),
 ) : ManifestResource() {
     override val elementName: String
-        get() = "PackageManifest.RemoteResource"
+        get() = "PackageManifest.ExternalResource"
 
     /**
-     * Returns the result of invoking the [visitRemote][ResourceVisitor.visitRemote] function of the given [visitor].
+     * Returns the result of invoking the [visitRemote][ResourceVisitor.visitExternal] function of the given [visitor].
      */
-    override fun <R> accept(visitor: ResourceVisitor<R>): R = visitor.visitRemote(this)
+    override fun <R> accept(visitor: ResourceVisitor<R>): R = visitor.visitExternal(this)
 
     override fun equals(other: Any?): Boolean = when {
         this === other -> true
-        other !is RemoteResource -> false
+        other !is ExternalResource -> false
         identifier != other.identifier -> false
         href != other.href -> false
         mediaType != other.mediaType -> false
@@ -328,7 +344,7 @@ class RemoteResource @JvmOverloads constructor(
     override fun hashCode(): Int {
         var result = identifier.hashCode()
         result = 31 * result + href.hashCode()
-        result = 31 * result + (mediaType?.hashCode() ?: 0)
+        result = 31 * result + mediaType.hashCode()
         result = 31 * result + (fallback?.hashCode() ?: 0)
         result = 31 * result + (mediaOverlay?.hashCode() ?: 0)
         result = 31 * result + properties.hashCode()
@@ -336,5 +352,5 @@ class RemoteResource @JvmOverloads constructor(
     }
 
     override fun toString(): String =
-        "RemoteResource(identifier='$identifier', href='$href', mediaType=$mediaType, fallback=$fallback, mediaOverlay=$mediaOverlay, properties=$properties)"
+        "ExternalResource(identifier='$identifier', href='$href', mediaType=$mediaType, fallback=$fallback, mediaOverlay=$mediaOverlay, properties=$properties)"
 }

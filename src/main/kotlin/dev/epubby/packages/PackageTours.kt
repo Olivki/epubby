@@ -16,14 +16,14 @@
 
 package dev.epubby.packages
 
-import dev.epubby.Book
-import dev.epubby.BookElement
-import dev.epubby.BookVersion
+import dev.epubby.Epub
+import dev.epubby.EpubElement
+import dev.epubby.EpubVersion
 import dev.epubby.internal.MarkedAsDeprecated
 import dev.epubby.utils.NonEmptyList
 
-@MarkedAsDeprecated(`in` = BookVersion.EPUB_2_0)
-class PackageTours(override val book: Book, val entries: MutableList<Tour>) : BookElement, Iterable<PackageTours.Tour> {
+@MarkedAsDeprecated(`in` = EpubVersion.EPUB_2_0)
+class PackageTours(override val epub: Epub, val entries: MutableList<Tour>) : EpubElement, Iterable<PackageTours.Tour> {
     override val elementName: String
         get() = "PackageTours"
 
@@ -41,11 +41,11 @@ class PackageTours(override val book: Book, val entries: MutableList<Tour>) : Bo
     override fun iterator(): Iterator<Tour> = entries.iterator()
 
     class Tour(
-        override val book: Book,
+        override val epub: Epub,
         val identifier: String,
         var title: String,
         val sites: NonEmptyList<Site>
-    ) : BookElement, Iterable<Tour.Site> {
+    ) : EpubElement, Iterable<Tour.Site> {
         override val elementName: String
             get() = "PackageTours.Tour"
 
@@ -69,7 +69,7 @@ class PackageTours(override val book: Book, val entries: MutableList<Tour>) : Bo
 
         override fun iterator(): Iterator<Site> = sites.iterator()
 
-        class Site(override val book: Book, val href: String, val title: String) : BookElement {
+        class Site(override val epub: Epub, val href: String, val title: String) : EpubElement {
             override val elementName: String
                 get() = "PackageTours.Tour.Site"
 

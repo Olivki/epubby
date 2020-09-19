@@ -18,29 +18,32 @@ package dev.epubby.internal.models.packages
 
 import com.github.michaelbull.logging.InlineLogger
 import com.google.common.net.MediaType
-import dev.epubby.*
-import dev.epubby.BookVersion.EPUB_3_0
-import dev.epubby.internal.elementOf
-import dev.epubby.internal.getAttributeValueOrThrow
+import dev.epubby.Epub
+import dev.epubby.EpubVersion.EPUB_3_0
+import dev.epubby.MalformedBookException
+import dev.epubby.ParseMode
+import dev.epubby.files.DirectoryFile
+import dev.epubby.files.GhostFile
+import dev.epubby.files.RegularFile
 import dev.epubby.internal.models.SerializedName
+import dev.epubby.internal.utils.*
 import dev.epubby.packages.PackageManifest
 import dev.epubby.prefixes.Prefixes
-import dev.epubby.properties.encodeToString
-import dev.epubby.properties.propertiesOf
-import dev.epubby.properties.resolveManifestProperties
+import dev.epubby.properties.*
+import dev.epubby.resources.ExternalResource
 import dev.epubby.resources.LocalResource
 import dev.epubby.resources.ManifestResource
-import dev.epubby.resources.RemoteResource
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.toPersistentList
+import org.apache.commons.validator.routines.UrlValidator
 import org.jdom2.Element
 import dev.epubby.internal.Namespaces.OPF as NAMESPACE
 
 @SerializedName("manifest")
-data class PackageManifestModel internal constructor(
+internal data class PackageManifestModel internal constructor(
     @SerializedName("id")
-    val identifier: String?,
-    val items: PersistentList<ItemModel>,
+    internal val identifier: String?,
+    internal val items: PersistentList<ItemModel>,
 ) {
     @JvmSynthetic
     internal fun toElement(): Element = elementOf("manifest", NAMESPACE) {
@@ -52,41 +55,105 @@ data class PackageManifestModel internal constructor(
     }
 
     @JvmSynthetic
-    internal fun toPackageManifest(book: Book, prefixes: Prefixes): PackageManifest {
-        // TODO: once we have converted all 'items' to their appropriate 'ManifestResource' go over them once again
-        //       to set their fallback property correctly, if it exists.
-        TODO("'toPackageManifest' operation is not implemented yet.")
+    internal fun toPackageManifest(epub: Epub, prefixes: Prefixes, opfFile: RegularFile): PackageManifest {
+        val resources = items.asSequence()
+            .map { it.toManifestResource(epub, prefixes, opfFile) }
+            .withIndex()
+            .associateByTo(hashMapOf()) { it.value.identifier }
+        val resolvedResources = resources.values
+            .asSequence()
+            .onEach { (i, resource) -> resolveFallback(i, resource, resources) }
+            .map { it.value }
+        val localResources = resolvedResources
+            .filterIsInstance<LocalResource>()
+            .associateByTo(hashMapOf()) { it.identifier }
+        val fileToLocalResource = localResources.values.associateByTo(hashMapOf()) { it.file.fullPath }
+        val externalResources = resolvedResources
+            .filterIsInstance<ExternalResource>()
+            .associateByTo(hashMapOf()) { it.identifier }
+
+        return PackageManifest(epub, identifier, localResources, fileToLocalResource, externalResources)
+    }
+
+    private fun resolveFallback(
+        index: Int,
+        resource: ManifestResource,
+        resources: Map<String, IndexedValue<ManifestResource>>,
+    ) {
+        val model = items[index]
+        val fallback = model.fallback?.let { key -> resources[key]?.value }
+
+        if (fallback != null) {
+            resource.fallback = fallback
+        }
     }
 
     @SerializedName("item")
-    data class ItemModel internal constructor(
+    internal data class ItemModel internal constructor(
         @SerializedName("id")
-        val identifier: String,
-        val href: String,
+        internal val identifier: String,
+        internal val href: String,
         @SerializedName("media-type")
-        val mediaType: String?,
-        val fallback: String?,
+        internal val mediaType: String,
+        internal val fallback: String?, // conditionally required
         @SerializedName("media-overlay")
-        val mediaOverlay: String?,
-        val properties: String?,
+        internal val mediaOverlay: String?,
+        internal val properties: String?,
     ) {
         @JvmSynthetic
         internal fun toElement(): Element = elementOf("item", NAMESPACE) {
             it.setAttribute("id", identifier)
             it.setAttribute("href", href)
-            if (mediaType != null) it.setAttribute("media-type", mediaType)
+            it.setAttribute("media-type", mediaType)
             if (fallback != null) it.setAttribute("fallback", fallback)
             if (mediaOverlay != null) it.setAttribute("media-overlay", mediaOverlay)
             if (properties != null) it.setAttribute("properties", properties)
         }
 
+        /**
+         * Returns a new [ManifestResource] instance based on this model.
+         *
+         * The returned `ManifestResource` instance will *not* have its [fallback][ManifestResource.fallback] property
+         * set, even if a [fallback] property is defined on this model. The resolving of a resources `fallback`
+         * property needs to be handled by the function that invokes this.
+         */
         @JvmSynthetic
-        internal fun toManifestResource(book: Book, prefixes: Prefixes): ManifestResource {
-            val mediaType = mediaType?.let(MediaType::parse)
+        internal fun toManifestResource(epub: Epub, prefixes: Prefixes, opfFile: RegularFile): ManifestResource {
+            val mediaType = MediaType.parse(this.mediaType)
             val properties = properties?.let { resolveManifestProperties(it, prefixes) } ?: propertiesOf()
-            // TODO: just pass in 'fallback' as 'null' for now and handle it properly in 'toPackageManifest'
-            TODO("'toItem' operation is not implemented yet.")
+            // we intentionally pass in 'fallback' as null for both external and local resources as that needs to be
+            // resolved at a later point by the caller function
+            return when {
+                UrlValidator.getInstance().isValid(href) -> toExternalResource(epub, mediaType, properties)
+                else -> toLocalResource(epub, mediaType, properties, opfFile)
+            }
         }
+
+        private fun toLocalResource(
+            epub: Epub,
+            mediaType: MediaType,
+            properties: Properties,
+            opfFile: RegularFile,
+        ): LocalResource {
+            val href = getFileFromHref(opfFile)
+            return LocalResource.create(href, epub, identifier, mediaType).also {
+                it.properties.addAll(properties)
+                it.mediaOverlay = mediaOverlay
+            }
+        }
+
+        private fun getFileFromHref(opf: RegularFile): RegularFile = when (val file = opf.resolveSibling(this.href)) {
+            is RegularFile -> file
+            is DirectoryFile -> throw MalformedBookException("'href' of item $this points towards a directory file.")
+            is GhostFile -> throw MalformedBookException("'href' of item $this points towards non-existent file.")
+        }
+
+        private fun toExternalResource(
+            epub: Epub,
+            mediaType: MediaType,
+            properties: Properties,
+        ): ExternalResource =
+            ExternalResource(epub, identifier, href, mediaType, fallback = null, mediaOverlay, properties)
 
         internal companion object {
             @JvmSynthetic
@@ -94,7 +161,7 @@ data class PackageManifestModel internal constructor(
                 val identifier = element.getAttributeValueOrThrow("id")
                 val href = element.getAttributeValueOrThrow("href")
                 val fallback = element.getAttributeValue("fallback")
-                val mediaType = element.getAttributeValue("media-type")
+                val mediaType = element.getAttributeValueOrThrow("media-type")
                 val mediaOverlay = element.getAttributeValue("media-overlay")
                 val properties = element.getAttributeValue("properties")
                 return ItemModel(identifier, href, mediaType, fallback, mediaOverlay, properties)
@@ -103,24 +170,21 @@ data class PackageManifestModel internal constructor(
             @JvmSynthetic
             internal fun fromManifestResource(origin: ManifestResource): ItemModel {
                 val properties = when {
-                    origin.book.version.isOlder(EPUB_3_0) -> null
-                    else -> origin.properties.encodeToString()
+                    origin.epub.version.isOlder(EPUB_3_0) -> null
+                    else -> origin.properties.ifEmpty { null }?.encodeToString()
                 }
 
                 return when (origin) {
-                    is RemoteResource -> {
-                        val mediaType = origin.mediaType?.toString()
-                        ItemModel(
-                            origin.identifier,
-                            origin.href,
-                            mediaType,
-                            origin.fallback,
-                            origin.mediaOverlay,
-                            properties
-                        )
-                    }
+                    is ExternalResource -> ItemModel(
+                        origin.identifier,
+                        origin.href,
+                        origin.mediaType.toString(),
+                        origin.fallback?.identifier,
+                        origin.mediaOverlay,
+                        properties
+                    )
                     is LocalResource -> {
-                        val href = origin.relativeHref.substringAfter("../")
+                        val href = origin.href
                         val mediaType = origin.mediaType.toString()
                         val fallback = origin.fallback?.identifier
                         ItemModel(origin.identifier, href, mediaType, fallback, origin.mediaOverlay, properties)
@@ -134,11 +198,11 @@ data class PackageManifestModel internal constructor(
         private val LOGGER: InlineLogger = InlineLogger(PackageManifestModel::class)
 
         @JvmSynthetic
-        internal fun fromElement(element: Element, strictness: ParseStrictness): PackageManifestModel {
+        internal fun fromElement(element: Element, mode: ParseMode): PackageManifestModel {
             val identifier = element.getAttributeValue("id")
             val items = element.getChildren("item", element.namespace)
                 .tryMap { ItemModel.fromElement(it) }
-                .mapToValues(LOGGER, strictness)
+                .mapToValues(LOGGER, mode)
                 .ifEmpty { throw MalformedBookException.forMissing("manifest", "item") }
                 .toPersistentList()
             return PackageManifestModel(identifier, items)
@@ -146,7 +210,12 @@ data class PackageManifestModel internal constructor(
 
         @JvmSynthetic
         internal fun fromPackageManifest(origin: PackageManifest): PackageManifestModel {
-            TODO("'fromPackageManifest' operation is not implemented yet.")
+            val items = origin
+                .sortedBy { it.mediaType.toString() }
+                .map { ItemModel.fromManifestResource(it) }
+                .toPersistentList()
+
+            return PackageManifestModel(origin.identifier, items)
         }
     }
 }

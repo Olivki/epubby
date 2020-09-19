@@ -98,11 +98,3 @@ fabric.properties
 # Editor-based Rest Client
 .idea/httpRequests
 
-!/libs/humanizer-sources.jar
-!/libs/humanizer.jar
-!/appender.jar
-src/test/kotlin/Ugly.kt
-/.ignore.throws
-/src/test/kotlin/moe/kanon/epubby/Stuff.kt
-/src/test/kotlin/moe/kanon/epubby/StuffExtensions.kt
-/src/test/kotlin/moe/kanon/epubby/Testing.kt

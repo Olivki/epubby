@@ -23,7 +23,7 @@ import moe.kanon.kommons.lang.isLowerCase
 
 // http://idpf.org/epub/20/spec/OPF_2.0.1_draft.htm#Section2.2.6
 /**
- * Represents a creative role that helped in some manner with the creation of some part of a book.
+ * Represents a creative role that helped in some manner with the creation of some part of a epub.
  *
  * @property [code] The marc-relator code representing `this` role.
  *
@@ -200,7 +200,7 @@ class CreativeRole private constructor(val code: String, val name: String?) {
 
         /**
          * A person, family, or organization responsible for creating a work by conceiving, and implementing, an
-         * original graphic design, drawing, painting, etc. For book illustrators, prefer [ILLUSTRATOR].
+         * original graphic design, drawing, painting, etc. For epub illustrators, prefer [ILLUSTRATOR].
          */
         @JvmField val ARTIST: CreativeRole = createConstant("art", "Artist")
 
@@ -286,7 +286,7 @@ class CreativeRole private constructor(val code: String, val name: String?) {
         @JvmField val BINDER: CreativeRole = createConstant("bnd", "Binder")
 
         /**
-         * A person or organization responsible for the binding design of a book, including the type of binding, the
+         * A person or organization responsible for the binding design of a epub, including the type of binding, the
          * type of materials used, and any decorative aspects of the binding.
          */
         @JvmField val BINDING_DESIGNER: CreativeRole = createConstant("bdd", "Binding designer")
@@ -300,25 +300,25 @@ class CreativeRole private constructor(val code: String, val name: String?) {
 
         /**
          * A person or organization involved in manufacturing a manifestation by being responsible for the entire
-         * graphic design of a book, including arrangement of type and illustration, choice of materials, and
+         * graphic design of a epub, including arrangement of type and illustration, choice of materials, and
          * process used.
          */
-        @JvmField val BOOK_DESIGNER: CreativeRole = createConstant("bkd", "Book designer")
+        @JvmField val BOOK_DESIGNER: CreativeRole = createConstant("bkd", "Epub designer")
 
         /**
          * A person or organization responsible for the production of books and other print media.
          */
-        @JvmField val BOOK_PRODUCER: CreativeRole = createConstant("bkp", "Book producer")
+        @JvmField val BOOK_PRODUCER: CreativeRole = createConstant("bkp", "Epub producer")
 
         /**
          * A person or organization responsible for the design of flexible covers designed for or published with a
-         * book, including the type of materials used, and any decorative aspects of the bookjacket.
+         * epub, including the type of materials used, and any decorative aspects of the bookjacket.
          */
         @JvmField val BOOKJACKET_DESIGNER: CreativeRole = createConstant("bjd", "Bookjacket designer")
 
         /**
-         * A person or organization responsible for the design of a book owner's identification label that is most
-         * commonly pasted to the inside front cover of a book.
+         * A person or organization responsible for the design of a epub owner's identification label that is most
+         * commonly pasted to the inside front cover of a epub.
          */
         @JvmField val BOOKPLATE_DESIGNER: CreativeRole = createConstant("bpd", "Bookplate designer")
 
@@ -414,7 +414,7 @@ class CreativeRole private constructor(val code: String, val name: String?) {
 
         /**
          * A person or organization responsible for the commentary or explanatory notes about a text. For the writer
-         * of manuscript annotations in a printed book, use Annotator.
+         * of manuscript annotations in a printed epub, use Annotator.
          */
         @JvmField val COMMENTATOR_FOR_WRITTEN_TEXT: CreativeRole = createConstant("cwt", "Commentator for written text")
 
@@ -579,9 +579,9 @@ class CreativeRole private constructor(val code: String, val name: String?) {
         @JvmField val COURT_REPORTER: CreativeRole = createConstant("crt", "Court reporter")
 
         /**
-         * A person or organization responsible for the graphic design of a book cover, album cover, slipcase, box,
-         * container, etc. For a person or organization responsible for the graphic design of an entire book, use
-         * Book designer; for book jackets, use Bookjacket designer.
+         * A person or organization responsible for the graphic design of a epub cover, album cover, slipcase, box,
+         * container, etc. For a person or organization responsible for the graphic design of an entire epub, use
+         * Epub designer; for epub jackets, use Bookjacket designer.
          */
         @JvmField val COVER_DESIGNER: CreativeRole = createConstant("cov", "Cover designer")
 
@@ -942,7 +942,7 @@ class CreativeRole private constructor(val code: String, val name: String?) {
         @JvmField val LEAD: CreativeRole = createConstant("led", "Lead")
 
         /**
-         * A person or organization permitting the temporary use of a book, manuscript, etc., such as for
+         * A person or organization permitting the temporary use of a epub, manuscript, etc., such as for
          * photocopying or microfilming.
          */
         @JvmField val LENDER: CreativeRole = createConstant("len", "Lender")
@@ -1211,7 +1211,7 @@ class CreativeRole private constructor(val code: String, val name: String?) {
 
         /**
          * A person, family, or organization involved in manufacturing a manifestation of printed text, notated
-         * music, etc., from type or plates, such as a book, newspaper, magazine, broadside, score, etc.
+         * music, etc., from type or plates, such as a epub, newspaper, magazine, broadside, score, etc.
          */
         @JvmField val PRINTER: CreativeRole = createConstant("prt", "Printer")
 
@@ -1410,7 +1410,7 @@ class CreativeRole private constructor(val code: String, val name: String?) {
         @JvmField val RESTORATIONIST: CreativeRole = createConstant("rsr", "Restorationist")
 
         /**
-         * A person or organization responsible for the review of a book, motion picture, performance, etc.
+         * A person or organization responsible for the review of a epub, motion picture, performance, etc.
          */
         @JvmField val REVIEWER: CreativeRole = createConstant("rev", "Reviewer")
 
@@ -1595,7 +1595,7 @@ class CreativeRole private constructor(val code: String, val name: String?) {
 
         /**
          * A person or organization primarily responsible for choice and arrangement of type used in an item. If the
-         * typographer is also responsible for other aspects of the graphic design of a book *(e.g.,
+         * typographer is also responsible for other aspects of the graphic design of a epub *(e.g.,
          * [BOOK_DESIGNER])*, codes for both functions may be needed.
          */
         @JvmField val TYPOGRAPHER: CreativeRole = createConstant("tyg", "Typographer")

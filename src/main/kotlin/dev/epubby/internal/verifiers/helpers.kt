@@ -18,7 +18,7 @@
 
 package dev.epubby.internal.verifiers
 
-import dev.epubby.BookVersion
+import dev.epubby.EpubVersion
 import dev.epubby.invalidVersion
 import kotlin.reflect.KProperty0
 
@@ -26,13 +26,13 @@ import kotlin.reflect.KProperty0
 private annotation class HelperMarker
 
 @HelperMarker
-internal class VersionChecker(val name: String, val currentVersion: BookVersion) {
+internal class VersionChecker(val name: String, val currentVersion: EpubVersion) {
     @HelperMarker
-    internal inline fun raise(min: BookVersion, feature: String): Nothing =
+    internal inline fun raise(min: EpubVersion, feature: String): Nothing =
         invalidVersion(currentVersion, min, name, feature)
 
     @HelperMarker
-    internal inline fun <T> verify(min: BookVersion, property: KProperty0<T?>) {
+    internal inline fun <T> verify(min: EpubVersion, property: KProperty0<T?>) {
         if (property.get() != null && currentVersion isOlder min) {
             raise(min, property.name)
         }
@@ -40,6 +40,6 @@ internal class VersionChecker(val name: String, val currentVersion: BookVersion)
 }
 
 @HelperMarker
-internal inline fun checkVersion(name: String, version: BookVersion, body: VersionChecker.() -> Unit) {
+internal inline fun checkVersion(name: String, version: EpubVersion, body: VersionChecker.() -> Unit) {
     VersionChecker(name, version).apply(body)
 }

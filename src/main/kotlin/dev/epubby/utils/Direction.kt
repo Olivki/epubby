@@ -20,7 +20,7 @@ package dev.epubby.utils
  * Represents the two possible values a [dir](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#attrdef-dir)
  * attribute can have.
  */
-enum class Direction(val attributeName: String) {
+enum class Direction(val value: String) {
     LEFT_TO_RIGHT("ltr"),
     RIGHT_TO_LEFT("rtl");
 

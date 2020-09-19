@@ -16,7 +16,7 @@
 
 package dev.epubby.metainf
 
-import dev.epubby.Book
+import dev.epubby.Epub
 import org.jdom2.Document
 
-class MetaInfSignatures(val book: Book, val document: Document)
+class MetaInfSignatures(val epub: Epub, val document: Document)

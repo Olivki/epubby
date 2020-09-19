@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package dev.epubby.internal
+package dev.epubby.internal.utils
 
 /**
  * Invokes the [action] function if `this` is not `null`, otherwise does nothing.
@@ -64,3 +64,7 @@ internal inline infix fun <T : Any> T?.ifNotNull(action: (T) -> Unit) {
         action(this)
     }
 }
+
+@JvmSynthetic
+@Suppress("NOTHING_TO_INLINE")
+internal inline fun <T> self(value: T): T = value

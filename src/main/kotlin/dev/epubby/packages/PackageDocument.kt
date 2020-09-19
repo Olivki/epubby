@@ -17,15 +17,15 @@
 package dev.epubby.packages
 
 import com.github.michaelbull.logging.InlineLogger
-import dev.epubby.Book
-import dev.epubby.BookElement
-import dev.epubby.BookVersion.EPUB_2_0
-import dev.epubby.BookVersion.EPUB_3_0
-import dev.epubby.BookVersion.EPUB_3_2
-import dev.epubby.builders.packages.PackageDocumentBuilder
-import dev.epubby.files.DirectoryFile
-import dev.epubby.files.RegularFile
-import dev.epubby.internal.*
+import dev.epubby.Epub
+import dev.epubby.EpubElement
+import dev.epubby.EpubVersion.EPUB_2_0
+import dev.epubby.EpubVersion.EPUB_3_0
+import dev.epubby.EpubVersion.EPUB_3_2
+import dev.epubby.internal.IntroducedIn
+import dev.epubby.internal.MarkedAsDeprecated
+import dev.epubby.internal.MarkedAsLegacy
+import dev.epubby.internal.utils.versioned
 import dev.epubby.packages.guide.PackageGuide
 import dev.epubby.packages.metadata.PackageMetadata
 import dev.epubby.prefixes.Prefixes
@@ -34,14 +34,15 @@ import dev.epubby.utils.Direction
 import java.util.Locale
 import java.util.UUID
 
-class PackageDocument(
+class PackageDocument internal constructor(
     uniqueIdentifier: String,
-    override val book: Book,
+    override val epub: Epub,
     val metadata: PackageMetadata,
     val manifest: PackageManifest,
     val spine: PackageSpine,
     var direction: Direction? = null,
     var identifier: String? = null,
+    @IntroducedIn(version = EPUB_3_0)
     val prefixes: Prefixes = prefixesOf(),
     // TODO: change to 'String'?
     var language: Locale? = null,
@@ -54,31 +55,7 @@ class PackageDocument(
     collection: PackageCollection? = null,
     @MarkedAsDeprecated(`in` = EPUB_2_0)
     var tours: PackageTours? = null
-) : BookElement {
-    companion object {
-        private val LOGGER: InlineLogger = InlineLogger(PackageDocument::class)
-
-        // TODO: remove?
-        @JvmStatic
-        fun builder(): PackageDocumentBuilder = PackageDocumentBuilder()
-    }
-
-    /**
-     * TODO
-     *
-     * @see [directory]
-     */
-    val file: RegularFile
-        get() = book.metaInf.container.packageDocument.fullPath
-
-    /**
-     * The directory where the [file] is stored.
-     *
-     * Most of the time this directory will be called `OEBPS`, but that name is not mandatory.
-     */
-    val directory: DirectoryFile
-        get() = file.parent ?: throw IllegalStateException("'PackageDocument.file' should never be null!")
-
+) : EpubElement {
     /**
      * TODO
      *
@@ -110,4 +87,8 @@ class PackageDocument(
 
     override fun toString(): String =
         "PackageDocument(uniqueIdentifier='$uniqueIdentifier', direction=$direction, identifier=$identifier, prefixes=$prefixes, language=$language)"
+
+    private companion object {
+        private val LOGGER: InlineLogger = InlineLogger(PackageDocument::class)
+    }
 }

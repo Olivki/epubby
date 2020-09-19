@@ -18,16 +18,45 @@ package dev.epubby.resources
 
 import com.google.auto.service.AutoService
 import com.google.common.net.MediaType
-import dev.epubby.Book
+import com.helger.css.decl.CascadingStyleSheet
+import com.helger.css.reader.CSSReader
+import com.helger.css.reader.CSSReaderSettings
+import com.helger.css.reader.errorhandler.ThrowingCSSParseErrorHandler
+import com.helger.css.writer.CSSWriter
+import com.helger.css.writer.CSSWriterSettings
+import dev.epubby.Epub
+import dev.epubby.MalformedBookException
+import dev.epubby.files.RegularFile
 import kotlinx.collections.immutable.persistentHashSetOf
-import java.nio.file.Path
 
-class StyleSheetResource(
-    book: Book,
+class StyleSheetResource internal constructor(
+    epub: Epub,
     identifier: String,
-    file: Path,
-    override val mediaType: MediaType
-) : LocalResource(book, identifier, file) {
+    file: RegularFile,
+    override val mediaType: MediaType,
+) : LocalResource(epub, identifier, file) {
+    private var isStyleSheetLoaded: Boolean = false
+
+    // TODO: should we switch from this library to jStyleParser instead? That library has a much nicer java like
+    //       API to work with rather than the absolute mess that is this library
+    //       however this library is very lenient and can fix faulty stuff and it has nullability annotations
+
+    val styleSheet: CascadingStyleSheet by lazy {
+        file.newBufferedReader().use { reader ->
+            val result = CSSReader.readFromReader({ reader }, READER_SETTINGS)
+            isStyleSheetLoaded = result != null
+            result
+        } ?: throw MalformedBookException("Could not read '$file' to a CascadingStyleSheet")
+    }
+
+    override fun writeToFile() {
+        if (isStyleSheetLoaded) {
+            file.newBufferedWriter().use { writer ->
+                CSSWriter(WRITER_SETTINGS).writeCSS(styleSheet, writer)
+            }
+        }
+    }
+
     /**
      * Returns the result of invoking the [visitStyleSheet][ResourceVisitor.visitStyleSheet] function of the given
      * [visitor].
@@ -35,6 +64,13 @@ class StyleSheetResource(
     override fun <R> accept(visitor: ResourceVisitor<R>): R = visitor.visitStyleSheet(this)
 
     override fun toString(): String = "StyleSheetResource(identifier='$identifier', mediaType=$mediaType, file='$file')"
+
+    private companion object {
+        private val READER_SETTINGS: CSSReaderSettings =
+            CSSReaderSettings().setCustomErrorHandler(ThrowingCSSParseErrorHandler())
+
+        private val WRITER_SETTINGS: CSSWriterSettings = CSSWriterSettings().setRemoveUnnecessaryCode(true)
+    }
 }
 
 @AutoService(LocalResourceLocator::class)

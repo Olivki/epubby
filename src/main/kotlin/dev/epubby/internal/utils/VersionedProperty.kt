@@ -14,22 +14,22 @@
  * limitations under the License.
  */
 
-package dev.epubby.internal
+package dev.epubby.internal.utils
 
-import dev.epubby.BookElement
-import dev.epubby.BookVersion
+import dev.epubby.EpubElement
+import dev.epubby.EpubVersion
 import dev.epubby.invalidVersion
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 
 internal class VersionedProperty<T : Any>(
     private var value: T?,
-    private val currentVersion: BookVersion,
-    private val minVersion: BookVersion,
+    private val currentVersion: EpubVersion,
+    private val minVersion: EpubVersion,
     private val containerName: String,
     private val featureName: String,
     private val setAction: ((T) -> Unit)?
-) : ReadWriteProperty<BookElement, T?> {
+) : ReadWriteProperty<EpubElement, T?> {
     init {
         value ifNotNull {
             if (currentVersion.isOlder(minVersion)) {
@@ -40,9 +40,9 @@ internal class VersionedProperty<T : Any>(
         }
     }
 
-    override fun getValue(thisRef: BookElement, property: KProperty<*>): T? = value
+    override fun getValue(thisRef: EpubElement, property: KProperty<*>): T? = value
 
-    override fun setValue(thisRef: BookElement, property: KProperty<*>, value: T?) {
+    override fun setValue(thisRef: EpubElement, property: KProperty<*>, value: T?) {
         if (value != null) {
             if (currentVersion.isOlder(minVersion)) {
                 invalidVersion(currentVersion, minVersion, containerName, featureName)
@@ -55,9 +55,9 @@ internal class VersionedProperty<T : Any>(
     }
 }
 
-internal fun <T : Any> BookElement.versioned(
+internal fun <T : Any> EpubElement.versioned(
     initial: T?,
     name: String,
-    minVersion: BookVersion,
+    minVersion: EpubVersion,
     action: ((T) -> Unit)? = null
-): ReadWriteProperty<BookElement, T?> = VersionedProperty(initial, book.version, minVersion, elementName, name, action)
+): ReadWriteProperty<EpubElement, T?> = VersionedProperty(initial, epub.version, minVersion, elementName, name, action)

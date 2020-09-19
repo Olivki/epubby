@@ -26,9 +26,9 @@ import dev.epubby.packages.PackageManifest
  */
 interface ResourceVisitor<R> {
     /**
-     * Returns a value that's appropriate for the given [remote] resource.
+     * Returns a value that's appropriate for the given [external] resource.
      */
-    fun visitRemote(remote: RemoteResource): R
+    fun visitExternal(external: ExternalResource): R
 
     /**
      * Returns a value that's appropriate for the given [page] resource.
@@ -71,6 +71,11 @@ interface ResourceVisitor<R> {
     fun visitMisc(misc: MiscResource): R
 
     /**
+     * Returns a value that's appropriate for the given [ncx] resource.
+     */
+    fun visitNcx(ncx: NcxResource): R
+
+    /**
      * Returns a value that's appropriate for the given [custom] resource.
      */
     fun visitCustom(custom: CustomResource): R
@@ -88,7 +93,7 @@ interface DefaultResourceVisitor<R> : ResourceVisitor<R> {
      */
     fun getDefaultValue(resource: ManifestResource): R
 
-    override fun visitRemote(remote: RemoteResource): R = getDefaultValue(remote)
+    override fun visitExternal(external: ExternalResource): R = getDefaultValue(external)
 
     override fun visitPage(page: PageResource): R = getDefaultValue(page)
 
@@ -105,6 +110,8 @@ interface DefaultResourceVisitor<R> : ResourceVisitor<R> {
     override fun visitVideo(video: VideoResource): R = getDefaultValue(video)
 
     override fun visitMisc(misc: MiscResource): R = getDefaultValue(misc)
+
+    override fun visitNcx(ncx: NcxResource): R = getDefaultValue(ncx)
 
     override fun visitCustom(custom: CustomResource): R = getDefaultValue(custom)
 }
@@ -131,7 +138,7 @@ interface DefaultResourceVisitor<R> : ResourceVisitor<R> {
  *  }
  */
 interface ResourceVisitorUnit : ResourceVisitor<Unit> {
-    override fun visitRemote(remote: RemoteResource): Unit = Unit
+    override fun visitExternal(external: ExternalResource): Unit = Unit
 
     override fun visitPage(page: PageResource): Unit = Unit
 
@@ -148,6 +155,8 @@ interface ResourceVisitorUnit : ResourceVisitor<Unit> {
     override fun visitVideo(video: VideoResource): Unit = Unit
 
     override fun visitMisc(misc: MiscResource): Unit = Unit
+
+    override fun visitNcx(ncx: NcxResource): Unit = Unit
 
     override fun visitCustom(custom: CustomResource): Unit = Unit
 }

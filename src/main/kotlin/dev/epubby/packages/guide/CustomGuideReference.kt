@@ -16,17 +16,21 @@
 
 package dev.epubby.packages.guide
 
-import dev.epubby.Book
-import dev.epubby.BookElement
-import dev.epubby.internal.ifNotNull
+import dev.epubby.Epub
+import dev.epubby.EpubElement
+import dev.epubby.internal.utils.ifNotNull
 import dev.epubby.resources.PageResource
 
-class CustomGuideReference @JvmOverloads constructor(
-    override val book: Book,
+class CustomGuideReference internal constructor(
+    override val epub: Epub,
     val type: String,
     var reference: PageResource,
-    var title: String? = null,
-) : BookElement {
+    var title: String?,
+) : EpubElement {
+    init {
+        require(ReferenceType.isUnknownType(type)) { "The type of a custom guide reference ($type) must not be an officially known type." }
+    }
+
     override val elementName: String
         get() = "PackageGuide.CustomReference"
 

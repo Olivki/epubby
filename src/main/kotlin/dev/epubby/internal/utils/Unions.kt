@@ -14,14 +14,10 @@
  * limitations under the License.
  */
 
-package dev.epubby.utils
+package dev.epubby.internal.utils
 
-import dev.epubby.Book
-import moe.kanon.kommons.io.requireFileExistence
-import java.nio.file.Path
+import dev.epubby.packages.guide.CustomGuideReference
+import dev.epubby.packages.guide.GuideReference
+import moe.kanon.kommons.func.Either
 
-@Suppress("NOTHING_TO_INLINE")
-internal inline fun verifyFile(book: Book, file: Path) {
-    require(file.fileSystem == book.fileSystem) { "File does not have the same file-system as the book" }
-    requireFileExistence(file)
-}
+internal typealias `Reference | CustomReference` = Either<GuideReference, CustomGuideReference>

@@ -17,6 +17,7 @@
 package dev.epubby.internal.models
 
 // does not serve a proper purpose, is just used for clearing up what the actual serialized name is for the programmer
+@MustBeDocumented
 @Retention(AnnotationRetention.SOURCE)
 @Target(AnnotationTarget.CLASS, AnnotationTarget.PROPERTY)
 internal annotation class SerializedName(val value: String)

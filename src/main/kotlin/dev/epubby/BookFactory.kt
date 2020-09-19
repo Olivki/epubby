@@ -14,17 +14,85 @@
  * limitations under the License.
  */
 
+@file:JvmName("BookFactory")
+
 package dev.epubby
 
+import dev.epubby.internal.models.metainf.MetaInfModel
+import dev.epubby.internal.models.packages.PackageDocumentModel
+import dev.epubby.internal.utils.documentFrom
+import dev.epubby.internal.utils.getAttributeValueOrThrow
+import dev.epubby.internal.utils.use
+import moe.kanon.kommons.io.paths.*
+import org.jdom2.Document
 import java.io.IOException
+import java.nio.charset.StandardCharsets
+import java.nio.file.FileSystem
 import java.nio.file.FileSystems
 import java.nio.file.Path
 
-fun readBook(file: Path): Book {
+@JvmOverloads
+fun readEpub(epubFile: Path, mode: ParseMode = ParseMode.STRICT): Epub {
     val fileSystem = try {
-        FileSystems.newFileSystem(file, null)
+        FileSystems.newFileSystem(epubFile, null)
     } catch (e: IOException) {
-        throw IOException("Could not create a zip file-system for '$file'.", e)
+        throw IOException("Could not create a zip file-system for '$epubFile'.", e)
     }
-    return TODO() //Book(fileSystem)
+    val root = fileSystem.getPath("/")
+    val metaInfDirectory = root.resolve("META-INF")
+    val mimeTypeFile = root.resolve("mimetype")
+    verifyFile(mimeTypeFile, metaInfDirectory, fileSystem)
+    val metaInfModel = MetaInfModel.fromDirectory(metaInfDirectory, mode)
+    val opfFile = fileSystem.getPath(metaInfModel.container.rootFiles[0].fullPath)
+    val (opfDocument, version) = getVersionAndDocument(opfFile)
+    val book = Epub(version, fileSystem, epubFile)
+    book.metaInf = metaInfModel.toMetaInf(book)
+    val packageDocumentModel = PackageDocumentModel.fromDocument(opfDocument, opfFile, mode)
+    book.packageDocument = packageDocumentModel.toPackageDocument(book)
+
+    return book
+}
+
+// Verifies that the EPUB is, at least, minimally sound.
+private fun verifyFile(mimeType: Path, metaInf: Path, fileSystem: FileSystem) {
+    // the 'META-INF' directory NEEDS to exist because the 'container.xml' NEEDS to exist inside of it
+    if (metaInf.notExists || !metaInf.isDirectory) {
+        invalidFile("'META-INF' directory is missing from root of epub", fileSystem)
+    }
+
+    val container = metaInf.resolve("container.xml")
+
+    // the 'container.xml' file NEEDS to exist, as it is the document providing the location of the 'opf' document
+    if (container.notExists || !container.isRegularFile) {
+        invalidFile("'container.xml' file is missing from the '/META-INF/' directory", fileSystem)
+    }
+
+    // 'mimetype' NEEDS to exist in the root of the epub file
+    if (mimeType.notExists || !mimeType.isRegularFile) {
+        invalidFile("'mimetype' file is missing from root of epub", fileSystem)
+    }
+
+    // 'mimetype' NEEDS to contain the string "application/epub+zip" encoded in ASCII
+    if (mimeType.exists) {
+        val contents = try {
+            mimeType.readString(StandardCharsets.US_ASCII)
+        } catch (e: IOException) {
+            invalidFile("could not read 'mimetype' file with ASCII charset: ${e.message}", fileSystem, e)
+        }
+
+        if (contents != "application/epub+zip") {
+            invalidFile("contents of 'mimetype' should be 'application/epub+zip', was '$contents'", fileSystem)
+        }
+    }
+}
+
+private fun invalidFile(message: String, fileSystem: FileSystem, cause: Throwable? = null): Nothing {
+    fileSystem.close()
+    throw MalformedBookException("Invalid EPUB file: $message", cause)
+}
+
+private fun getVersionAndDocument(opfFile: Path): Pair<Document, EpubVersion> {
+    val document = documentFrom(opfFile)
+    val version = document.use { _, root -> root.getAttributeValueOrThrow("version").let { EpubVersion.parse(it) } }
+    return document to version
 }

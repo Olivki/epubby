@@ -24,6 +24,8 @@ package dev.epubby.utils
 import kotlinx.html.*
 import kotlinx.html.consumers.onFinalize
 import kotlinx.html.stream.createHTML
+import moe.kanon.kommons.io.paths.newInputStream
+import moe.kanon.kommons.io.paths.pathOf
 import org.jsoup.Jsoup
 import org.jsoup.nodes.*
 import org.jsoup.parser.Parser
@@ -31,6 +33,7 @@ import org.jsoup.parser.Tag
 import org.jsoup.select.*
 import org.w3c.dom.events.Event
 import java.nio.charset.Charset
+import java.nio.file.Path
 import java.util.Deque
 import java.util.LinkedList
 import kotlinx.html.Entities as KEntities
@@ -127,11 +130,11 @@ fun Node.setAttribute(name: String, value: Boolean) {
 }
 
 @JvmSynthetic
-fun Node.containsAttribute(name: String): Boolean = hasAttr(name)
+fun Node.hasAttribute(name: String): Boolean = hasAttr(name)
 
 @JvmSynthetic
 fun Node.removeAttribute(name: String): Boolean = when {
-    containsAttribute(name) -> {
+    hasAttribute(name) -> {
         removeAttr(name)
         true
     }
@@ -145,7 +148,7 @@ fun Node.removeAttribute(name: String): Boolean = when {
  */
 @JvmSynthetic
 fun Node.getAttribute(name: String): String? = when {
-    containsAttribute(name) -> attr(name)
+    hasAttribute(name) -> attr(name)
     else -> null
 }
 
@@ -518,6 +521,11 @@ val Document.body: Element
     @JvmSynthetic
     get() = body() ?: throw IllegalStateException("'body' should not be null")
 
+fun m(thing: String?) {
+    val d = documentFrom(pathOf(""))
+    d.text(thing)
+}
+
 @JvmSynthetic
 @HtmlTagMarker
 inline fun document(namespace: String? = null, crossinline body: HTML.() -> Unit): Document {
@@ -727,4 +735,32 @@ fun Attributes.clear() {
         iterator.next()
         iterator.remove()
     }
+}
+
+private val DEFAULT_PARSER: Parser = Parser.xmlParser()
+
+// TODO: make use of this yo
+internal fun documentShell(baseUri: String, isEpub3: Boolean): Document = Document.createShell(baseUri).also {
+    setupSettings(it)
+    it.prepend("""<!DOCTYPE html>""")
+    it.prepend("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
+    val htmlTag = it.getElementsByTag("html").first()
+    htmlTag.setAttribute("xmlns", "http://www.w3.org/1999/xhtml")
+    if (isEpub3) htmlTag.setAttribute("xmlns:epub", "http://www.idpf.org/2007/ops")
+}
+
+internal fun documentFrom(file: Path, parser: Parser = DEFAULT_PARSER): Document =
+    file.newInputStream().use { Jsoup.parse(it, "UTF-8", file.toUri().toString(), parser) }
+
+internal fun documentFrom(html: String, baseUri: String, parser: Parser = DEFAULT_PARSER): Document =
+    Jsoup.parse(html, baseUri, parser)
+
+internal fun setupSettings(document: Document): Document = document.apply {
+    document.outputSettings().apply {
+        prettyPrint(true)
+        syntax(Document.OutputSettings.Syntax.xml)
+        escapeMode(Entities.EscapeMode.xhtml)
+        indentAmount(2)
+    }
+    parser(DEFAULT_PARSER)
 }

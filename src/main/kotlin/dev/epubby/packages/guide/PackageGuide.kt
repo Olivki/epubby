@@ -16,26 +16,40 @@
 
 package dev.epubby.packages.guide
 
-import dev.epubby.Book
-import dev.epubby.BookElement
-import dev.epubby.BookVersion.EPUB_3_0
+import com.github.michaelbull.logging.InlineLogger
+import dev.epubby.Epub
+import dev.epubby.EpubElement
+import dev.epubby.EpubVersion.EPUB_3_0
 import dev.epubby.internal.MarkedAsLegacy
 import dev.epubby.packages.PackageDocument
+import dev.epubby.packages.guide.CorrectorDuplicationStrategy.DO_NOTHING
+import dev.epubby.packages.guide.CorrectorDuplicationStrategy.REMOVE_CUSTOM
+import dev.epubby.packages.guide.CorrectorDuplicationStrategy.REPLACE_EXISTING
 import dev.epubby.resources.PageResource
 import moe.kanon.kommons.collections.asUnmodifiableMap
 import moe.kanon.kommons.collections.emptyEnumMap
 import moe.kanon.kommons.collections.getOrThrow
-import org.apache.commons.collections4.map.CaseInsensitiveMap
+
+// TODO: silently map any custom references that use actual proper reference types to a GuideReference instead of
+//       throwing an exception when attempting to add them?
 
 @MarkedAsLegacy(`in` = EPUB_3_0)
 class PackageGuide(
-    override val book: Book,
+    override val epub: Epub,
     private val _references: MutableMap<ReferenceType, GuideReference> = emptyEnumMap(),
-    private val _customReferences: MutableMap<String, CustomGuideReference> = CaseInsensitiveMap()
-) : BookElement {
+    private val _customReferences: MutableMap<String, CustomGuideReference> = hashMapOf(),
+) : EpubElement {
+    val corrector: GuideReferenceCorrector by lazy { GuideReferenceCorrector() }
+
+    /**
+     * Returns a unmodifiable view of the `references` of this guide.
+     */
     val references: Map<ReferenceType, GuideReference>
         get() = _references.asUnmodifiableMap()
 
+    /**
+     * Returns a unmodifiable view of the `customReferences` of this guide.
+     */
     val customReferences: Map<String, CustomGuideReference>
         get() = _customReferences.asUnmodifiableMap()
 
@@ -55,7 +69,7 @@ class PackageGuide(
      */
     @JvmOverloads
     fun addReference(type: ReferenceType, reference: PageResource, title: String? = null): GuideReference {
-        val ref = GuideReference(book, type, reference, title)
+        val ref = GuideReference(epub, type, reference, title)
         _references[type] = ref
         return ref
     }
@@ -66,22 +80,70 @@ class PackageGuide(
      * @param [type] the `type` to remove
      */
     fun removeReference(type: ReferenceType) {
-        if (type in _references) {
-            _references -= type
-        }
+        _references -= type
     }
 
     /**
-     * Returns the [reference][GuideReference] stored under the given [type], or throws a [NoSuchElementException] if none
-     * is found.
+     * Returns the [reference][GuideReference] stored under the given [type], or throws a [NoSuchElementException] if
+     * none is found.
      */
     fun getReference(type: ReferenceType): GuideReference =
-        _references.getOrThrow(type) { "No reference found with the given type '$type'" }
+        _references.getOrThrow(type) { "No reference found with type'$type'" }
 
     /**
      * Returns the [reference][GuideReference] stored under the given [type], or `null` if none is found.
      */
     fun getReferenceOrNull(type: ReferenceType): GuideReference? = _references[type]
+
+    /**
+     * Remaps any [CustomGuideReference] to [GuideReference] in this guide using the [corrector] of this guide.
+     *
+     * Any `CustomGuideReference` instances in this guide whose [type][CustomGuideReference.type] property is known by
+     * the `corrector` will turned into a [GuideReference] instance.
+     *
+     * For example, say this guide has the `CustomGuideReference(type = "copyright")` instance, after invoking this
+     * function that instance will be turned into a `GuideReference(type = ReferenceType.COPYRIGHT_PAGE)` instance.
+     *
+     * When correcting, if a corrected custom type happens to map to a [ReferenceType] that is already defined in this
+     * guide, then the result of invoking the given [duplicationResolver] function will be used to determine what
+     * course of action should be taken.
+     *
+     * @param [duplicationResolver] the function that determines what [CorrectorDuplicationStrategy] that should be
+     * used when encountering a duplicate when correcting, [DO_NOTHING][CorrectorDuplicationStrategy.DO_NOTHING] by
+     * default
+     */
+    // TODO: find a better more descriptive name of what this does?
+    @JvmOverloads
+    fun correctCustomTypes(duplicationResolver: CorrectorDuplicationResolver = DEFAULT_RESOLVER) {
+        for ((customType, customReference) in _customReferences.toMap()) {
+            if (corrector.hasCorrection(customType)) {
+                val type = corrector.getCorrection(customType)
+
+                if (type in _references) {
+                    val knownReference = getReference(type)
+
+                    when (duplicationResolver(customReference, knownReference)) {
+                        REPLACE_EXISTING -> {
+                            val reference = GuideReference(epub, type, customReference.reference, customReference.title)
+                            LOGGER.debug { "Replacing $knownReference with $reference created from $customReference" }
+                            _customReferences -= customType
+                            _references[type] = reference
+                        }
+                        REMOVE_CUSTOM -> {
+                            LOGGER.debug { "Removing $customReference in favour of $knownReference" }
+                            _customReferences -= customType
+                        }
+                        DO_NOTHING -> {}
+                    }
+                } else {
+                    val reference = GuideReference(epub, type, customReference.reference, customReference.title)
+                    LOGGER.debug { "Remapping $customReference to $reference" }
+                    _customReferences -= customReference.type
+                    _references[type] = reference
+                }
+            }
+        }
+    }
 
     /**
      * Adds a new [reference][GuideReference] instance based on the given [type], [reference] and [title] to this guide.
@@ -99,9 +161,6 @@ class PackageGuide(
      * `reference` under the key `"tn"`, instead it will store the `reference` under the key `"other.tn"`. This
      * behaviour is consistent across all functions that accept a `customType`.
      *
-     * Note that as guide references are *case-insensitive* the casing of the given [type] does not matter when
-     * attempting to return it from [getCustomReference] or removing it via [removeCustomReference].
-     *
      * @throws [IllegalArgumentException] if the given [type] matches an already known [type][ReferenceType]
      */
     @JvmOverloads
@@ -111,8 +170,8 @@ class PackageGuide(
         title: String? = null,
     ): CustomGuideReference {
         // TODO: remove this and instead just convert them at the serialization phase?
-        require(type !in ReferenceType) { "'type' matches an officially defined reference type ($type)" }
-        val ref = CustomGuideReference(book, type, reference, title)
+        require(!ReferenceType.isKnownType(type)) { "'type' matches an officially defined reference type ($type)" }
+        val ref = CustomGuideReference(epub, type, reference, title)
         _customReferences[type] = ref
         return ref
     }
@@ -130,15 +189,9 @@ class PackageGuide(
      * This means that if this function is invoked with `("tn")` the system does *not* remove a `reference` stored
      * under the key `"tn"`, instead it removes a `reference` stored under the key `"other.tn"`. This behaviour is
      * consistent across all functions that accept a `customType`.
-     *
-     * Note that as guide references are *case-insensitive* the casing of the given `customType` does not matter,
-     * meaning that invoking this function with `customType` as `"deStROyeR"` will remove the same `reference` as if
-     * invoking it with `customType` as `"destroyer"` or any other casing variation of the same string.
      */
     fun removeCustomReference(type: String) {
-        if (type in _customReferences) {
-            _customReferences -= type
-        }
+        _customReferences -= type
     }
 
     /**
@@ -155,13 +208,9 @@ class PackageGuide(
      * This means that if this function is invoked with `("tn")` the system does *not* look for a `reference` stored
      * under the key `"tn"`, instead it looks for a `reference` stored under the key `"other.tn"`. This behaviour is
      * consistent across all functions that accept a `customType`.
-     *
-     * Note that as guide references are *case-insensitive* the casing given to this function does not matter, meaning
-     * that invoking this function with `"deStROyeR"` will return the same result as if invoking it with `"destroyer"`
-     * or any other casing variation of the same string.
      */
     fun getCustomReference(type: String): CustomGuideReference =
-        _customReferences.getOrThrow(type) { "No reference found with the given custom type 'other.$type'" }
+        _customReferences.getOrThrow(type) { "No custom reference found with type '$type'" }
 
     /**
      * Returns the [reference][GuideReference] stored under the given [type], or `null` if none is found.
@@ -176,13 +225,15 @@ class PackageGuide(
      * This means that if this function is invoked with `("tn")` the system does *not* look for a `reference` stored
      * under the key `"tn"`, instead it looks for a `reference` stored under the key `"other.tn"`. This behaviour is
      * consistent across all functions that accept a `customType`.
-     *
-     * Note that as guide references are *case-insensitive* the casing given to this function does not matter, meaning
-     * that invoking this function with `"deStROyeR"` will return the same result as if invoking it with `"destroyer"`
-     * or any other casing variation of the same string.
      */
     fun getCustomReferenceOrNull(type: String): CustomGuideReference? = _customReferences[type]
 
     override fun toString(): String =
         "PackageGuide(references=$_references, customReferences=$_customReferences)"
+
+    private companion object {
+        private val LOGGER: InlineLogger = InlineLogger(PackageGuide::class)
+
+        private val DEFAULT_RESOLVER: CorrectorDuplicationResolver = { _, _ -> DO_NOTHING }
+    }
 }

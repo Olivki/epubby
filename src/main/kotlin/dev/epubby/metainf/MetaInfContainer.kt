@@ -17,21 +17,31 @@
 package dev.epubby.metainf
 
 import com.google.common.net.MediaType
-import dev.epubby.Book
-import dev.epubby.BookVersion
+import dev.epubby.Epub
+import dev.epubby.EpubElement
+import dev.epubby.EpubVersion
 import dev.epubby.files.RegularFile
 import dev.epubby.internal.IntroducedIn
 import dev.epubby.properties.Relationship
 import dev.epubby.utils.NonEmptyList
 
-class MetaInfContainer @JvmOverloads constructor(
-    val book: Book,
-    val version: ContainerVersion,
+class MetaInfContainer internal constructor(
+    override val epub: Epub,
+    val file: RegularFile,
+    val version: String,
     val rootFiles: NonEmptyList<RootFile>,
     val links: MutableList<Link> = mutableListOf()
-) {
-    val packageDocument: RootFile
+) : EpubElement {
+    override val elementName: String
+        get() = "container"
+
+    val opf: RootFile
         get() = rootFiles[0]
+
+    @JvmSynthetic
+    internal fun updateOpfFile(newFile: RegularFile) {
+        rootFiles[0] = RootFile(epub, newFile, opf.mediaType)
+    }
 
     override fun equals(other: Any?): Boolean = when {
         this === other -> true
@@ -51,7 +61,14 @@ class MetaInfContainer @JvmOverloads constructor(
 
     override fun toString(): String = "MetaInfContainer(version='$version', rootFiles=$rootFiles, links=$links)"
 
-    class RootFile(val book: Book, val fullPath: RegularFile, val mediaType: MediaType) {
+    class RootFile internal constructor(
+        override val epub: Epub,
+        val fullPath: RegularFile,
+        val mediaType: MediaType,
+    ) : EpubElement {
+        override val elementName: String
+            get() = "container/rootfile"
+
         override fun equals(other: Any?): Boolean = when {
             this === other -> true
             other !is RootFile -> false
@@ -69,13 +86,16 @@ class MetaInfContainer @JvmOverloads constructor(
         override fun toString(): String = "RootFile(fullPath='$fullPath', mediaType='$mediaType')"
     }
 
-    class Link @JvmOverloads constructor(
-        val book: Book,
+    class Link internal constructor(
+        override val epub: Epub,
         val href: String,
-        @IntroducedIn(version = BookVersion.EPUB_3_0)
+        @IntroducedIn(version = EpubVersion.EPUB_3_0)
         val relation: Relationship? = null,
         val mediaType: MediaType? = null
-    ) {
+    ) : EpubElement {
+        override val elementName: String
+            get() = "container/link"
+
         override fun equals(other: Any?): Boolean = when {
             this === other -> true
             other !is Link -> false

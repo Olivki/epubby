@@ -16,14 +16,14 @@
 
 package dev.epubby.properties
 
-import dev.epubby.BookVersion
+import dev.epubby.EpubVersion
 import dev.epubby.internal.IntroducedIn
 import dev.epubby.prefixes.Prefix
 import dev.epubby.prefixes.requireKnown
 import java.net.URI
 import java.net.URISyntaxException
 
-@IntroducedIn(version = BookVersion.EPUB_3_0)
+@IntroducedIn(version = EpubVersion.EPUB_3_0)
 interface Property {
     /**
      * The prefix of `this` property.

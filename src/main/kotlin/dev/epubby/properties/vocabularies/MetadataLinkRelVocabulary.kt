@@ -36,7 +36,7 @@ enum class MetadataLinkRelVocabulary(reference: String, private val refinesRelat
     //       explain what they do
     // TODO: Documentation
     /**
-     * Identifies where the full version of the book can be acquired.
+     * Identifies where the full version of the epub can be acquired.
      */
     ACQUIRE("acquire", Refines.MUST_NOT_BE_PRESENT),
 

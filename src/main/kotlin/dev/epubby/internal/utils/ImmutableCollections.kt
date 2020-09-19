@@ -14,9 +14,13 @@
  * limitations under the License.
  */
 
-package dev.epubby
+package dev.epubby.internal.utils
 
-enum class ParseStrictness {
-    STRICT,
-    LENIENT
-}
+import kotlinx.collections.immutable.PersistentList
+import kotlinx.collections.immutable.mutate
+import kotlinx.collections.immutable.persistentListOf
+
+internal inline fun <T> buildPersistentList(builder: MutableList<T>.() -> Unit): PersistentList<T> =
+    persistentListOf<T>().builder().apply(builder).build()
+
+internal fun <T> Sequence<T>.toPersistentList(): PersistentList<T> = persistentListOf<T>().mutate { it.addAll(this) }

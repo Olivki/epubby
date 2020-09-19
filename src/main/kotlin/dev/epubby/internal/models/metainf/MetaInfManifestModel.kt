@@ -16,22 +16,22 @@
 
 package dev.epubby.internal.models.metainf
 
-import dev.epubby.Book
-import dev.epubby.internal.documentFrom
-import dev.epubby.internal.writeTo
+import dev.epubby.Epub
+import dev.epubby.internal.utils.documentFrom
+import dev.epubby.internal.utils.writeTo
 import dev.epubby.metainf.MetaInfManifest
 import org.jdom2.Document
 import java.nio.file.FileSystem
 import java.nio.file.Path
 
-data class MetaInfManifestModel internal constructor(internal val document: Document) {
+internal data class MetaInfManifestModel internal constructor(internal val document: Document) {
     @JvmSynthetic
     internal fun writeToFile(fileSystem: FileSystem) {
         document.writeTo(fileSystem.getPath("/META-INF/manifest.xml"))
     }
 
     @JvmSynthetic
-    internal fun toMetaInfManifest(book: Book): MetaInfManifest = MetaInfManifest(book, document)
+    internal fun toMetaInfManifest(epub: Epub): MetaInfManifest = MetaInfManifest(epub, document)
 
     internal companion object {
         @JvmSynthetic

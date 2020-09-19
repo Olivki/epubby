@@ -17,15 +17,15 @@
 package dev.epubby.resources
 
 import com.google.common.net.MediaType
-import dev.epubby.Book
-import java.nio.file.Path
+import dev.epubby.Epub
+import dev.epubby.files.RegularFile
 
 class MiscResource(
-    book: Book,
+    epub: Epub,
     identifier: String,
-    file: Path,
+    file: RegularFile,
     override val mediaType: MediaType
-) : LocalResource(book, identifier, file) {
+) : LocalResource(epub, identifier, file) {
     /**
      * Returns the result of invoking the [visitMisc][ResourceVisitor.visitMisc] function of the given [visitor].
      */

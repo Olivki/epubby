@@ -17,10 +17,11 @@
 package dev.epubby.internal.models.packages
 
 import com.github.michaelbull.logging.InlineLogger
-import dev.epubby.*
-import dev.epubby.internal.elementOf
-import dev.epubby.internal.getAttributeValueOrThrow
+import dev.epubby.Epub
+import dev.epubby.MalformedBookException
+import dev.epubby.ParseMode
 import dev.epubby.internal.models.SerializedName
+import dev.epubby.internal.utils.*
 import dev.epubby.packages.PackageTours
 import dev.epubby.utils.toNonEmptyList
 import kotlinx.collections.immutable.PersistentList
@@ -29,24 +30,24 @@ import org.jdom2.Element
 import dev.epubby.internal.Namespaces.OPF as NAMESPACE
 
 @SerializedName("tours")
-data class PackageToursModel internal constructor(val entries: PersistentList<TourModel>) {
+internal data class PackageToursModel internal constructor(internal val entries: PersistentList<TourModel>) {
     @JvmSynthetic
     internal fun toElement(): Element = elementOf("tours", NAMESPACE) {
         entries.forEach { entry -> it.addContent(entry.toElement()) }
     }
 
     @JvmSynthetic
-    internal fun toPackageTours(book: Book): PackageTours {
-        val tours = entries.map { it.toTour(book) }.toMutableList()
-        return PackageTours(book, tours)
+    internal fun toPackageTours(epub: Epub): PackageTours {
+        val tours = entries.map { it.toTour(epub) }.toMutableList()
+        return PackageTours(epub, tours)
     }
 
     @SerializedName("tour")
-    data class TourModel internal constructor(
+    internal data class TourModel internal constructor(
         @SerializedName("id")
-        val identifier: String,
-        val title: String,
-        val sites: PersistentList<SiteModel>,
+        internal val identifier: String,
+        internal val title: String,
+        internal val sites: PersistentList<SiteModel>,
     ) {
         @JvmSynthetic
         internal fun toElement(): Element = elementOf("tour", NAMESPACE) {
@@ -56,13 +57,13 @@ data class PackageToursModel internal constructor(val entries: PersistentList<To
         }
 
         @JvmSynthetic
-        internal fun toTour(book: Book): PackageTours.Tour {
-            val sites = sites.map { it.toSite(book) }.toNonEmptyList()
-            return PackageTours.Tour(book, identifier, title, sites)
+        internal fun toTour(epub: Epub): PackageTours.Tour {
+            val sites = sites.map { it.toSite(epub) }.toNonEmptyList()
+            return PackageTours.Tour(epub, identifier, title, sites)
         }
 
         @SerializedName("site")
-        data class SiteModel internal constructor(val href: String, val title: String) {
+        internal data class SiteModel internal constructor(internal val href: String, internal val title: String) {
             @JvmSynthetic
             internal fun toElement(): Element = elementOf("site", NAMESPACE) {
                 it.setAttribute("href", href)
@@ -70,7 +71,7 @@ data class PackageToursModel internal constructor(val entries: PersistentList<To
             }
 
             @JvmSynthetic
-            internal fun toSite(book: Book): PackageTours.Tour.Site = PackageTours.Tour.Site(book, href, title)
+            internal fun toSite(epub: Epub): PackageTours.Tour.Site = PackageTours.Tour.Site(epub, href, title)
 
             internal companion object {
                 @JvmSynthetic
@@ -109,10 +110,10 @@ data class PackageToursModel internal constructor(val entries: PersistentList<To
         private val LOGGER: InlineLogger = InlineLogger(PackageToursModel::class)
 
         @JvmSynthetic
-        internal fun fromElement(element: Element, strictness: ParseStrictness): PackageToursModel {
+        internal fun fromElement(element: Element, mode: ParseMode): PackageToursModel {
             val tours = element.getChildren("tour", element.namespace)
                 .tryMap { TourModel.fromElement(it) }
-                .mapToValues(LOGGER, strictness)
+                .mapToValues(LOGGER, mode)
                 .toPersistentList()
             return PackageToursModel(tours)
         }

@@ -16,33 +16,38 @@
 
 package dev.epubby.metainf
 
-import dev.epubby.Book
+import dev.epubby.Epub
+import dev.epubby.EpubElement
+import dev.epubby.files.DirectoryFile
 
-class MetaInf @JvmOverloads constructor(
-    val book: Book,
+class MetaInf internal constructor(
+    override val epub: Epub,
+    val directory: DirectoryFile,
     val container: MetaInfContainer,
     var encryption: MetaInfEncryption? = null,
     var manifest: MetaInfManifest? = null,
     var metadata: MetaInfMetadata? = null,
     var rights: MetaInfRights? = null,
     var signatures: MetaInfSignatures? = null
-) {
+) : EpubElement {
+    override val elementName: String
+        get() = "/META-INF/"
 
     /**
-     * Returns `true` if the book that this meta-inf represents is encrypted in some manner, otherwise `false`.
+     * Returns `true` if the epub that this meta-inf represents is encrypted in some manner, otherwise `false`.
      *
      * As the EPUB specification has set forth no standard for how a meta-inf [encryption] structure should look, it
-     * states that as long as an `encryption` structure is present, that means that the book is encrypted.
+     * states that as long as an `encryption` structure is present, that means that the epub is encrypted.
      */
     val isEncrypted: Boolean
         get() = encryption != null
 
     /**
-     * Returns `true` if the book that this meta-inf represents is governed rights *(DRM)* in some manner, otherwise
+     * Returns `true` if the epub that this meta-inf represents is governed rights *(DRM)* in some manner, otherwise
      * `false`.
      *
      * As the EPUB specification has set forth no standard for how a meta-inf [rights] structure should look, it states
-     * that as long as an `rights` structure is present, that means that the book is governed by rights *(DRM)* in some
+     * that as long as an `rights` structure is present, that means that the epub is governed by rights *(DRM)* in some
      * manner.
      */
     val isGovernedByRights: Boolean

@@ -18,16 +18,16 @@ package dev.epubby.resources
 
 import com.google.auto.service.AutoService
 import com.google.common.net.MediaType
-import dev.epubby.Book
+import dev.epubby.Epub
+import dev.epubby.files.RegularFile
 import kotlinx.collections.immutable.persistentHashSetOf
-import java.nio.file.Path
 
 class VideoResource(
-    book: Book,
+    epub: Epub,
     identifier: String,
-    file: Path,
+    file: RegularFile,
     override val mediaType: MediaType
-) : LocalResource(book, identifier, file) {
+) : LocalResource(epub, identifier, file) {
     /**
      * Returns the result of invoking the [visitVideo][ResourceVisitor.visitVideo] function of the given [visitor].
      */

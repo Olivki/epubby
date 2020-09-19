@@ -18,11 +18,11 @@
 
 package dev.epubby.prefixes
 
-import dev.epubby.BookVersion
+import dev.epubby.EpubVersion
 import dev.epubby.internal.IntroducedIn
 import java.util.Collections
 
-@IntroducedIn(version = BookVersion.EPUB_3_0)
+@IntroducedIn(version = EpubVersion.EPUB_3_0)
 class Prefixes private constructor(private val delegate: MutableMap<String, Prefix>) :
     AbstractMutableMap<String, Prefix>() {
     override val entries: MutableSet<MutableMap.MutableEntry<String, Prefix>>
@@ -56,7 +56,7 @@ class Prefixes private constructor(private val delegate: MutableMap<String, Pref
         // here, as the delegate of this instance is an empty-map, meaning that modification operations
         // are *not allowed*
         @get:JvmSynthetic
-        internal val empty: Prefixes = Prefixes(Collections.emptyMap())
+        internal val EMPTY: Prefixes = Prefixes(Collections.emptyMap())
 
         // TODO: documentation
 

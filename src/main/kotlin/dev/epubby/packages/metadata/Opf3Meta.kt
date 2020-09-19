@@ -16,29 +16,29 @@
 
 package dev.epubby.packages.metadata
 
-import dev.epubby.Book
-import dev.epubby.BookElement
+import dev.epubby.Epub
+import dev.epubby.EpubElement
 import dev.epubby.dublincore.DublinCore
 import dev.epubby.properties.Property
 import dev.epubby.utils.Direction
 
 class Opf3Meta(
-    override val book: Book,
-    var content: String,
+    override val epub: Epub,
+    var value: String,
     var property: Property,
     var identifier: String? = null,
     var direction: Direction? = null,
     var refines: DublinCore? = null,
     var scheme: String? = null,
     var language: String? = null,
-) : BookElement {
+) : EpubElement {
     override val elementName: String
         get() = "PackageMetadata.Opf3Meta"
 
     override fun equals(other: Any?): Boolean = when {
         this === other -> true
         other !is Opf3Meta -> false
-        content != other.content -> false
+        value != other.value -> false
         property != other.property -> false
         identifier != other.identifier -> false
         direction != other.direction -> false
@@ -49,7 +49,7 @@ class Opf3Meta(
     }
 
     override fun hashCode(): Int {
-        var result = content.hashCode()
+        var result = value.hashCode()
         result = 31 * result + property.hashCode()
         result = 31 * result + (identifier?.hashCode() ?: 0)
         result = 31 * result + (direction?.hashCode() ?: 0)
@@ -60,5 +60,5 @@ class Opf3Meta(
     }
 
     override fun toString(): String =
-        "Opf3Meta(content='$content', property=$property, identifier=$identifier, direction=$direction, refines=$refines, scheme=$scheme, language=$language)"
+        "Opf3Meta(content='$value', property=$property, identifier=$identifier, direction=$direction, refines=$refines, scheme=$scheme, language=$language)"
 }

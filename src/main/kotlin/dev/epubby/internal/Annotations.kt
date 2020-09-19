@@ -16,7 +16,7 @@
 
 package dev.epubby.internal
 
-import dev.epubby.BookVersion
+import dev.epubby.EpubVersion
 import kotlin.annotation.AnnotationRetention.SOURCE
 import kotlin.annotation.AnnotationTarget.*
 
@@ -24,7 +24,7 @@ import kotlin.annotation.AnnotationTarget.*
  * Used for marking which version the feature was introduced into the EPUB specification in.
  *
  * If a feature has *not* been annotated with `this`, then it's generally safe to assume that the feature has been
- * available since [EPUB 2.0][BookVersion.EPUB_2_0].
+ * available since [EPUB 2.0][EpubVersion.EPUB_2_0].
  *
  * @property [version] The version that the feature was introduced into the EPUB specification in.
  */
@@ -45,7 +45,7 @@ import kotlin.annotation.AnnotationTarget.*
     VALUE_PARAMETER,
     FUNCTION
 )
-internal annotation class IntroducedIn(val version: BookVersion)
+internal annotation class IntroducedIn(val version: EpubVersion)
 
 /**
  * Used for marking that the feature the annotation target represents is considered to be a
@@ -61,7 +61,7 @@ internal annotation class IntroducedIn(val version: BookVersion)
 @MustBeDocumented
 @Retention(SOURCE)
 @Target(CLASS, FIELD, FILE, FUNCTION, PROPERTY, PROPERTY_GETTER, PROPERTY_SETTER, VALUE_PARAMETER)
-internal annotation class MarkedAsLegacy(val `in`: BookVersion)
+internal annotation class MarkedAsLegacy(val `in`: EpubVersion)
 
 /**
  * Used for marking that the feature the annotation target represents is considered to be a
@@ -89,7 +89,7 @@ internal annotation class MarkedAsLegacy(val `in`: BookVersion)
     VALUE_PARAMETER,
     FUNCTION
 )
-internal annotation class MarkedAsDeprecated(val `in`: BookVersion)
+internal annotation class MarkedAsDeprecated(val `in`: EpubVersion)
 
 /**
  * Any "public" elements marked with this are, for all intents an purposes, to be considered *internal* API.

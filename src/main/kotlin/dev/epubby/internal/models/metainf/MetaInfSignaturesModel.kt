@@ -16,22 +16,22 @@
 
 package dev.epubby.internal.models.metainf
 
-import dev.epubby.Book
-import dev.epubby.internal.documentFrom
-import dev.epubby.internal.writeTo
+import dev.epubby.Epub
+import dev.epubby.internal.utils.documentFrom
+import dev.epubby.internal.utils.writeTo
 import dev.epubby.metainf.MetaInfSignatures
 import org.jdom2.Document
 import java.nio.file.FileSystem
 import java.nio.file.Path
 
-data class MetaInfSignaturesModel internal constructor(internal val document: Document) {
+internal data class MetaInfSignaturesModel internal constructor(internal val document: Document) {
     @JvmSynthetic
     internal fun writeToFile(fileSystem: FileSystem) {
         document.writeTo(fileSystem.getPath("/META-INF/signatures.xml"))
     }
 
     @JvmSynthetic
-    internal fun toMetaInfSignatures(book: Book): MetaInfSignatures = MetaInfSignatures(book, document)
+    internal fun toMetaInfSignatures(epub: Epub): MetaInfSignatures = MetaInfSignatures(epub, document)
 
     internal companion object {
         @JvmSynthetic

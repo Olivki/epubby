@@ -16,17 +16,18 @@
 
 package dev.epubby.resources
 
+import dev.epubby.files.RegularFile
 import dev.epubby.page.Page
 import dev.epubby.utils.setAttribute
+import kotlinx.collections.immutable.PersistentList
 import org.jsoup.nodes.Attribute
 import org.jsoup.nodes.Element
-import java.nio.file.Path
 
 /**
  * Represents a reference to a [LocalResource] implementation from a [Page].
  *
  * @property [element] The element that referenced the resource.
- * @property [attribute] The [Attribute] that stores the actual reference.
+ * @property [attributes] The [Attribute] that stores the actual reference.
  * @property [fragmentIdentifier] An optional `fragment-identifier`, this will generally only contain a value if the
  * resource is a [PageResource].
  */
@@ -34,13 +35,22 @@ import java.nio.file.Path
 // TODO: Change this class? Maybe make it internal only?..
 data class ResourceDocumentReference internal constructor(
     val element: Element,
-    val attribute: Attribute,
-    val fragmentIdentifier: String? = if ('#' in attribute.value) attribute.value.substringAfter('#') else null
+    val attributes: PersistentList<Attribute>,
 ) {
+    fun getFragmentIdentifier(index: Int): String? {
+        val attribute = attributes[index]
+
+        return if ('#' in attribute.value) attribute.value.substringAfter('#') else null
+    }
+
     @JvmSynthetic
-    internal fun updateReferenceTo(resource: LocalResource, newFile: Path) {
-        val relativeFile = resource.book.packageDocument.file.relativize(newFile)
-        val location = "$relativeFile${fragmentIdentifier?.let { "#$it" } ?: ""}"
-        element.setAttribute(attribute.key, location)
+    internal fun updateReferenceTo(resource: LocalResource, newFile: RegularFile) {
+        for ((i, attribute) in attributes.withIndex()) {
+            val fragmentIdentifier = getFragmentIdentifier(i)
+            val relativeFile = resource.epub.opfFile.relativize(newFile)
+            val location = "$relativeFile${fragmentIdentifier?.let { "#$it" } ?: ""}"
+            element.setAttribute(attribute.key, location)
+        }
+
     }
 }

@@ -18,8 +18,8 @@
 
 package dev.epubby.properties
 
-import dev.epubby.BookElement
-import dev.epubby.BookVersion
+import dev.epubby.EpubElement
+import dev.epubby.EpubVersion
 import dev.epubby.internal.IntroducedIn
 
 // TODO: when I originally implemented this class, I made it so that it couldn't be empty, but now after thinking about
@@ -29,11 +29,11 @@ import dev.epubby.internal.IntroducedIn
 //       actually contain data? If so, maybe make a 'NonEmptyProperties' class or something like that?
 
 /**
- * Represents a list of [Property] instances used by various [BookElement]s.
+ * Represents a list of [Property] instances used by various [EpubElement]s.
  *
  * Only [Property] implementations known by the Epubby system is allowed to be contained in a `Properties` instance.
  */
-@IntroducedIn(version = BookVersion.EPUB_3_0)
+@IntroducedIn(version = EpubVersion.EPUB_3_0)
 class Properties private constructor(private val delegate: MutableSet<Property>) : AbstractMutableSet<Property>() {
     override val size: Int
         get() = delegate.size
@@ -72,6 +72,8 @@ class Properties private constructor(private val delegate: MutableSet<Property>)
 }
 
 fun Iterable<Property>.toProperties(): Properties = Properties.copyOf(this)
+
+fun Sequence<Property>.toProperties(): Properties = Properties.copyOf(this.asIterable())
 
 fun propertiesOf(vararg properties: Property): Properties = when (properties.size) {
     0 -> Properties.empty()

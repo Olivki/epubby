@@ -16,16 +16,17 @@
 
 package dev.epubby.internal.models.metainf
 
-import dev.epubby.Book
-import dev.epubby.ParseStrictness
+import dev.epubby.Epub
+import dev.epubby.ParseMode
+import dev.epubby.files.DirectoryFile
 import dev.epubby.metainf.MetaInf
 import dev.epubby.prefixes.Prefixes
 import moe.kanon.kommons.io.paths.exists
-import moe.kanon.kommons.io.requireFileExistence
 import java.nio.file.FileSystem
 import java.nio.file.Path
 
-data class MetaInfModel internal constructor(
+internal data class MetaInfModel internal constructor(
+    private val directory: Path,
     internal val container: MetaInfContainerModel,
     internal val encryption: MetaInfEncryptionModel?,
     internal val manifest: MetaInfManifestModel?,
@@ -33,19 +34,17 @@ data class MetaInfModel internal constructor(
     internal val rights: MetaInfRightsModel?,
     internal val signatures: MetaInfSignaturesModel?
 ) {
-    // TODO: 'prefixes' should not be needed here, as the meta-inf properties should *not* be inheriting from the
-    //        prefixes defined in the package-document as the two don't know anything of each other, so a default
-    //        value should be used instead, however i'm unsure of what default prefix meta-inf 'link' elements resolve
-    //        against
     @JvmSynthetic
-    internal fun toMetaInf(book: Book, prefixes: Prefixes): MetaInf {
-        val container = container.toMetaInfContainer(book, prefixes)
-        val encryption = encryption?.toMetaInfEncryption(book)
-        val manifest = manifest?.toMetaInfManifest(book)
-        val metadata = metadata?.toMetaInfMetadata(book)
-        val rights = rights?.toMetaInfRights(book)
-        val signatures = signatures?.toMetaInfSignatures(book)
-        return MetaInf(book, container, encryption, manifest, metadata, rights, signatures)
+    internal fun toMetaInf(epub: Epub): MetaInf {
+        val directory = DirectoryFile(this.directory, epub)
+        // TODO: figure out what prefixes the container allows by default
+        val container = container.toMetaInfContainer(epub, Prefixes.EMPTY)
+        val encryption = encryption?.toMetaInfEncryption(epub)
+        val manifest = manifest?.toMetaInfManifest(epub)
+        val metadata = metadata?.toMetaInfMetadata(epub)
+        val rights = rights?.toMetaInfRights(epub)
+        val signatures = signatures?.toMetaInfSignatures(epub)
+        return MetaInf(epub, directory, container, encryption, manifest, metadata, rights, signatures)
     }
 
     @JvmSynthetic
@@ -60,13 +59,10 @@ data class MetaInfModel internal constructor(
 
     internal companion object {
         @JvmSynthetic
-        internal fun fromDirectory(directory: Path, strictness: ParseStrictness): MetaInfModel {
+        internal fun fromDirectory(directory: Path, mode: ParseMode): MetaInfModel {
             val containerFile = directory.resolve("container.xml")
 
-            // TODO: better error message/custom exception?
-            requireFileExistence(containerFile)
-
-            val container = MetaInfContainerModel.fromFile(containerFile, strictness)
+            val container = MetaInfContainerModel.fromFile(containerFile, mode)
             val encryption = directory.resolve("encryption.xml")
                 .takeIf { it.exists }
                 ?.let { MetaInfEncryptionModel.fromFile(it) }
@@ -83,18 +79,19 @@ data class MetaInfModel internal constructor(
                 .takeIf { it.exists }
                 ?.let { MetaInfSignaturesModel.fromFile(it) }
 
-            return MetaInfModel(container, encryption, manifest, metadata, rights, signatures)
+            return MetaInfModel(directory, container, encryption, manifest, metadata, rights, signatures)
         }
 
         @JvmSynthetic
         internal fun fromMetaInf(origin: MetaInf): MetaInfModel {
+            val directory = origin.directory.delegate
             val container = MetaInfContainerModel.fromMetaInfContainer(origin.container)
             val encryption = origin.encryption?.let { MetaInfEncryptionModel.fromMetaInfEncryption(it) }
             val manifest = origin.manifest?.let { MetaInfManifestModel.fromMetaInfManifest(it) }
             val metadata = origin.metadata?.let { MetaInfMetadataModel.fromMetaInfMetadata(it) }
             val rights = origin.rights?.let { MetaInfRightsModel.fromMetaInfRights(it) }
             val signatures = origin.signatures?.let { MetaInfSignaturesModel.fromMetaInfSignatures(it) }
-            return MetaInfModel(container, encryption, manifest, metadata, rights, signatures)
+            return MetaInfModel(directory, container, encryption, manifest, metadata, rights, signatures)
         }
     }
 }

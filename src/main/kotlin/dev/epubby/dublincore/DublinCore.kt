@@ -16,12 +16,12 @@
 
 package dev.epubby.dublincore
 
-import dev.epubby.Book
-import dev.epubby.BookElement
-import dev.epubby.BookVersion.EPUB_3_0
+import dev.epubby.Epub
+import dev.epubby.EpubElement
+import dev.epubby.EpubVersion.EPUB_3_0
 import dev.epubby.internal.EpubDateFormatters
 import dev.epubby.internal.MarkedAsLegacy
-import dev.epubby.internal.ifNotNull
+import dev.epubby.internal.utils.ifNotNull
 import dev.epubby.packages.metadata.Opf3Meta
 import dev.epubby.utils.Direction
 import kotlinx.collections.immutable.PersistentList
@@ -37,8 +37,8 @@ import java.util.UUID
 // TODO: automatically convert usage of 'role', 'event', 'scheme' and any other things marked as legacy in 3.0 to the
 //       correct equivalenet? or at least provide a function for doing that?
 
-sealed class DublinCore(protected val name: String) : BookElement {
-    abstract override val book: Book
+sealed class DublinCore(protected val name: String) : EpubElement {
+    abstract override val epub: Epub
 
     override val elementName: String
         get() = "DublinCore.$name"
@@ -49,7 +49,7 @@ sealed class DublinCore(protected val name: String) : BookElement {
      * Element implementations may contain functions for converting this value into a more type-safe structure.
      * *(i.e; [DublinCore.Date.toLocalDateTime], [DublinCore.Language.toLocale])*
      */
-    abstract var content: String
+    abstract var value: String
 
     /**
      * The identifier of this dublin-core element, or `null` if no identifier has been defined.
@@ -64,27 +64,27 @@ sealed class DublinCore(protected val name: String) : BookElement {
      * therefore it is not recommended to cache the returned list, instead one should retrieve a new one whenever needed.
      */
     val refinements: PersistentList<Opf3Meta>
-        get() = book.metadata.opf3MetaEntries.filter { it.refines == this }.toPersistentList()
+        get() = epub.metadata.opf3MetaEntries.filter { it.refines == this }.toPersistentList()
 
     override fun equals(other: Any?): Boolean = when {
         this === other -> true
         other !is DublinCore -> false
         name != other.name -> false
-        content != other.content -> false
+        value != other.value -> false
         identifier != other.identifier -> false
         else -> true
     }
 
     override fun hashCode(): Int {
         var result = name.hashCode()
-        result = 31 * result + content.hashCode()
+        result = 31 * result + value.hashCode()
         result = 31 * result + (identifier?.hashCode() ?: 0)
         return result
     }
 
     override fun toString(): String = buildString {
         append("DublinCore.$name(")
-        append("content='$content'")
+        append("content='$value'")
         identifier.ifNotNull { append(", identifier='$it'") }
         append(")")
     }
@@ -100,8 +100,8 @@ sealed class DublinCore(protected val name: String) : BookElement {
      * `Date` may be used to express temporal information at any level of granularity.
      */
     class Date @JvmOverloads constructor(
-        override val book: Book,
-        override var content: String,
+        override val epub: Epub,
+        override var value: String,
         override var identifier: String? = null,
         @MarkedAsLegacy(`in` = EPUB_3_0)
         var event: DateEvent? = null,
@@ -110,45 +110,45 @@ sealed class DublinCore(protected val name: String) : BookElement {
             @JvmStatic
             @JvmOverloads
             fun fromDate(
-                book: Book,
+                epub: Epub,
                 date: LocalDate,
                 identifier: String? = null,
                 @MarkedAsLegacy(`in` = EPUB_3_0)
                 event: DateEvent? = null,
-            ): Date = Date(book, date.format(EpubDateFormatters.LOCAL_DATE), identifier, event)
+            ): Date = Date(epub, date.format(EpubDateFormatters.LOCAL_DATE), identifier, event)
 
             @JvmStatic
             @JvmOverloads
             fun fromDateTime(
-                book: Book,
+                epub: Epub,
                 date: LocalDateTime,
                 identifier: String? = null,
                 @MarkedAsLegacy(`in` = EPUB_3_0)
                 event: DateEvent? = null,
-            ): Date = Date(book, date.format(EpubDateFormatters.LOCAL_DATE_TIME), identifier, event)
+            ): Date = Date(epub, date.format(EpubDateFormatters.LOCAL_DATE_TIME), identifier, event)
         }
 
         /**
-         * Returns a [LocalDate] instance based on the [content] of this element.
+         * Returns a [LocalDate] instance based on the [value] of this element.
          *
-         * @throws [DateTimeParseException] if [content] can't be parsed into a [LocalDate]
+         * @throws [DateTimeParseException] if [value] can't be parsed into a [LocalDate]
          *
          * @see [toLocalDateTime]
          */
         @JvmOverloads
         fun toLocalDate(formatter: DateTimeFormatter = EpubDateFormatters.LOCAL_DATE): LocalDate =
-            LocalDate.parse(content, formatter)
+            LocalDate.parse(value, formatter)
 
         /**
-         * Returns a [LocalDateTime] instance based on the [content] of this element.
+         * Returns a [LocalDateTime] instance based on the [value] of this element.
          *
-         * @throws [DateTimeParseException] if [content] can't be parsed into a [LocalDateTime]
+         * @throws [DateTimeParseException] if [value] can't be parsed into a [LocalDateTime]
          *
          * @see [toLocalDate]
          */
         @JvmOverloads
         fun toLocalDateTime(formatter: DateTimeFormatter = EpubDateFormatters.LOCAL_DATE_TIME): LocalDateTime =
-            LocalDateTime.parse(content, formatter)
+            LocalDateTime.parse(value, formatter)
 
         /**
          * Returns the result of invoking the [visitDate][DublinCoreVisitor.visitDate] function of the given [visitor].
@@ -159,7 +159,7 @@ sealed class DublinCore(protected val name: String) : BookElement {
             this === other -> true
             other !is Date -> false
             !super.equals(other) -> false
-            content != other.content -> false
+            value != other.value -> false
             identifier != other.identifier -> false
             event != other.event -> false
             else -> true
@@ -167,7 +167,7 @@ sealed class DublinCore(protected val name: String) : BookElement {
 
         override fun hashCode(): Int {
             var result = super.hashCode()
-            result = 31 * result + content.hashCode()
+            result = 31 * result + value.hashCode()
             result = 31 * result + (identifier?.hashCode() ?: 0)
             result = 31 * result + (event?.hashCode() ?: 0)
             return result
@@ -175,7 +175,7 @@ sealed class DublinCore(protected val name: String) : BookElement {
 
         override fun toString(): String = buildString {
             append("DublinCore.Date(")
-            append("content='$content'")
+            append("content='$value'")
             identifier ifNotNull { append(", identifier='$it'") }
             event ifNotNull { append(", event=$it") }
             append(")")
@@ -189,8 +189,8 @@ sealed class DublinCore(protected val name: String) : BookElement {
      * such as the list of [Internet Media Types](http://www.iana.org/assignments/media-types/).
      */
     class Format @JvmOverloads constructor(
-        override val book: Book,
-        override var content: String,
+        override val epub: Epub,
+        override var value: String,
         override var identifier: String? = null,
     ) : DublinCore("Format") {
         /**
@@ -207,8 +207,8 @@ sealed class DublinCore(protected val name: String) : BookElement {
      * system.
      */
     class Identifier @JvmOverloads constructor(
-        override val book: Book,
-        override var content: String,
+        override val epub: Epub,
+        override var value: String,
         override var identifier: String? = null,
         @MarkedAsLegacy(`in` = EPUB_3_0)
         var scheme: String? = null,
@@ -218,13 +218,13 @@ sealed class DublinCore(protected val name: String) : BookElement {
              * Returns a new [Identifier] based on a [random uuid][UUID.randomUUID].
              */
             // TODO: find a better name
-            // TODO: handle this differently if book version is 3.x as 'scheme' is marked as legacy starting from 3.0
+            // TODO: handle this differently if epub version is 3.x as 'scheme' is marked as legacy starting from 3.0
             //       so we probably want to use a op3 meta element to refine it or something like that?
             @JvmStatic
             @JvmOverloads
-            fun generateRandom(book: Book, identifier: String? = null): Identifier {
+            fun generateRandom(epub: Epub, identifier: String? = null): Identifier {
                 val content = UUID.randomUUID().toString()
-                return Identifier(book, content, identifier, "UUID")
+                return Identifier(epub, content, identifier, "UUID")
             }
         }
 
@@ -238,7 +238,7 @@ sealed class DublinCore(protected val name: String) : BookElement {
             this === other -> true
             other !is Identifier -> false
             !super.equals(other) -> false
-            content != other.content -> false
+            value != other.value -> false
             identifier != other.identifier -> false
             scheme != other.scheme -> false
             else -> true
@@ -246,7 +246,7 @@ sealed class DublinCore(protected val name: String) : BookElement {
 
         override fun hashCode(): Int {
             var result = super.hashCode()
-            result = 31 * result + content.hashCode()
+            result = 31 * result + value.hashCode()
             result = 31 * result + (identifier?.hashCode() ?: 0)
             result = 31 * result + (scheme?.hashCode() ?: 0)
             return result
@@ -254,7 +254,7 @@ sealed class DublinCore(protected val name: String) : BookElement {
 
         override fun toString(): String = buildString {
             append("DublinCore.Identifier(")
-            append("content='$content'")
+            append("content='$value'")
             identifier ifNotNull { append(", identifier='$it'") }
             scheme ifNotNull { append(", scheme='$it'") }
             append(")")
@@ -268,26 +268,26 @@ sealed class DublinCore(protected val name: String) : BookElement {
      * [RFC 4646](http://www.ietf.org/rfc/rfc4646.txt).
      */
     class Language @JvmOverloads constructor(
-        override val book: Book,
-        override var content: String,
+        override val epub: Epub,
+        override var value: String,
         override var identifier: String? = null,
     ) : DublinCore("Language") {
         companion object {
             @JvmStatic
             @JvmOverloads
             fun fromLocale(
-                book: Book,
+                epub: Epub,
                 locale: Locale,
                 identifier: String? = null,
-            ): Language = Language(book, locale.toLanguageTag(), identifier)
+            ): Language = Language(epub, locale.toLanguageTag(), identifier)
         }
 
         /**
-         * Returns a [Locale] based on the [content] of this element.
+         * Returns a [Locale] based on the [value] of this element.
          *
          * @see [Locale.forLanguageTag]
          */
-        fun toLocale(): Locale = Locale.forLanguageTag(content)
+        fun toLocale(): Locale = Locale.forLanguageTag(value)
 
         /**
          * Returns the result of invoking the [visitLanguage][DublinCoreVisitor.visitLanguage] function of the given
@@ -303,8 +303,8 @@ sealed class DublinCore(protected val name: String) : BookElement {
      * is to identify the related resource by means of a string conforming to a formal identification system.
      */
     class Source @JvmOverloads constructor(
-        override val book: Book,
-        override var content: String,
+        override val epub: Epub,
+        override var value: String,
         override var identifier: String? = null,
     ) : DublinCore("Source") {
         /**
@@ -322,8 +322,8 @@ sealed class DublinCore(protected val name: String) : BookElement {
      * the file format, physical medium, or dimensions of the resource, use the [Format] element.
      */
     class Type @JvmOverloads constructor(
-        override val book: Book,
-        override var content: String,
+        override val epub: Epub,
+        override var value: String,
         override var identifier: String? = null,
     ) : DublinCore("Type") {
         /**
@@ -361,7 +361,7 @@ sealed class LocalizedDublinCore(name: String) : DublinCore(name) {
 
     override fun toString(): String = buildString {
         append("LocalizedDublinCore.$name(")
-        append("content='$content'")
+        append("content='$value'")
         identifier ifNotNull { append(", identifier='$it'") }
         direction ifNotNull { append(", direction=$it") }
         language ifNotNull { append(", language='$it'") }
@@ -369,14 +369,14 @@ sealed class LocalizedDublinCore(name: String) : DublinCore(name) {
     }
 
     /**
-     * A contributor is an entity that is responsible for making contributions to the [Book].
+     * A contributor is an entity that is responsible for making contributions to the [Epub].
      *
      * Examples of a `Contributor` include a person, an organization, or a service. Typically, the name of a
      * `Contributor` should be used to indicate the entity.
      */
     class Contributor @JvmOverloads constructor(
-        override val book: Book,
-        override var content: String,
+        override val epub: Epub,
+        override var value: String,
         override var identifier: String? = null,
         override var direction: Direction? = null,
         override var language: Locale? = null,
@@ -395,7 +395,7 @@ sealed class LocalizedDublinCore(name: String) : DublinCore(name) {
             this === other -> true
             other !is Contributor -> false
             !super.equals(other) -> false
-            content != other.content -> false
+            value != other.value -> false
             identifier != other.identifier -> false
             direction != other.direction -> false
             language != other.language -> false
@@ -406,7 +406,7 @@ sealed class LocalizedDublinCore(name: String) : DublinCore(name) {
 
         override fun hashCode(): Int {
             var result = super.hashCode()
-            result = 31 * result + content.hashCode()
+            result = 31 * result + value.hashCode()
             result = 31 * result + (identifier?.hashCode() ?: 0)
             result = 31 * result + (direction?.hashCode() ?: 0)
             result = 31 * result + (language?.hashCode() ?: 0)
@@ -417,7 +417,7 @@ sealed class LocalizedDublinCore(name: String) : DublinCore(name) {
 
         override fun toString(): String = buildString {
             append("LocalizedDublinCore.Contributor(")
-            append("content='$content'")
+            append("content='$value'")
             identifier ifNotNull { append(", identifier='$it'") }
             direction ifNotNull { append(", direction=$it") }
             language ifNotNull { append(", language='$it'") }
@@ -429,7 +429,7 @@ sealed class LocalizedDublinCore(name: String) : DublinCore(name) {
 
     /**
      * The spatial or temporal topic of the resource, the spatial applicability of the resource, or the jurisdiction
-     * under which the [Book] is relevant.
+     * under which the [Epub] is relevant.
      *
      * Spatial topic and spatial applicability may be a named place or a location specified by its geographic
      * coordinates. Temporal topic may be a named period, date, or date range. A jurisdiction may be a named
@@ -440,8 +440,8 @@ sealed class LocalizedDublinCore(name: String) : DublinCore(name) {
      * coordinates or date ranges.
      */
     class Coverage @JvmOverloads constructor(
-        override val book: Book,
-        override var content: String,
+        override val epub: Epub,
+        override var value: String,
         override var identifier: String? = null,
         override var direction: Direction? = null,
         override var language: Locale? = null,
@@ -454,17 +454,17 @@ sealed class LocalizedDublinCore(name: String) : DublinCore(name) {
     }
 
     /**
-     * The entity primarily responsible for making the [Book].
+     * The entity primarily responsible for making the [Epub].
      *
-     * Do note that by "primarily responsible" it means the one who *originally* wrote the *contents* of the `Book`,
+     * Do note that by "primarily responsible" it means the one who *originally* wrote the *contents* of the `Epub`,
      * not the person who made the epub.
      *
      * Examples of a `Creator` include a person, an organization, or a service. Typically, the name of a `Creator`
      * should be used to indicate the entity.
      */
     class Creator @JvmOverloads constructor(
-        override val book: Book,
-        override var content: String,
+        override val epub: Epub,
+        override var value: String,
         override var identifier: String? = null,
         override var direction: Direction? = null,
         override var language: Locale? = null,
@@ -474,11 +474,11 @@ sealed class LocalizedDublinCore(name: String) : DublinCore(name) {
         var fileAs: String? = null,
     ) : LocalizedDublinCore("Creator") {
         /**
-         * Returns `true` if this `creator` element defines the author of the [book], otherwise `false`.
+         * Returns `true` if this `creator` element defines the author of the [epub], otherwise `false`.
          */
         val isAuthor: Boolean
             get() = when (role) {
-                null -> false // TODO: check for enhancements belonging to this creator element in 'book'
+                null -> false // TODO: check for enhancements belonging to this creator element in 'epub'
                 else -> role == CreativeRole.AUTHOR
             }
 
@@ -492,7 +492,7 @@ sealed class LocalizedDublinCore(name: String) : DublinCore(name) {
             this === other -> true
             other !is Creator -> false
             !super.equals(other) -> false
-            content != other.content -> false
+            value != other.value -> false
             identifier != other.identifier -> false
             direction != other.direction -> false
             language != other.language -> false
@@ -503,7 +503,7 @@ sealed class LocalizedDublinCore(name: String) : DublinCore(name) {
 
         override fun hashCode(): Int {
             var result = super.hashCode()
-            result = 31 * result + content.hashCode()
+            result = 31 * result + value.hashCode()
             result = 31 * result + (identifier?.hashCode() ?: 0)
             result = 31 * result + (direction?.hashCode() ?: 0)
             result = 31 * result + (language?.hashCode() ?: 0)
@@ -514,7 +514,7 @@ sealed class LocalizedDublinCore(name: String) : DublinCore(name) {
 
         override fun toString(): String = buildString {
             append("LocalizedDublinCore.Creator(")
-            append("content='$content'")
+            append("content='$value'")
             identifier ifNotNull { append(", identifier='$it'") }
             direction ifNotNull { append(", direction=$it") }
             language ifNotNull { append(", language='$it'") }
@@ -525,14 +525,14 @@ sealed class LocalizedDublinCore(name: String) : DublinCore(name) {
     }
 
     /**
-     * An account of the [Book].
+     * An account of the [Epub].
      *
      * `Description` may include but is not limited to: an abstract, a table of contents, a graphical representation,
      * or a free-text account of the resource.
      */
     class Description @JvmOverloads constructor(
-        override val book: Book,
-        override var content: String,
+        override val epub: Epub,
+        override var value: String,
         override var identifier: String? = null,
         override var direction: Direction? = null,
         override var language: Locale? = null,
@@ -551,8 +551,8 @@ sealed class LocalizedDublinCore(name: String) : DublinCore(name) {
      * should be used to indicate the entity.
      */
     class Publisher @JvmOverloads constructor(
-        override val book: Book,
-        override var content: String,
+        override val epub: Epub,
+        override var value: String,
         override var identifier: String? = null,
         override var direction: Direction? = null,
         override var language: Locale? = null,
@@ -571,8 +571,8 @@ sealed class LocalizedDublinCore(name: String) : DublinCore(name) {
      * identification system.
      */
     class Relation @JvmOverloads constructor(
-        override val book: Book,
-        override var content: String,
+        override val epub: Epub,
+        override var value: String,
         override var identifier: String? = null,
         override var direction: Direction? = null,
         override var language: Locale? = null,
@@ -591,8 +591,8 @@ sealed class LocalizedDublinCore(name: String) : DublinCore(name) {
      * including intellectual property rights.
      */
     class Rights @JvmOverloads constructor(
-        override val book: Book,
-        override var content: String,
+        override val epub: Epub,
+        override var value: String,
         override var identifier: String? = null,
         override var direction: Direction? = null,
         override var language: Locale? = null,
@@ -611,8 +611,8 @@ sealed class LocalizedDublinCore(name: String) : DublinCore(name) {
      * best practice is to use a controlled vocabulary.
      */
     class Subject @JvmOverloads constructor(
-        override val book: Book,
-        override var content: String,
+        override val epub: Epub,
+        override var value: String,
         override var identifier: String? = null,
         override var direction: Direction? = null,
         override var language: Locale? = null,
@@ -628,8 +628,8 @@ sealed class LocalizedDublinCore(name: String) : DublinCore(name) {
      * A name given to the resource.
      */
     class Title @JvmOverloads constructor(
-        override val book: Book,
-        override var content: String,
+        override val epub: Epub,
+        override var value: String,
         override var identifier: String? = null,
         override var direction: Direction? = null,
         override var language: Locale? = null,

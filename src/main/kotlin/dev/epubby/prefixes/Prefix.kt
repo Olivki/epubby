@@ -16,13 +16,13 @@
 
 package dev.epubby.prefixes
 
-import dev.epubby.BookVersion
+import dev.epubby.EpubVersion
 import dev.epubby.internal.IntroducedIn
 import org.jdom2.Verifier
 import java.net.URI
 import java.net.URISyntaxException
 
-@IntroducedIn(version = BookVersion.EPUB_3_0)
+@IntroducedIn(version = EpubVersion.EPUB_3_0)
 interface Prefix {
     /**
      * The shorthand name used by properties when referring to the [uri] mapping that this prefix represents.

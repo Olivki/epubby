@@ -18,57 +18,53 @@ package dev.epubby.resources
 
 import com.google.auto.service.AutoService
 import com.google.common.net.MediaType
-import dev.epubby.Book
-import dev.epubby.BookVersion.EPUB_3_0
+import dev.epubby.Epub
+import dev.epubby.EpubVersion.EPUB_3_0
+import dev.epubby.files.RegularFile
 import dev.epubby.packages.metadata.Opf2Meta
 import dev.epubby.properties.vocabularies.ManifestVocabulary.COVER_IMAGE
-import kotlinx.atomicfu.atomic
-import kotlinx.atomicfu.update
 import kotlinx.collections.immutable.persistentHashSetOf
 import moe.kanon.kommons.io.ImageResizeMode
 import moe.kanon.kommons.io.ImageScalingMethod
 import moe.kanon.kommons.io.paths.createDirectories
-import moe.kanon.kommons.io.paths.isSameAs
-import moe.kanon.kommons.io.paths.newInputStream
 import moe.kanon.kommons.io.writeTo
 import org.imgscalr.Scalr
 import java.awt.image.BufferedImage
 import java.awt.image.BufferedImageOp
 import java.io.IOException
 import java.nio.file.FileSystem
-import java.nio.file.Path
 import javax.imageio.ImageIO
 
 class ImageResource(
-    book: Book,
+    epub: Epub,
     identifier: String,
-    file: Path,
+    file: RegularFile,
     override val mediaType: MediaType,
-) : LocalResource(book, identifier, file) {
+) : LocalResource(epub, identifier, file) {
     var isCoverImage: Boolean
         get() = when {
-            book.version.isOlder(EPUB_3_0) -> additionalMetadata.any { it.name == "cover" }
+            epub.version.isOlder(EPUB_3_0) -> additionalMetadata.any { it.name == "cover" }
             else -> COVER_IMAGE in properties
         }
-    set(value) {
-        // there should only ever be one cover image, so we'll just remove all other entries that are marked with
-        // it, regardless if there's more than one
+        set(value) {
+            // there should only ever be one cover image, so we'll just remove all other entries that are marked with
+            // it, regardless if there's more than one
 
-        if (book.version.isOlder(EPUB_3_0)) {
-            val entries = book.metadata.opf2MetaEntries
-            entries.removeIf { it is Opf2Meta.Name && it.name == "cover" && if (!value) it.isFor(this) else true }
+            if (epub.version.isOlder(EPUB_3_0)) {
+                val entries = epub.metadata.opf2MetaEntries
+                entries.removeIf { it is Opf2Meta.Name && it.name == "cover" && if (!value) it.isFor(this) else true }
 
-            if (value) {
-                entries += Opf2Meta.Name(book, "cover", identifier)
-            }
-        } else {
-            book.manifest.visitResources(CoverImagePropertyRemover, ResourceFilters.ONLY_IMAGES)
+                if (value) {
+                    entries += Opf2Meta.Name(epub, "cover", identifier)
+                }
+            } else {
+                epub.manifest.visitResources(CoverImagePropertyRemover, ResourceFilters.ONLY_IMAGES)
 
-            if (value) {
-                properties += COVER_IMAGE
+                if (value) {
+                    properties += COVER_IMAGE
+                }
             }
         }
-    }
 
     private object CoverImagePropertyRemover : ResourceVisitorUnit {
         override fun visitImage(image: ImageResource) {
@@ -80,6 +76,30 @@ class ImageResource(
     private var shouldRefreshImage: Boolean = false
 
     /**
+     * Returns `true` if `image` is landscape oriented, otherwise `false`.
+     *
+     * Note that this will load `image` if it it is not already loaded, see the documentation of [getOrLoadImage] for
+     * more information.
+     */
+    val isLandscape: Boolean
+        get() {
+            val image = getOrLoadImage()
+            return image.width > image.height
+        }
+
+    /**
+     * Returns `true` if `image` is portrait oriented, otherwise `false`.
+     *
+     * Note that this will load `image` if it it is not already loaded, see the documentation of [getOrLoadImage] for
+     * more information.
+     */
+    val isPortrait: Boolean
+        get() {
+            val image = getOrLoadImage()
+            return image.height > image.width
+        }
+
+    /**
      * Returns `true` if `image` has been cached yet, otherwise `false`.
      *
      * If `image` *has* been cached, then that means that invoking [getOrLoadImage] should not incur any additional
@@ -89,7 +109,7 @@ class ImageResource(
         private set
 
     // the underlying backing field that 'image' represents
-    private var _image = atomic<BufferedImage?>(null)
+    private var _image: BufferedImage? = null
 
     /**
      * Returns the [BufferedImage] instance for the [file] that this resource is wrapped around.
@@ -103,33 +123,31 @@ class ImageResource(
      * of this resource represents, this may happen if [setImage] has been invoked at some point. To return `image` to
      * the same image as `file` represents, see [refreshImage].
      *
-     * Whenever the [book] that this resource belongs to is saved back into it's file form, and this image
+     * Whenever the [epub] that this resource belongs to is saved back into it's file form, and this image
      * [is loaded][isImageLoaded], the contents of the `BufferedImage` returnd by this function will be written to the
      * `file` belonging to this resource.
      *
      * @see [isImageLoaded]
      * @see [refreshImage]
      */
-    @Throws(IOException::class)
+    @Synchronized
     fun getOrLoadImage(): BufferedImage {
-        if (shouldRefreshImage || _image.value == null) {
-            _image.update {
-                try {
-                    val result = file.newInputStream().use(ImageIO::read)
-                    isImageLoaded = true
-                    shouldRefreshImage = false
-                    it?.flush()
-                    result
-                } catch (e: IOException) {
-                    throw IOException(
-                        "Could not read image-resource $identifier into a buffered-image; ${e.message}",
-                        e
-                    )
-                }
+        if (shouldRefreshImage || _image == null) {
+            try {
+                val result = file.newInputStream().use(ImageIO::read)
+                isImageLoaded = true
+                shouldRefreshImage = false
+                _image?.flush()
+                _image = result
+            } catch (e: IOException) {
+                throw IOException(
+                    "Could not read image-resource $identifier into a buffered-image; ${e.message}",
+                    e
+                )
             }
         }
 
-        return _image.value ?: throw IllegalStateException("'_image' of $this should be loaded, but it is not")
+        return _image ?: throw IllegalStateException("'_image' of $this should be loaded, but it is not")
     }
 
     /**
@@ -138,13 +156,12 @@ class ImageResource(
      * If `image` has already been defined, it will be [flushed][BufferedImage.flush] before setting it to the given
      * `image`.
      */
-    fun setImage(image: BufferedImage) {
-        if (image !== _image.value) {
-            _image.update {
-                it?.flush()
-                isImageLoaded = true
-                image
-            }
+    @Synchronized
+    fun setImage(image: BufferedImage): ImageResource = apply {
+        if (image !== _image) {
+            _image?.flush()
+            isImageLoaded = true
+            _image = image
         }
     }
 
@@ -157,7 +174,7 @@ class ImageResource(
      * @throws [IOException] if an i/o error occurs when reading [file] into a [BufferedImage]
      */
     @Throws(IOException::class)
-    fun refreshImage() {
+    fun refreshImage(): ImageResource = apply {
         if (isImageLoaded) {
             shouldRefreshImage = true
             getOrLoadImage()
@@ -165,12 +182,12 @@ class ImageResource(
     }
 
     /**
-     * Resizes the [image] to the given [width] and [height].
+     * Resizes the `image` to the given [width] and [height].
      *
      * The quality of the resize depends on the [scalingMethod] used, and whether or not the proportions of the resized
      * image are kept depends on the given [resizeMode].
      *
-     * Note that invoking this function will result in [image] being cached *(if it is not already cached)*, which may
+     * Note that invoking this function will result in `image` being cached *(if it is not already cached)*, which may
      * result in some severe overhead depending on the size of the `image` this resource represents.
      *
      * @param [width] the width to resize `image` to
@@ -188,7 +205,7 @@ class ImageResource(
         scalingMethod: ImageScalingMethod = ImageScalingMethod.ULTRA_QUALITY,
         resizeMode: ImageResizeMode = ImageResizeMode.FIT_EXACT,
         vararg operations: BufferedImageOp,
-    ) {
+    ): ImageResource = apply {
         setImage(Scalr.resize(getOrLoadImage(), scalingMethod, resizeMode, width, height, *operations))
     }
 
@@ -203,11 +220,17 @@ class ImageResource(
      * @see [Scalr.OP_DARKER]
      * @see [Scalr.OP_GRAYSCALE]
      */
-    fun apply(vararg operations: BufferedImageOp) {
+    fun apply(vararg operations: BufferedImageOp): ImageResource = apply {
         setImage(Scalr.apply(getOrLoadImage(), *operations))
     }
 
     // TODO: implement more wrapper functions for 'Scalr' utility functions?
+
+    override fun writeToFile() {
+        if (isImageLoaded) {
+            getOrLoadImage().writeTo(file.delegate)
+        }
+    }
 
     @JvmSynthetic
     internal fun writeTo(fileSystem: FileSystem) {
@@ -218,18 +241,49 @@ class ImageResource(
         }
     }
 
-    override fun onFileChanged(oldFile: Path, newFile: Path) {
-        if (isImageLoaded && !(oldFile isSameAs newFile)) {
-            refreshImage()
-        }
-    }
-
     /**
      * Returns the result of invoking the [visitImage][ResourceVisitor.visitImage] function of the given [visitor].
      */
     override fun <R> accept(visitor: ResourceVisitor<R>): R = visitor.visitImage(this)
 
     override fun toString(): String = "ImageResource(identifier='$identifier', mediaType=$mediaType, file='$file')"
+}
+
+/**
+ * An orientation that a image can be in.
+ */
+// TODO: is 'Orientation' the best way to describe this? Maybe 'ImageDimension' instead?..
+enum class ImageOrientation {
+    /**
+     * The orientation of a portrait photograph, where the `height` is greater than the `width` of the image.
+     */
+    PORTRAIT,
+
+    /**
+     * The orientation of a landscape photograph, where the `width` is greater than the `height` of the image.
+     */
+    LANDSCAPE,
+
+    /**
+     * The orientation of a rectangle photograph, where the `width` and `height` of the image are the same.
+     */
+    RECTANGLE;
+
+    companion object {
+        /**
+         *  Returns a [ImageOrientation] that matches the `width` and `height` of the given [image].
+         *
+         *  @throws [IllegalArgumentException] if the `width` and `height` of [image] somehow doesn't match any of the
+         *  known dimensions
+         */
+        @JvmStatic
+        fun fromBufferedImage(image: BufferedImage): ImageOrientation = when {
+            image.width > image.height -> LANDSCAPE
+            image.height > image.width -> PORTRAIT
+            image.width == image.height -> RECTANGLE
+            else -> throw IllegalArgumentException("(${image.width}, ${image.height}) represents an unknown dimension.")
+        }
+    }
 }
 
 @AutoService(LocalResourceLocator::class)

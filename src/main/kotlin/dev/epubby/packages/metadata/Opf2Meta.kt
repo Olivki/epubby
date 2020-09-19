@@ -16,13 +16,13 @@
 
 package dev.epubby.packages.metadata
 
-import dev.epubby.Book
-import dev.epubby.BookElement
+import dev.epubby.Epub
+import dev.epubby.EpubElement
 import dev.epubby.resources.ManifestResource
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentMapOf
 
-sealed class Opf2Meta : BookElement {
+sealed class Opf2Meta : EpubElement {
     /**
      * A map of any global attributes defined on the `meta` element.
      *
@@ -46,7 +46,7 @@ sealed class Opf2Meta : BookElement {
      * TODO: documentation
      */
     class HttpEquiv @JvmOverloads constructor(
-        override val book: Book,
+        override val epub: Epub,
         var httpEquiv: String,
         var content: String,
         override var scheme: String? = null,
@@ -85,7 +85,7 @@ sealed class Opf2Meta : BookElement {
      */
     // TODO: rename to something better than just 'Name'
     class Name @JvmOverloads constructor(
-        override val book: Book,
+        override val epub: Epub,
         var name: String,
         var content: String,
         override var scheme: String? = null,
@@ -128,7 +128,7 @@ sealed class Opf2Meta : BookElement {
      * TODO: documentation
      */
     class Charset @JvmOverloads constructor(
-        override val book: Book,
+        override val epub: Epub,
         var charset: java.nio.charset.Charset,
         override var scheme: String? = null,
         override val globalAttributes: PersistentMap<String, String> = persistentMapOf()

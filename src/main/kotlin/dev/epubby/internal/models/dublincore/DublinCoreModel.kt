@@ -17,26 +17,26 @@
 package dev.epubby.internal.models.dublincore
 
 import com.google.common.collect.Maps
-import dev.epubby.Book
-import dev.epubby.BookVersion.EPUB_3_0
+import dev.epubby.Epub
+import dev.epubby.EpubVersion.EPUB_3_0
 import dev.epubby.MalformedBookException
 import dev.epubby.dublincore.*
 import dev.epubby.dublincore.DublinCore.*
 import dev.epubby.dublincore.LocalizedDublinCore.*
 import dev.epubby.internal.Namespaces
-import dev.epubby.internal.elementOf
-import dev.epubby.internal.ifNotNull
 import dev.epubby.internal.models.SerializedName
 import dev.epubby.internal.models.dublincore.LocalizedDublinCoreModel.*
+import dev.epubby.internal.utils.elementOf
+import dev.epubby.internal.utils.ifNotNull
 import dev.epubby.utils.Direction
 import org.jdom2.Element
 import org.jdom2.Namespace
 import java.util.Collections
 import java.util.Locale
 
-sealed class DublinCoreModel(val name: String) {
-    abstract val identifier: String?
-    abstract val content: String
+internal sealed class DublinCoreModel(internal val name: String) {
+    internal abstract val identifier: String?
+    internal abstract val content: String
 
     // only relevant in EPUB 2.x
     @get:JvmSynthetic
@@ -72,7 +72,7 @@ sealed class DublinCoreModel(val name: String) {
     }
 
     @JvmSynthetic
-    internal fun toDublinCore(book: Book): DublinCore {
+    internal fun toDublinCore(epub: Epub): DublinCore {
         val event = attributes["event"]?.let { DateEvent.of(it) }
         val scheme = attributes["scheme"]
         val role = attributes["role"]?.let { CreativeRole.create(it) }
@@ -87,56 +87,56 @@ sealed class DublinCoreModel(val name: String) {
         }
 
         return when (this) {
-            is DateModel -> Date(book, content, identifier, event)
-            is FormatModel -> Format(book, content, identifier)
-            is IdentifierModel -> Identifier(book, content, identifier, scheme)
-            is LanguageModel -> Language(book, content, identifier)
-            is SourceModel -> Source(book, content, identifier)
-            is TypeModel -> Type(book, content, identifier)
-            is ContributorModel -> Contributor(book, content, identifier, direction, language, role, fileAs)
-            is CoverageModel -> Coverage(book, content, identifier, direction, language)
-            is CreatorModel -> Creator(book, content, identifier, direction, language, role, fileAs)
-            is DescriptionModel -> Description(book, content, identifier, direction, language)
-            is PublisherModel -> Publisher(book, content, identifier, direction, language)
-            is RelationModel -> Relation(book, content, identifier, direction, language)
-            is RightsModel -> Rights(book, content, identifier, direction, language)
-            is SubjectModel -> Subject(book, content, identifier, direction, language)
-            is TitleModel -> Title(book, content, identifier, direction, language)
+            is DateModel -> Date(epub, content, identifier, event)
+            is FormatModel -> Format(epub, content, identifier)
+            is IdentifierModel -> Identifier(epub, content, identifier, scheme)
+            is LanguageModel -> Language(epub, content, identifier)
+            is SourceModel -> Source(epub, content, identifier)
+            is TypeModel -> Type(epub, content, identifier)
+            is ContributorModel -> Contributor(epub, content, identifier, direction, language, role, fileAs)
+            is CoverageModel -> Coverage(epub, content, identifier, direction, language)
+            is CreatorModel -> Creator(epub, content, identifier, direction, language, role, fileAs)
+            is DescriptionModel -> Description(epub, content, identifier, direction, language)
+            is PublisherModel -> Publisher(epub, content, identifier, direction, language)
+            is RelationModel -> Relation(epub, content, identifier, direction, language)
+            is RightsModel -> Rights(epub, content, identifier, direction, language)
+            is SubjectModel -> Subject(epub, content, identifier, direction, language)
+            is TitleModel -> Title(epub, content, identifier, direction, language)
         }
     }
 
     @SerializedName("date")
-    data class DateModel internal constructor(
+    internal data class DateModel internal constructor(
         override val content: String,
         override val identifier: String?,
     ) : DublinCoreModel("date")
 
     @SerializedName("format")
-    data class FormatModel internal constructor(
+    internal data class FormatModel internal constructor(
         override val content: String,
         override val identifier: String?,
     ) : DublinCoreModel("format")
 
     @SerializedName("identifier")
-    data class IdentifierModel internal constructor(
+    internal data class IdentifierModel internal constructor(
         override val content: String,
         override val identifier: String?,
     ) : DublinCoreModel("identifier")
 
     @SerializedName("language")
-    data class LanguageModel internal constructor(
+    internal data class LanguageModel internal constructor(
         override val content: String,
         override val identifier: String?,
     ) : DublinCoreModel("language")
 
     @SerializedName("source")
-    data class SourceModel internal constructor(
+    internal data class SourceModel internal constructor(
         override val content: String,
         override val identifier: String?,
     ) : DublinCoreModel("source")
 
     @SerializedName("type")
-    data class TypeModel internal constructor(
+    internal data class TypeModel internal constructor(
         override val content: String,
         override val identifier: String?,
     ) : DublinCoreModel("type")
@@ -164,99 +164,99 @@ sealed class DublinCoreModel(val name: String) {
         }
 
         private object DublinCoreToModelVisitor : DublinCoreVisitor<DublinCoreModel> {
-            override fun visitDate(date: Date): DateModel = DateModel(date.content, date.identifier).apply {
-                if (date.book.version.isOlder(EPUB_3_0)) {
+            override fun visitDate(date: Date): DateModel = DateModel(date.value, date.identifier).apply {
+                if (date.epub.version.isOlder(EPUB_3_0)) {
                     date.event ifNotNull { attributes["event"] = it.name }
                 }
             }
 
-            override fun visitFormat(format: Format): FormatModel = FormatModel(format.content, format.identifier)
+            override fun visitFormat(format: Format): FormatModel = FormatModel(format.value, format.identifier)
 
             override fun visitIdentifier(
                 identifier: Identifier,
-            ): IdentifierModel = IdentifierModel(identifier.content, identifier.identifier).apply {
-                if (identifier.book.version.isOlder(EPUB_3_0)) {
+            ): IdentifierModel = IdentifierModel(identifier.value, identifier.identifier).apply {
+                if (identifier.epub.version.isOlder(EPUB_3_0)) {
                     identifier.scheme ifNotNull { attributes["scheme"] = it }
                 }
             }
 
             override fun visitLanguage(language: Language): LanguageModel =
-                LanguageModel(language.content, language.identifier)
+                LanguageModel(language.value, language.identifier)
 
-            override fun visitSource(source: Source): SourceModel = SourceModel(source.content, source.identifier)
+            override fun visitSource(source: Source): SourceModel = SourceModel(source.value, source.identifier)
 
-            override fun visitType(type: Type): TypeModel = TypeModel(type.content, type.identifier)
+            override fun visitType(type: Type): TypeModel = TypeModel(type.value, type.identifier)
 
             override fun visitContributor(contributor: Contributor): ContributorModel = ContributorModel(
-                contributor.content,
+                contributor.value,
                 contributor.identifier,
-                contributor.direction?.attributeName,
+                contributor.direction?.value,
                 contributor.language?.toLanguageTag()
             ).apply {
-                if (contributor.book.version.isOlder(EPUB_3_0)) {
+                if (contributor.epub.version.isOlder(EPUB_3_0)) {
                     contributor.role ifNotNull { attributes["role"] = it.code }
                     contributor.fileAs ifNotNull { attributes["file-as"] = it }
                 }
             }
 
             override fun visitCoverage(coverage: Coverage): CoverageModel = CoverageModel(
-                coverage.content,
+                coverage.value,
                 coverage.identifier,
-                coverage.direction?.attributeName,
+                coverage.direction?.value,
                 coverage.language?.toLanguageTag()
             )
 
             override fun visitCreator(creator: Creator): CreatorModel = CreatorModel(
-                creator.content,
+                creator.value,
                 creator.identifier,
-                creator.direction?.attributeName,
+                creator.direction?.value,
                 creator.language?.toLanguageTag()
             ).apply {
-                if (creator.book.version.isOlder(EPUB_3_0)) {
+                if (creator.epub.version.isOlder(EPUB_3_0)) {
                     creator.role ifNotNull { attributes["role"] = it.code }
                     creator.fileAs ifNotNull { attributes["file-as"] = it }
                 }
             }
 
             override fun visitDescription(description: Description): DescriptionModel = DescriptionModel(
-                description.content,
+                description.value,
                 description.identifier,
-                description.direction?.attributeName,
+                description.direction?.value,
                 description.language?.toLanguageTag()
             )
 
             override fun visitPublisher(publisher: Publisher): PublisherModel = PublisherModel(
-                publisher.content,
+                publisher.value,
                 publisher.identifier,
-                publisher.direction?.attributeName,
+                publisher.direction?.value,
                 publisher.language?.toLanguageTag()
             )
 
             override fun visitRelation(relation: Relation): RelationModel = RelationModel(
-                relation.content,
+                relation.value,
                 relation.identifier,
-                relation.direction?.attributeName,
+                relation.direction?.value,
                 relation.language?.toLanguageTag()
             )
 
             override fun visitRights(rights: Rights): RightsModel = RightsModel(
-                rights.content,
+                rights.value,
                 rights.identifier,
-                rights.direction?.attributeName,
+                rights.direction?.value,
                 rights.language?.toLanguageTag()
             )
 
             override fun visitSubject(subject: Subject): SubjectModel = SubjectModel(
-                subject.content,
+                subject.value,
                 subject.identifier,
-                subject.direction?.attributeName,
+                subject.direction?.value,
                 subject.language?.toLanguageTag()
             )
 
             override fun visitTitle(title: Title): TitleModel = TitleModel(
-                title.content,
+                title.value,
                 title.identifier,
-                title.direction?.attributeName,
+                title.direction?.value,
                 title.language?.toLanguageTag()
             )
         }
@@ -266,12 +266,12 @@ sealed class DublinCoreModel(val name: String) {
     }
 }
 
-sealed class LocalizedDublinCoreModel(name: String) : DublinCoreModel(name) {
-    abstract val direction: String?
-    abstract val language: String?
+internal sealed class LocalizedDublinCoreModel(name: String) : DublinCoreModel(name) {
+    internal abstract val direction: String?
+    internal abstract val language: String?
 
     @SerializedName("contributor")
-    data class ContributorModel internal constructor(
+    internal data class ContributorModel internal constructor(
         override val content: String,
         override val identifier: String?,
         override val direction: String?,
@@ -279,7 +279,7 @@ sealed class LocalizedDublinCoreModel(name: String) : DublinCoreModel(name) {
     ) : LocalizedDublinCoreModel("contributor")
 
     @SerializedName("coverage")
-    data class CoverageModel internal constructor(
+    internal data class CoverageModel internal constructor(
         override val content: String,
         override val identifier: String?,
         override val direction: String?,
@@ -287,7 +287,7 @@ sealed class LocalizedDublinCoreModel(name: String) : DublinCoreModel(name) {
     ) : LocalizedDublinCoreModel("coverage")
 
     @SerializedName("creator")
-    data class CreatorModel internal constructor(
+    internal data class CreatorModel internal constructor(
         override val content: String,
         override val identifier: String?,
         override val direction: String?,
@@ -295,7 +295,7 @@ sealed class LocalizedDublinCoreModel(name: String) : DublinCoreModel(name) {
     ) : LocalizedDublinCoreModel("creator")
 
     @SerializedName("description")
-    data class DescriptionModel internal constructor(
+    internal data class DescriptionModel internal constructor(
         override val content: String,
         override val identifier: String?,
         override val direction: String?,
@@ -303,7 +303,7 @@ sealed class LocalizedDublinCoreModel(name: String) : DublinCoreModel(name) {
     ) : LocalizedDublinCoreModel("description")
 
     @SerializedName("publisher")
-    data class PublisherModel internal constructor(
+    internal data class PublisherModel internal constructor(
         override val content: String,
         override val identifier: String?,
         override val direction: String?,
@@ -311,7 +311,7 @@ sealed class LocalizedDublinCoreModel(name: String) : DublinCoreModel(name) {
     ) : LocalizedDublinCoreModel("publisher")
 
     @SerializedName("relation")
-    data class RelationModel internal constructor(
+    internal data class RelationModel internal constructor(
         override val content: String,
         override val identifier: String?,
         override val direction: String?,
@@ -319,7 +319,7 @@ sealed class LocalizedDublinCoreModel(name: String) : DublinCoreModel(name) {
     ) : LocalizedDublinCoreModel("relation")
 
     @SerializedName("rights")
-    data class RightsModel internal constructor(
+    internal data class RightsModel internal constructor(
         override val content: String,
         override val identifier: String?,
         override val direction: String?,
@@ -327,7 +327,7 @@ sealed class LocalizedDublinCoreModel(name: String) : DublinCoreModel(name) {
     ) : LocalizedDublinCoreModel("rights")
 
     @SerializedName("subject")
-    data class SubjectModel internal constructor(
+    internal data class SubjectModel internal constructor(
         override val content: String,
         override val identifier: String?,
         override val direction: String?,
@@ -335,7 +335,7 @@ sealed class LocalizedDublinCoreModel(name: String) : DublinCoreModel(name) {
     ) : LocalizedDublinCoreModel("subject")
 
     @SerializedName("title")
-    data class TitleModel internal constructor(
+    internal data class TitleModel internal constructor(
         override val content: String,
         override val identifier: String?,
         override val direction: String?,

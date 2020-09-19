@@ -16,26 +16,22 @@
 
 package dev.epubby.internal.verifiers
 
-import dev.epubby.Book
-import dev.epubby.BookVersion
-import dev.epubby.BookVersion.EPUB_3_0
-import dev.epubby.InvalidBookVersionException
-import dev.epubby.MalformedBookException
+import dev.epubby.EpubVersion
+import dev.epubby.EpubVersion.EPUB_3_0
 import dev.epubby.metainf.MetaInfContainer
 
-internal object MetaInfContainerVerifier {
-    @Throws(MalformedBookException::class)
-    internal fun verify(book: Book, container: MetaInfContainer) {
+internal object VerifierMetaInfContainer {
+    // TODO: verify more things, if needed
+    internal fun verify(container: MetaInfContainer) {
         for (link in container.links) {
-            checkLinkFeaturesAlignsWithVersion(book.version, link)
+            checkLinkFeaturesAlignsWithVersion(container.epub.version, link)
         }
     }
 
-    @Throws(MalformedBookException::class)
-    internal fun checkLinkFeaturesAlignsWithVersion(
-        version: BookVersion,
-        link: MetaInfContainer.Link
-    ) = checkVersion("MetaInfContainer.Link", version) {
+    private fun checkLinkFeaturesAlignsWithVersion(
+        version: EpubVersion,
+        link: MetaInfContainer.Link,
+    ): Unit = checkVersion("MetaInfContainer.Link", version) {
         verify(EPUB_3_0, link::relation)
     }
 }

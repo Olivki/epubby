@@ -14,16 +14,6 @@
  * limitations under the License.
  */
 
-package dev.epubby
+package dev.epubby.packages.guide
 
-interface BookElement {
-    /**
-     * The [Book] instance that the element belongs to.
-     */
-    val book: Book
-
-    /**
-     * The name of the element.
-     */
-    val elementName: String
-}
+typealias CorrectorDuplicationResolver = (customReference: CustomGuideReference, reference: GuideReference) -> CorrectorDuplicationStrategy

@@ -19,15 +19,16 @@ package dev.epubby.internal.models.metainf
 import com.github.michaelbull.logging.InlineLogger
 import com.google.common.net.MediaType
 import dev.epubby.*
-import dev.epubby.internal.*
+import dev.epubby.files.RegularFile
 import dev.epubby.internal.models.SerializedName
-import dev.epubby.metainf.ContainerVersion
+import dev.epubby.internal.utils.*
 import dev.epubby.metainf.MetaInfContainer
 import dev.epubby.prefixes.Prefixes
 import dev.epubby.properties.encodeToString
 import dev.epubby.properties.resolveLinkRelationship
 import dev.epubby.utils.toNonEmptyList
 import kotlinx.collections.immutable.PersistentList
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toPersistentList
 import org.jdom2.Document
 import org.jdom2.Element
@@ -35,12 +36,15 @@ import java.nio.file.FileSystem
 import java.nio.file.Path
 import dev.epubby.internal.Namespaces.META_INF_CONTAINER as NAMESPACE
 
-data class MetaInfContainerModel internal constructor(
-    val version: String,
-    val rootFiles: PersistentList<RootFileModel>,
-    val links: PersistentList<LinkModel>,
+internal data class MetaInfContainerModel internal constructor(
+    internal val file: Path,
+    internal val version: String,
+    internal val rootFiles: PersistentList<RootFileModel>,
+    internal val links: PersistentList<LinkModel>,
 ) {
     private fun toDocument(): Document = documentOf("container", NAMESPACE) { _, root ->
+        root.setAttribute("version", version)
+
         root.addContent(elementOf("rootfiles", root.namespace) {
             for (file in rootFiles) {
                 it.addContent(file.toElement())
@@ -57,15 +61,11 @@ data class MetaInfContainerModel internal constructor(
     }
 
     @JvmSynthetic
-    internal fun toMetaInfContainer(book: Book, prefixes: Prefixes): MetaInfContainer {
-        val version = try {
-            ContainerVersion.fromString(version)
-        } catch (e: IllegalArgumentException) {
-            throw MalformedBookException("Could not parse version ($version) into a container-version; ${e.message}", e)
-        }
-        val rootFiles = rootFiles.map { it.toRootFile(book) }.toNonEmptyList()
-        val links = links.mapTo(mutableListOf()) { it.toLink(book, prefixes) }
-        return MetaInfContainer(book, version, rootFiles, links)
+    internal fun toMetaInfContainer(epub: Epub, prefixes: Prefixes): MetaInfContainer {
+        val file = RegularFile.invoke(file, epub)
+        val rootFiles = rootFiles.map { it.toRootFile(epub) }.toNonEmptyList()
+        val links = links.mapTo(mutableListOf()) { it.toLink(epub, prefixes) }
+        return MetaInfContainer(epub, file, version, rootFiles, links)
     }
 
     @JvmSynthetic
@@ -87,10 +87,13 @@ data class MetaInfContainerModel internal constructor(
         }
 
         @JvmSynthetic
-        internal fun toRootFile(book: Book): MetaInfContainer.RootFile {
-            val fullPath = book.fileSystem.getPath(fullPath)
+        internal fun toRootFile(epub: Epub): MetaInfContainer.RootFile {
+            val fullPath = when (val file = epub.getFile(fullPath)) {
+                is RegularFile -> file
+                else -> throw MalformedBookException("'fullPath' in $this points to a non regular file.")
+            }
             val mediaType = MediaType.parse(mediaType)
-            return MetaInfContainer.RootFile(book, fullPath, mediaType)
+            return MetaInfContainer.RootFile(epub, fullPath, mediaType)
         }
 
         internal companion object {
@@ -103,7 +106,7 @@ data class MetaInfContainerModel internal constructor(
 
             @JvmSynthetic
             internal fun fromRootFile(origin: MetaInfContainer.RootFile): RootFileModel {
-                val fullPath = origin.fullPath.toString().substring(1)
+                val fullPath = origin.epub.root.relativize(origin.fullPath).toString()
                 val mediaType = origin.mediaType.toString()
                 return RootFileModel(fullPath, mediaType)
             }
@@ -125,10 +128,10 @@ data class MetaInfContainerModel internal constructor(
         }
 
         @JvmSynthetic
-        internal fun toLink(book: Book, prefixes: Prefixes): MetaInfContainer.Link {
+        internal fun toLink(epub: Epub, prefixes: Prefixes): MetaInfContainer.Link {
             val relation = relation?.let { resolveLinkRelationship(it, prefixes) }
             val mediaType = mediaType?.let(MediaType::parse)
-            return MetaInfContainer.Link(book, href, relation, mediaType)
+            return MetaInfContainer.Link(epub, href, relation, mediaType)
         }
 
         internal companion object {
@@ -144,7 +147,7 @@ data class MetaInfContainerModel internal constructor(
             internal fun fromLink(origin: MetaInfContainer.Link): LinkModel {
                 val href = origin.href
                 val relation = when {
-                    origin.book.version.isNewer(BookVersion.EPUB_2_0) -> origin.relation?.encodeToString()
+                    origin.epub.version.isNewer(EpubVersion.EPUB_2_0) -> origin.relation?.encodeToString()
                     else -> null
                 }
                 val mediaType = origin.mediaType.toString()
@@ -159,29 +162,28 @@ data class MetaInfContainerModel internal constructor(
         @JvmSynthetic
         internal fun fromFile(
             file: Path,
-            strictness: ParseStrictness,
+            mode: ParseMode,
         ): MetaInfContainerModel = documentFrom(file).use { _, root ->
             val version = root.getAttributeValueOrThrow("version")
             val rootFiles = root.getChild("rootfiles", root.namespace)
                 .getChildren("rootfile", root.namespace)
                 .tryMap { RootFileModel.fromElement(it) }
-                .mapToValues(LOGGER, strictness)
+                .mapToValues(LOGGER, mode)
                 .ifEmpty { throw MalformedBookException("'rootfiles' in meta-inf container is empty.") }
                 .toPersistentList()
             val links = root.getChild("links", root.namespace)
-                .getChildren("link", root.namespace)
-                .tryMap { LinkModel.fromElement(it) }
-                .mapToValues(LOGGER, strictness)
-                .toPersistentList()
-            return@use MetaInfContainerModel(version, rootFiles, links)
+                ?.getChildren("link", root.namespace)
+                ?.tryMap { LinkModel.fromElement(it) }
+                ?.mapToValues(LOGGER, mode)
+                ?.toPersistentList() ?: persistentListOf()
+            return@use MetaInfContainerModel(file, version, rootFiles, links)
         }
 
         @JvmSynthetic
         internal fun fromMetaInfContainer(origin: MetaInfContainer): MetaInfContainerModel {
-            val version = origin.version.toString()
             val rootFiles = origin.rootFiles.map { RootFileModel.fromRootFile(it) }.toPersistentList()
             val links = origin.links.map { LinkModel.fromLink(it) }.toPersistentList()
-            return MetaInfContainerModel(version, rootFiles, links)
+            return MetaInfContainerModel(origin.file.delegate, origin.version, rootFiles, links)
         }
     }
 }

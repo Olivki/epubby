@@ -16,6 +16,7 @@
 
 package dev.epubby.internal.parser
 
+import com.github.michaelbull.logging.InlineLogger
 import dev.epubby.prefixes.PackagePrefix
 import dev.epubby.prefixes.Prefixes
 import dev.epubby.properties.Property
@@ -45,12 +46,18 @@ import java.net.URISyntaxException
  */
 internal class PropertyParser internal constructor(source: String) {
     internal companion object {
+        private val LOGGER: InlineLogger = InlineLogger(PropertyParser::class)
         private const val COLON: Char = '\u003A'
 
         private val EMPTY_ARRAY: CharArray = charArrayOf()
 
         @JvmSynthetic
-        internal fun parse(source: String, prefixes: Prefixes): Property? = PropertyParser(source).parse(prefixes)
+        internal fun parse(source: String, prefixes: Prefixes): Property? = try {
+            PropertyParser(source).parse(prefixes)
+        } catch (e: ParseException) {
+            LOGGER.error(e) { "Could not parse '$source' as a property: ${e.message}" }
+            null
+        }
     }
 
     private val tokenizer: StringTokenizer = StringTokenizer(source, EMPTY_ARRAY)

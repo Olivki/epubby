@@ -17,16 +17,16 @@
 package dev.epubby.packages.metadata
 
 import com.google.common.net.MediaType
-import dev.epubby.Book
-import dev.epubby.BookElement
-import dev.epubby.BookVersion.EPUB_3_0
+import dev.epubby.Epub
+import dev.epubby.EpubElement
+import dev.epubby.EpubVersion.EPUB_3_0
 import dev.epubby.internal.IntroducedIn
 import dev.epubby.properties.Properties
 import dev.epubby.properties.Relationship
 import java.net.URI
 
 class MetadataLink(
-    override val book: Book,
+    override val epub: Epub,
     var href: URI,
     @IntroducedIn(version = EPUB_3_0)
     var relation: Relationship? = null,
@@ -38,7 +38,7 @@ class MetadataLink(
     @IntroducedIn(version = EPUB_3_0)
     // TODO: give this a proper type and not just a string?
     var refines: String? = null,
-) : BookElement {
+) : EpubElement {
     override val elementName: String
         get() = "PackageMetadata.Link"
 

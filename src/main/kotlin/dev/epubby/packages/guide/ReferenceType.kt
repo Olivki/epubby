@@ -16,15 +16,12 @@
 
 package dev.epubby.packages.guide
 
-import dev.epubby.Book
+import dev.epubby.Epub
 import dev.epubby.page.Page
-import moe.kanon.kommons.reflection.KServiceLoader
-import moe.kanon.kommons.reflection.loadServices
-import org.apache.commons.collections4.map.CaseInsensitiveMap
 
 enum class ReferenceType(val type: String) {
     /**
-     * A [page][Page] containing the book cover(s), jacket information, etc..
+     * A [page][Page] containing the epub cover(s), jacket information, etc..
      */
     COVER("cover"),
 
@@ -39,7 +36,7 @@ enum class ReferenceType(val type: String) {
     TABLE_OF_CONTENTS("toc"),
 
     /**
-     * A back-of-book style index [page][Page].
+     * A back-of-epub style index [page][Page].
      */
     INDEX("index"),
 
@@ -59,17 +56,17 @@ enum class ReferenceType(val type: String) {
     BIBLIOGRAPHY("bibliography"),
 
     /**
-     * A [page][Page] containing the colophon of the [book][Book].
+     * A [page][Page] containing the colophon of the [epub][Epub].
      */
     COLOPHON("colophon"),
 
     /**
-     * A [page][Page] detailing the copyright that the [book][Book] is under.
+     * A [page][Page] detailing the copyright that the [epub][Epub] is under.
      */
     COPYRIGHT_PAGE("copyright-page"),
 
     /**
-     * A [page][Page] describing who the [book][Book] is dedicated towards.
+     * A [page][Page] describing who the [epub][Epub] is dedicated towards.
      */
     DEDICATION("dedication"),
 
@@ -84,12 +81,12 @@ enum class ReferenceType(val type: String) {
     FOREWORD("foreword"),
 
     /**
-     * A [page][Page] containing a list of all the illustrations used throughout the [book][Book].
+     * A [page][Page] containing a list of all the illustrations used throughout the [epub][Epub].
      */
     LIST_OF_ILLUSTRATIONS("loi"),
 
     /**
-     * A [page][Page] containing a list of all the tables used throughout the [book][Book].
+     * A [page][Page] containing a list of all the tables used throughout the [epub][Epub].
      */
     LIST_OF_TABLES("lot"),
 
@@ -99,7 +96,7 @@ enum class ReferenceType(val type: String) {
     NOTES("notes"),
 
     /**
-     * A [page][Page] containing a preface to the [book][Book].
+     * A [page][Page] containing a preface to the [epub][Epub].
      */
     PREFACE("preface"),
 
@@ -110,30 +107,17 @@ enum class ReferenceType(val type: String) {
 
     companion object {
         private val TYPES: Map<String, ReferenceType> =
-            values().associateByTo(CaseInsensitiveMap(), ReferenceType::type)
-
-        private val CACHED_CORRECTIONS: MutableMap<String, ReferenceType> = hashMapOf("copyright" to COPYRIGHT_PAGE)
-
-        private val ERROR_CORRECTORS: KServiceLoader<ReferenceTypeCorrector> by lazy { loadServices() }
-
-        // returns either the official type, or a corrected one
-        private fun getTypeOrNull(type: String): ReferenceType? = when (val realType = type.toLowerCase()) {
-            in TYPES -> TYPES.getValue(realType)
-            in CACHED_CORRECTIONS -> CACHED_CORRECTIONS.getValue(realType)
-            else -> ERROR_CORRECTORS.asSequence()
-                .mapNotNull { it.getEquivalent(realType) }
-                .firstOrNull()
-                ?.also { CACHED_CORRECTIONS.putIfAbsent(realType, it) }
-        }
-
-        // TODO: document that these functions check for corrections too
+            values().associateByTo(hashMapOf(), ReferenceType::type)
 
         /**
          * Returns `true` if the given [type] represents an officially known type, otherwise `false`.
          */
-        @JvmName("isKnownType")
-        operator fun contains(type: String): Boolean =
-            type.toLowerCase() in TYPES || type.toLowerCase() in CACHED_CORRECTIONS
+        fun isKnownType(type: String): Boolean = type in TYPES
+
+        /**
+         * Returns `true` if the given [type] does not represent an officially known type, otherwise `false`.
+         */
+        fun isUnknownType(type: String): Boolean = type !in TYPES
 
         /**
          * Returns the [ReferenceType] that has a [type][ReferenceType.type] that matches the given [type], or throws a
@@ -148,6 +132,6 @@ enum class ReferenceType(val type: String) {
          * if none is found.
          */
         @JvmStatic
-        fun fromTypeOrNull(type: String): ReferenceType? = getTypeOrNull(type)
+        fun fromTypeOrNull(type: String): ReferenceType? = TYPES[type]
     }
 }

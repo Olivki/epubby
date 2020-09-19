@@ -16,6 +16,7 @@
 
 package dev.epubby.properties.vocabularies
 
+import dev.epubby.page.Page
 import dev.epubby.prefixes.Prefix
 import dev.epubby.properties.Property
 import kotlinx.collections.immutable.toPersistentHashMap
@@ -30,14 +31,12 @@ import java.net.URI
  */
 enum class SpineVocabulary(reference: String) : Property {
     /**
-     * Indicates that the first page of the associated [item][PackageSpine.ItemReference.item] represents the left-hand
-     * side of a two-page spread.
+     * Indicates that the first page of the associated [Page] represents the left-hand side of a two-page spread.
      */
     PAGE_SPREAD_LEFT("page-spread-left"),
 
     /**
-     * Indicates that the first page of the associated [item][PackageSpine.ItemReference.item] represents the right-hand
-     * side of a two-page spread.
+     * Indicates that the first page of the associated [Page] represents the right-hand side of a two-page spread.
      */
     PAGE_SPREAD_RIGHT("page-spread-right");
 

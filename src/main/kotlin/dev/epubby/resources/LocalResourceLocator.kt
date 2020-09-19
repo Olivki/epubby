@@ -17,8 +17,8 @@
 package dev.epubby.resources
 
 import com.google.common.net.MediaType
-import dev.epubby.Book
-import java.nio.file.Path
+import dev.epubby.Epub
+import dev.epubby.files.RegularFile
 
 interface LocalResourceLocator {
     /**
@@ -30,4 +30,4 @@ interface LocalResourceLocator {
 
 // TODO: replace this with a 'fun interface' whenever Kotlins type inference engine can properly convert between
 //       function literals and SAM interfaces
-typealias LocalResourceFactory = (book: Book, identifier: String, file: Path, mediaType: MediaType) -> LocalResource
+typealias LocalResourceFactory = (epub: Epub, identifier: String, file: RegularFile, mediaType: MediaType) -> LocalResource

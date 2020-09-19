@@ -16,9 +16,10 @@
 
 package dev.epubby.packages
 
-import dev.epubby.Book
-import dev.epubby.BookElement
-import dev.epubby.internal.buildPersistentList
+import dev.epubby.Epub
+import dev.epubby.EpubElement
+import dev.epubby.files.RegularFile
+import dev.epubby.internal.utils.buildPersistentList
 import dev.epubby.resources.*
 import kotlinx.collections.immutable.PersistentList
 import moe.kanon.kommons.collections.asUnmodifiableMap
@@ -26,39 +27,46 @@ import moe.kanon.kommons.collections.getOrThrow
 import moe.kanon.kommons.require
 import java.io.IOException
 
-// TODO: make sure to redirect the user to the ResourceRepository for modifying pages.
-class PackageManifest(
-    override val book: Book,
+// TODO: only allow one 'NcxResource' instance to exist per 'PackageManifest' instance
+
+class PackageManifest internal constructor(
+    override val epub: Epub,
+    var identifier: String? = null,
     private val _localResources: MutableMap<String, LocalResource> = hashMapOf(),
+    // TODO: find a better name
+    @get:JvmSynthetic
+    internal val fileToLocalResource: MutableMap<String, LocalResource> = hashMapOf(),
     // TODO: we could probably make this one public?
-    private val _remoteResources: MutableMap<String, RemoteResource> = hashMapOf(),
-) : BookElement, Iterable<ManifestResource> {
+    private val _externalResources: MutableMap<String, ExternalResource> = hashMapOf(),
+) : EpubElement, Iterable<ManifestResource> {
     /**
      * Returns an unmodifiable view of all the [LocalResource] implementations stored in this manifest.
      */
     val localResources: Map<String, LocalResource>
         get() = _localResources.asUnmodifiableMap()
 
-    // TODO: find a better name
-    @get:JvmSynthetic
-    internal val fileToLocalResource: MutableMap<String, LocalResource> = hashMapOf()
+    /**
+     * Returns an unmodifiable view of all the [ExternalResource] implementations stored in this manifest.
+     */
+    val externalResources: Map<String, ExternalResource>
+        get() = _externalResources.asUnmodifiableMap()
 
     /**
-     * Returns an unmodifiable view of all the [RemoteResource] implementations stored in this manifest.
+     * The file organizer belonging to this manifest.
      */
-    val remoteResources: Map<String, RemoteResource>
-        get() = _remoteResources.asUnmodifiableMap()
+    val fileOrganizer: ResourceFileOrganizer by lazy { ResourceFileOrganizer(epub) }
 
     // TODO: move 'ResourceRepository' to here
     override val elementName: String
         get() = "PackageManifest"
 
     fun addLocalResource(resource: LocalResource) {
-        require(resource.book == book, "resource.book == this.book")
+        require(resource.epub == epub, "resource.epub == this.epub")
         require(resource !in this) { "Resource '$resource' already exists in this manifest." }
         require(resource.identifier !in this) { "Identifier '${resource.identifier}' must be unique." }
-        _localResources[resource.identifier] = resource
-        fileToLocalResource[resource.file.toString()] = resource
+        // TODO: throw an error if 'identifier' is already registered here?
+        _localResources.putIfAbsent(resource.identifier, resource)
+        fileToLocalResource[resource.file.fullPath] = resource
     }
 
     fun getLocalResource(identifier: String): LocalResource =
@@ -71,11 +79,11 @@ class PackageManifest(
      * [identifier][ManifestResource.identifier] as the given [identifier], otherwise `false`.
      */
     @JvmName("hasResource")
-    operator fun contains(identifier: String): Boolean = identifier in _localResources || identifier in _remoteResources
+    operator fun contains(identifier: String): Boolean = identifier in _localResources || identifier in _externalResources
 
     operator fun contains(resource: LocalResource): Boolean = _localResources.containsValue(resource)
 
-    operator fun contains(resource: RemoteResource): Boolean = _remoteResources.containsValue(resource)
+    operator fun contains(resource: ExternalResource): Boolean = _externalResources.containsValue(resource)
 
     // TODO: document that this will *delete* the resource completely
     // TODO: rename to 'deleteLocalResource'?
@@ -84,6 +92,10 @@ class PackageManifest(
     @Throws(IOException::class)
     fun removeLocalResource(identifier: String, deleteFile: Boolean = true) {
 
+    }
+
+    fun addExternalResource(resource: ExternalResource) {
+        _externalResources[resource.identifier] = resource
     }
 
     /**
@@ -101,7 +113,7 @@ class PackageManifest(
      */
     @JvmOverloads
     fun visitResources(visitor: ResourceVisitor<*>, filter: ResourceFilter = ResourceFilters.ALLOW_ALL) {
-        for (resource in _remoteResources.values) {
+        for (resource in _externalResources.values) {
             if (!(resource.accept(filter))) {
                 continue
             }
@@ -136,7 +148,7 @@ class PackageManifest(
         visitor: ResourceVisitor<R>,
         filter: ResourceFilter = ResourceFilters.ALLOW_ALL,
     ): PersistentList<R> = buildPersistentList {
-        for (resource in _remoteResources.values) {
+        for (resource in _externalResources.values) {
             if (!(resource.accept(filter))) {
                 continue
             }
@@ -167,14 +179,38 @@ class PackageManifest(
         _localResources[newIdentifier] = resource
     }
 
+    @JvmSynthetic
+    internal fun updateLocalResourceFile(oldFile: RegularFile, newFile: RegularFile) {
+        if (oldFile != newFile) {
+            val resource = fileToLocalResource[oldFile.fullPath]
+
+            if (resource != null) {
+                fileToLocalResource -= oldFile.fullPath
+                fileToLocalResource[newFile.fullPath] =  resource
+            } else {
+                throw IllegalStateException("Given oldFile '$oldFile' does not represent a resource file.")
+            }
+        }
+    }
+
+    @JvmSynthetic
+    internal fun getLocalResourceFromFile(file: RegularFile): LocalResource? = fileToLocalResource[file.fullPath]
+
+    @JvmSynthetic
+    internal fun writeResourcesToFile() {
+        for ((_, resource) in _localResources) {
+            resource.triggerWriteToFile()
+        }
+    }
+
     // TODO: verify that this iterator works
     override fun iterator(): Iterator<ManifestResource> = object : Iterator<ManifestResource> {
         private val localIterator = _localResources.values.iterator()
-        private val remoteIterator = _remoteResources.values.iterator()
+        private val remoteIterator = _externalResources.values.iterator()
 
         // we want to avoid short circuiting, so we're using 'and' and not '&&' here
-        // TODO: verify that the logic we've used for using 'and' here is actually correct
-        override fun hasNext(): Boolean = localIterator.hasNext() and remoteIterator.hasNext()
+        // TODO: verify that this works like it should
+        override fun hasNext(): Boolean = localIterator.hasNext() || remoteIterator.hasNext()
 
         override fun next(): ManifestResource = when {
             localIterator.hasNext() -> localIterator.next()
@@ -184,5 +220,5 @@ class PackageManifest(
     }
 
     override fun toString(): String =
-        "PackageManifest(localResources=$_localResources, remoteResources=$_remoteResources)"
+        "PackageManifest(localResources=$_localResources, externalResources=$_externalResources)"
 }

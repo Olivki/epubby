@@ -48,11 +48,11 @@ object ResourceFilters {
     }
 
     /**
-     * A [ResourceFilter] that only lets [RemoteResource] instances through.
+     * A [ResourceFilter] that only lets [ExternalResource] instances through.
      */
     @JvmField
     val ONLY_REMOTE: ResourceFilter = object : DefaultResourceVisitor<Boolean> {
-        override fun getDefaultValue(resource: ManifestResource): Boolean = resource is RemoteResource
+        override fun getDefaultValue(resource: ManifestResource): Boolean = resource is ExternalResource
     }
 
     /**
@@ -101,6 +101,14 @@ object ResourceFilters {
     @JvmField
     val ONLY_MISC: ResourceFilter = object : DefaultResourceVisitor<Boolean> {
         override fun getDefaultValue(resource: ManifestResource): Boolean = resource is MiscResource
+    }
+
+    /**
+     * A [ResourceFilter] that only lets [NcxResource] instances through.
+     */
+    @JvmField
+    val ONLY_NCX: ResourceFilter = object : DefaultResourceVisitor<Boolean> {
+        override fun getDefaultValue(resource: ManifestResource): Boolean = resource is NcxResource
     }
 
     /**

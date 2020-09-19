@@ -25,8 +25,6 @@ import java.net.URI
 // TODO: documentation
 /**
  * Represents the [metadata meta properties vocabulary](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#sec-meta-property-values).
- *
- * The following constants define properties for use with the `property` property of the `Metadata.Meta` class.
  */
 enum class MetadataMetaVocabulary(reference: String) : Property {
     ALTERNATE_SCRIPT("alternate-script"),

@@ -16,11 +16,11 @@
 
 package dev.epubby.packages
 
-import dev.epubby.Book
-import dev.epubby.BookElement
+import dev.epubby.Epub
+import dev.epubby.EpubElement
 import dev.epubby.page.Page
 import dev.epubby.resources.LocalResource
-import dev.epubby.resources.PageResource
+import dev.epubby.resources.NcxResource
 import dev.epubby.resources.ResourceDocumentReference
 import dev.epubby.utils.PageProgressionDirection
 import dev.epubby.utils.attributes
@@ -28,64 +28,54 @@ import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.toPersistentList
 import moe.kanon.kommons.collections.asUnmodifiable
 import moe.kanon.kommons.collections.asUnmodifiableList
-import moe.kanon.kommons.io.paths.name
-import org.jsoup.nodes.Attribute
 
-// TODO: make sure to redirect the user to the PageRepository for modifying pages.
-class PackageSpine @JvmOverloads constructor(
-    override val book: Book,
+class PackageSpine internal constructor(
+    override val epub: Epub,
+    private val _pages: MutableList<Page> = mutableListOf(),
     var identifier: String? = null,
     var pageProgressionDirection: PageProgressionDirection? = null,
-    private var tableOfContentsIdentifier: String? = null
-) : BookElement, Iterable<Page> {
+    val tableOfContents: NcxResource,
+) : EpubElement, Iterable<Page> {
     override val elementName: String
         get() = "PackageSpine"
 
-    var tableOfContents: PageResource?
-        get() = TODO()
-        set(value) {
-            TODO()
-        }
-
-    private val _pages: MutableList<Page> = mutableListOf()
-
-    val page: List<Page>
+    val pages: List<Page>
         get() = _pages.asUnmodifiableList()
 
-    fun prepend(page: Page) {
+    fun prependPage(page: Page) {
         _pages.add(0, page)
     }
 
-    fun append(page: Page) {
+    fun appendPage(page: Page) {
         _pages.add(page)
     }
 
-    fun insert(index: Int, page: Page) {
+    fun insertPageAt(index: Int, page: Page) {
         _pages.add(index, page)
     }
 
-    operator fun set(index: Int, page: Page) {
+    fun setPageAt(index: Int, page: Page) {
         _pages[index] = page
     }
 
-    operator fun get(index: Int): Page = _pages[index]
+    fun getPage(index: Int): Page = _pages[index]
 
-    fun getOrNull(index: Int): Page? = _pages.getOrNull(index)
+    fun getPageOrNull(index: Int): Page? = _pages.getOrNull(index)
 
-    fun remove(page: Page): Boolean = _pages.remove(page)
+    fun removePage(page: Page): Boolean = _pages.remove(page)
 
     fun removeAt(index: Int): Page = _pages.removeAt(index)
 
     /*
-     * Adds the underlying `resource` of the given `page` to the resources of the book if it is not already in it.
+     * Adds the underlying `resource` of the given `page` to the resources of the epub if it is not already in it.
      *
-     * This is because when we add a new page to this "repository" we also need to add it the spine of the book, and
+     * This is because when we add a new page to this "repository" we also need to add it the spine of the epub, and
      * spine entries require a manifest-item to actually reference, meaning that we need to make sure that the `page`
      * is properly registered as a resource as that is what handles the creation of manifest-items.
      */
     private fun addToResources(page: Page) {
-        if (page.resource !in book.manifest) {
-            book.manifest.addLocalResource(page.resource)
+        if (page.reference !in epub.manifest) {
+            epub.manifest.addLocalResource(page.reference)
         }
     }
 
@@ -96,34 +86,45 @@ class PackageSpine @JvmOverloads constructor(
      * `resource`, or if the document the reference heralds from gets changed in any manner, therefore it is not
      * recommended to cache the returned list, instead one should retrieve a new one whenever needed.
      */
-    fun getDocumentReferencesOf(resource: LocalResource): PersistentList<ResourceDocumentReference> {
-        // fix for epubs where things like the images are stored in the same directory as the xhtml files
-        // meaning that the src attribute can be completely relative
-        // TODO: Implement a better system for handling this
-        fun predicate(attr: Attribute): Boolean = when {
-            '/' in attr.value -> resource.href in attr.value
-            // TODO: should we really be ignoring case here?
-            else -> attr.value.equals(resource.file.name, true)
-        }
-
-        return _pages
-            .asSequence()
+    fun getDocumentReferencesOf(resource: LocalResource): PersistentList<ResourceDocumentReference> =
+        _pages.asSequence()
             .flatMap { it.document.allElements }
-            .filter { it.attributes.any(::predicate) }
-            .map { ResourceDocumentReference(it, it.attributes.first(::predicate)) }
+            .filter { it.attributes.any { (_, value) -> value.endsWith(resource.file.name) } }
+            .map { element ->
+                val attributes = element.attributes
+                    .asList()
+                    .filter { (_, value) -> value.endsWith(resource.file.name) }
+                    .toPersistentList()
+
+                ResourceDocumentReference(element, attributes)
+            }
             .asIterable()
             .toPersistentList()
-    }
 
     override fun iterator(): Iterator<Page> = _pages.iterator().asUnmodifiable()
 
     @JvmSynthetic
     operator fun plusAssign(page: Page) {
-        append(page)
+        appendPage(page)
     }
 
     @JvmSynthetic
     operator fun minusAssign(page: Page) {
-        remove(page)
+        removePage(page)
+    }
+
+    @JvmSynthetic
+    operator fun set(index: Int, page: Page) {
+        setPageAt(index, page)
+    }
+
+    @JvmSynthetic
+    operator fun get(index: Int): Page = getPage(index)
+
+    @JvmSynthetic
+    internal fun writePagesToFile() {
+        for (page in pages) {
+            page.writeToFile()
+        }
     }
 }

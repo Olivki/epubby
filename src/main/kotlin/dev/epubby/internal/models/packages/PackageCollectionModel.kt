@@ -17,17 +17,17 @@
 package dev.epubby.internal.models.packages
 
 import com.github.michaelbull.logging.InlineLogger
-import dev.epubby.Book
-import dev.epubby.ParseStrictness
-import dev.epubby.internal.elementOf
+import dev.epubby.Epub
+import dev.epubby.ParseMode
 import dev.epubby.internal.models.SerializedName
+import dev.epubby.internal.utils.elementOf
 import dev.epubby.packages.PackageCollection
 import dev.epubby.prefixes.Prefixes
 import org.jdom2.Element
 import dev.epubby.internal.Namespaces.OPF as NAMESPACE
 
 @SerializedName("collection")
-data class PackageCollectionModel internal constructor(val d: Unit) {
+internal data class PackageCollectionModel internal constructor(internal val d: Unit) {
     init {
         TODO("Implement 'PackageCollectionModel'")
     }
@@ -38,7 +38,7 @@ data class PackageCollectionModel internal constructor(val d: Unit) {
     }
 
     @JvmSynthetic
-    internal fun toPackageCollection(book: Book, prefixes: Prefixes): PackageCollection {
+    internal fun toPackageCollection(epub: Epub, prefixes: Prefixes): PackageCollection {
         TODO("'toPackageCollection' operation is not implemented yet.")
     }
 
@@ -47,8 +47,13 @@ data class PackageCollectionModel internal constructor(val d: Unit) {
         private val LOGGER: InlineLogger = InlineLogger(PackageCollectionModel::class)
 
         @JvmSynthetic
-        internal fun fromElement(element: Element, strictness: ParseStrictness): PackageCollectionModel {
+        internal fun fromElement(element: Element, mode: ParseMode): PackageCollectionModel {
             TODO("'fromElement' operation is not implemented yet")
+        }
+
+        @JvmSynthetic
+        internal fun fromPackageCollection(origin: PackageCollection): PackageCollectionModel {
+            TODO("'fromPackageCollection' operation is not implemented yet.")
         }
     }
 }

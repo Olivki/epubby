@@ -16,15 +16,15 @@
 
 package dev.epubby.packages
 
-import dev.epubby.Book
-import dev.epubby.BookElement
-import dev.epubby.BookVersion
+import dev.epubby.Epub
+import dev.epubby.EpubElement
+import dev.epubby.EpubVersion
 import dev.epubby.internal.IntroducedIn
 import dev.epubby.internal.MarkedAsDeprecated
 
-@IntroducedIn(version = BookVersion.EPUB_3_0)
-@MarkedAsDeprecated(`in` = BookVersion.EPUB_3_2)
-class PackageBindings(override val book: Book) : BookElement {
+@IntroducedIn(version = EpubVersion.EPUB_3_0)
+@MarkedAsDeprecated(`in` = EpubVersion.EPUB_3_2)
+class PackageBindings(override val epub: Epub) : EpubElement {
     override val elementName: String
         get() = "PackageBindings"
 

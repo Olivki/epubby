@@ -14,19 +14,9 @@
  * limitations under the License.
  */
 
-package dev.epubby.builders
+package dev.epubby
 
-import dev.epubby.Book
-
-abstract class AbstractModelBuilder<Target : Any, Model : Any> internal constructor(
-    target: Class<Model>
-) : AbstractBuilder<Model>(target) {
-    /**
-     * Returns a new [Target] instance that will be tied to the given [book].
-     *
-     * This function will always return the actual proper instance of the builder rather than the model target, as
-     * one can be properly constructed with the help of the [book] instance.
-     */
-    // TODO: the documentation for this is, uh, not very good
-    abstract fun build(book: Book): Target
+enum class ParseMode {
+    STRICT,
+    LENIENT
 }

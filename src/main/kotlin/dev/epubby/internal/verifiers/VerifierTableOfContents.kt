@@ -14,10 +14,13 @@
  * limitations under the License.
  */
 
-package dev.epubby.internal
+package dev.epubby.internal.verifiers
 
-import kotlinx.collections.immutable.PersistentList
-import kotlinx.collections.immutable.persistentListOf
+import dev.epubby.toc.TableOfContents
 
-internal inline fun <T> buildPersistentList(builder: MutableList<T>.() -> Unit): PersistentList<T> =
-    persistentListOf<T>().builder().apply(builder).build()
+internal object VerifierTableOfContents {
+    // TODO: verify the toc, if needed
+    internal fun verify(toc: TableOfContents) {
+
+    }
+}

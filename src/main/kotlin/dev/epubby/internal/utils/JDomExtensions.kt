@@ -14,33 +14,39 @@
  * limitations under the License.
  */
 
-package dev.epubby.internal
+@file:JvmName("JDomUtils")
+
+package dev.epubby.internal.utils
 
 import dev.epubby.MalformedBookException
 import moe.kanon.kommons.io.paths.newInputStream
 import moe.kanon.kommons.io.paths.newOutputStream
-import org.jdom2.Attribute
-import org.jdom2.Document
-import org.jdom2.Element
-import org.jdom2.Namespace
+import org.jdom2.*
 import org.jdom2.input.SAXBuilder
 import org.jdom2.input.sax.XMLReaders
 import org.jdom2.output.Format
 import org.jdom2.output.XMLOutputter
 import java.nio.file.Path
 
-private val defaultFormat: Format = Format.getPrettyFormat().setIndent("    ")
+//@get:JvmName("getPrettyFormat")
+internal val defaultXmlFormat: Format by lazy { Format.getPrettyFormat().setIndent("  ") }
 
-internal fun Document.stringify(format: Format = defaultFormat): String = XMLOutputter(format).outputString(this)
+//@get:JvmName("getPrettyOutputter")
+internal val defaultXmlOutputter: XMLOutputter by lazy { XMLOutputter(defaultXmlFormat) }
 
-internal fun Element.stringify(format: Format = defaultFormat): String = XMLOutputter(format).outputString(this)
+//@get:JvmName("getCompactOutputter")
+internal val compactXmlOutputter: XMLOutputter by lazy { XMLOutputter(Format.getCompactFormat()) }
+
+internal fun Document.encodeToString(outputter: XMLOutputter = defaultXmlOutputter): String = outputter.outputString(this)
+
+internal fun Element.encodeToString(outputter: XMLOutputter = defaultXmlOutputter): String = outputter.outputString(this)
 
 internal fun Element.getChildOrThrow(name: String, namespace: Namespace = Namespace.NO_NAMESPACE): Element =
-    getChild(name, namespace) ?: throw MalformedBookException("Element '$name' is missing required child '$name'.")
+    getChild(name, namespace) ?: throw MalformedBookException("Element ${this.encodeToString(compactXmlOutputter)} is missing required child '$name'.")
 
 internal fun Element.getAttributeOrThrow(name: String, namespace: Namespace = Namespace.NO_NAMESPACE): Attribute =
     getAttribute(name, namespace)
-        ?: throw MalformedBookException("Element '$name' is missing required attribute '$name'.")
+        ?: throw MalformedBookException("Element '${this.encodeToString(compactXmlOutputter)}' is missing required attribute '$name'.")
 
 internal fun Element.getAttributeValueOrThrow(name: String, namespace: Namespace = Namespace.NO_NAMESPACE): String =
     getAttributeOrThrow(name, namespace).value
@@ -51,8 +57,8 @@ internal fun documentFrom(input: String): Document =
 internal fun documentFrom(input: Path): Document =
     input.newInputStream().use { SAXBuilder(XMLReaders.NONVALIDATING).build(it) }
 
-internal fun Document.writeTo(file: Path, format: Format = Format.getPrettyFormat()): Path {
-    file.newOutputStream().use { XMLOutputter(format).output(this, it) }
+internal fun Document.writeTo(file: Path, outputter: XMLOutputter = defaultXmlOutputter): Path {
+    file.newOutputStream().use { outputter.output(this, it) }
     return file
 }
 

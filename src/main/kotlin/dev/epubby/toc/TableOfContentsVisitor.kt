@@ -14,10 +14,8 @@
  * limitations under the License.
  */
 
-package dev.epubby.internal
+package dev.epubby.toc
 
-import dev.epubby.packages.guide.CustomGuideReference
-import dev.epubby.packages.guide.GuideReference
-import moe.kanon.kommons.func.Either
-
-internal typealias `Reference | CustomReference` = Either<GuideReference, CustomGuideReference>
+interface TableOfContentsVisitor<R> {
+    fun visitEntry(entry: TableOfContents.Entry): R
+}

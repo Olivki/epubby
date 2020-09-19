@@ -16,48 +16,11 @@
 
 package dev.epubby.files
 
-import java.io.IOException
 import java.nio.file.FileAlreadyExistsException
 import java.nio.file.Path
 
-// TODO: documentation
-open class BookFileIOException @JvmOverloads constructor(
-    message: String? = null,
-    cause: Throwable? = null,
-) : IOException(message, cause)
+internal fun fileAlreadyExists(path: Path): Nothing =
+    throw FileAlreadyExistsException(path.toString(), null, "Overwriting existing files is forbidden.")
 
-class BookFileAlreadyExistsException @JvmOverloads constructor(
-    message: String? = null,
-    cause: Throwable? = null,
-) : BookFileIOException(message, cause)
-
-internal fun newBookFileAlreadyExistsException(path: Path): BookFileAlreadyExistsException =
-    BookFileAlreadyExistsException("A file already exists at '$path', and overwriting other files is forbidden.")
-
-internal fun newBookFileAlreadyExistsException(path: BookFile): BookFileAlreadyExistsException =
-    newBookFileAlreadyExistsException(path.delegate)
-
-@PublishedApi
-internal inline fun <T> wrapIO(block: () -> T): T = try {
-    block()
-}  catch (e: BookFileIOException) {
-    throw e
-} catch (e: FileAlreadyExistsException) {
-    throw BookFileAlreadyExistsException(
-        "A file already exists at this location, and overwriting other files is forbidden${e.safeMessage}",
-        e
-    )
-} catch (e: IOException) {
-    throw BookFileIOException(e.message, e)
-}
-
-@PublishedApi
-internal inline fun <T> wrapIO(message: String, block: () -> T): T = try {
-    block()
-} catch (e: IOException) {
-    throw BookFileIOException("$message${e.safeMessage}", e)
-}
-
-@PublishedApi
-internal val Exception.safeMessage: String
-    get() = message?.let { ": $it" } ?: ""
+internal fun fileAlreadyExists(origin: Path, other: Path): Nothing =
+    throw FileAlreadyExistsException(origin.toString(), other.toString(), "Overwriting existing files is forbidden.")

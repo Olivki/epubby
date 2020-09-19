@@ -16,8 +16,8 @@
 
 package dev.epubby.prefixes
 
-import dev.epubby.Book
-import dev.epubby.BookVersion
+import dev.epubby.Epub
+import dev.epubby.EpubVersion
 import dev.epubby.internal.IntroducedIn
 import dev.epubby.packages.PackageDocument
 import dev.epubby.properties.Property
@@ -29,7 +29,7 @@ import java.net.URI
  * Represents a [Prefix] that is reserved by the EPUB specification.
  *
  * This prefix can be used in any [Property] without needing to have it defined in the
- * [prefixes][PackageDocument.prefixes] property of the [PackageDocument] of the [Book].
+ * [prefixes][PackageDocument.prefixes] property of the [PackageDocument] of the [Epub].
  *
  * Any entry defined here basically serves as an inbuilt prefix that all EPUB readers should be able to understand.
  *
@@ -39,14 +39,14 @@ import java.net.URI
 // TODO: fact check the last sentence in the documentation
 // TODO: mark these with some 'Experimental' annotation so that the user is more aware that these entries are basically
 //       seen as experimental by the EPUB specification?
-@IntroducedIn(version = BookVersion.EPUB_3_0)
+@IntroducedIn(version = EpubVersion.EPUB_3_0)
 enum class PackagePrefix(override val title: String, override val uri: URI) : Prefix {
     A11Y("a11y", URI.create("http://www.idpf.org/epub/vocab/package/a11y/#")),
     // TODO: is the actual prefix 'dc'?
     DC_TERMS("dcterms", URI.create("http://purl.org/dc/terms/")),
     MARC("marc", URI.create("http://id.loc.gov/vocabulary/")),
     MEDIA("media", URI.create("http://www.idpf.org/epub/vocab/overlays/#")),
-    ONIX("onix", URI.create("http://www.editeur.org/ONIX/book/codelists/current.html#")),
+    ONIX("onix", URI.create("http://www.editeur.org/ONIX/epub/codelists/current.html#")),
     RENDITION("rendition", URI.create("http://www.idpf.org/vocab/rendition/#")),
     SCHEMA("schema", URI.create("http://schema.org/")),
     XSD("xsd", URI.create("http://www.w3.org/2001/XMLSchema#"));

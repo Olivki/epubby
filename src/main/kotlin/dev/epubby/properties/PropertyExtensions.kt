@@ -46,8 +46,14 @@ fun Property.encodeToString(): String = when {
  * Returns a string containing all the [property][Property] instances stored in this `properties`, separated by a
  * space.
  */
-// TODO: should this only be returning 'reference'?
-fun Properties.encodeToString(): String = joinToString(separator = " ") { it.reference.toString() }
+// TODO: change back to 'it.title' ?
+fun Properties.encodeToString(): String = joinToString(separator = " ") { it.encodeToString() }
+
+infix fun Property.matches(other: Property): Boolean = when {
+    this.prefix != other.prefix -> false
+    this.reference != other.reference -> false
+    else -> true
+}
 
 // resolving single
 @JvmSynthetic
@@ -82,37 +88,33 @@ internal fun resolveSpineProperty(input: String, prefixes: Prefixes): Property? 
 
 // resolving many
 @JvmSynthetic
-internal fun resolveManifestProperties(input: String, prefixes: Prefixes): Properties {
-    val props = input.replace(Patterns.EXCESSIVE_WHITESPACE, "")
+internal fun resolveManifestProperties(input: String, prefixes: Prefixes): Properties =
+    input.replace(Patterns.EXCESSIVE_WHITESPACE, "")
         .splitToSequence(' ')
         .map { resolveManifestProperty(input, prefixes) }
         .filterNotNull()
-    return Properties.copyOf(props.asIterable())
-}
+        .toProperties()
 
 @JvmSynthetic
-internal fun resolveLinkProperties(input: String, prefixes: Prefixes): Properties {
-    val props = input.replace(Patterns.EXCESSIVE_WHITESPACE, "")
+internal fun resolveLinkProperties(input: String, prefixes: Prefixes): Properties =
+    input.replace(Patterns.EXCESSIVE_WHITESPACE, "")
         .splitToSequence(' ')
         .map { resolveLinkProperty(input, prefixes) }
         .filterNotNull()
-    return Properties.copyOf(props.asIterable())
-}
+        .toProperties()
 
 @JvmSynthetic
-internal fun resolveMetaProperties(input: String, prefixes: Prefixes): Properties {
-    val props = input.replace(Patterns.EXCESSIVE_WHITESPACE, "")
+internal fun resolveMetaProperties(input: String, prefixes: Prefixes): Properties =
+    input.replace(Patterns.EXCESSIVE_WHITESPACE, "")
         .splitToSequence(' ')
         .map { resolveMetaProperty(input, prefixes) }
         .filterNotNull()
-    return Properties.copyOf(props.asIterable())
-}
+        .toProperties()
 
 @JvmSynthetic
-internal fun resolveSpineProperties(input: String, prefixes: Prefixes): Properties {
-    val props = input.replace(Patterns.EXCESSIVE_WHITESPACE, "")
+internal fun resolveSpineProperties(input: String, prefixes: Prefixes): Properties =
+    input.replace(Patterns.EXCESSIVE_WHITESPACE, "")
         .splitToSequence(' ')
         .map { resolveSpineProperty(input, prefixes) }
         .filterNotNull()
-    return Properties.copyOf(props.asIterable())
-}
+        .toProperties()

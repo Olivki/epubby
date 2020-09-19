@@ -18,17 +18,17 @@ package dev.epubby.resources
 
 import com.google.auto.service.AutoService
 import com.google.common.net.MediaType
-import dev.epubby.Book
+import dev.epubby.Epub
+import dev.epubby.files.RegularFile
 import kotlinx.collections.immutable.persistentHashSetOf
-import java.nio.file.Path
 
 // https://w3c.github.io/publ-epub-revision/epub32/spec/epub-spec.html#cmt-woff2
 class FontResource(
-    book: Book,
+    epub: Epub,
     identifier: String,
-    file: Path,
+    file: RegularFile,
     override val mediaType: MediaType
-) : LocalResource(book, identifier, file) {
+) : LocalResource(epub, identifier, file) {
     /**
      * Returns the result of invoking the [visitFont][ResourceVisitor.visitFont] function of the given [visitor].
      */
