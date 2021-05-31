@@ -284,7 +284,7 @@ internal data class PackageMetadataModel internal constructor(
                 else -> when {
                     // TODO: this might not be needed?
                     refines.startsWith("#") -> dublinCoreElements
-                        .firstOrNull { it.identifier == refines.drop(1) } ?: invalidRefines()
+                        .firstOrNull { it.identifier == refines.drop(1) } ?: return null// TODO: bring this back or something invalidRefines()
                     else -> dublinCoreElements.firstOrNull { it.identifier == refines } ?: invalidRefines()
                 }
             }?.toDublinCore(epub)

@@ -30,14 +30,13 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
-import java.util.Locale
-import java.util.UUID
+import java.util.*
 
 // TODO: rewrite/reword the documentations of each element so that we're not straight up plagiarizing
 // TODO: automatically convert usage of 'role', 'event', 'scheme' and any other things marked as legacy in 3.0 to the
 //       correct equivalenet? or at least provide a function for doing that?
 
-sealed class DublinCore(protected val name: String) : EpubElement {
+sealed class DublinCore(val name: String) : EpubElement {
     abstract override val epub: Epub
 
     override val elementName: String

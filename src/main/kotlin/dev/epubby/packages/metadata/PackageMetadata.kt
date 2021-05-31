@@ -62,9 +62,8 @@ class PackageMetadata(
     /**
      * The primary author of the epub, or `null` if no primary author is defined.
      *
-     * Note that this doesn't look for just the first instance of [LocalizedDublinCore.Creator], but rather looks for
-     * the first instance of `LocalizedDublinCore.Creator` that is defined as
-     * [an author][LocalizedDublinCore.Creator.isAuthor].
+     * Note that this looks for the first instance of [LocalizedDublinCore.Creator] that has the
+     * [author][CreativeRole.AUTHOR] [role][LocalizedDublinCore.Creator.role].
      */
     var primaryAuthor: Creator?
         get() = _dublinCoreEntries
@@ -84,7 +83,7 @@ class PackageMetadata(
                 if (value != null) {
                     _dublinCoreEntries += value
                 } else {
-                    throw NoSuchElementException("No creator element defined as the author could be found.")
+                    throw NoSuchElementException("Can't remove non-existent creator.")
                 }
             }
         }

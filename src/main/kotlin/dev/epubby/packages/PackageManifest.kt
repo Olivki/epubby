@@ -24,8 +24,8 @@ import dev.epubby.resources.*
 import kotlinx.collections.immutable.PersistentList
 import moe.kanon.kommons.collections.asUnmodifiableMap
 import moe.kanon.kommons.collections.getOrThrow
-import moe.kanon.kommons.require
 import java.io.IOException
+import java.util.function.Consumer
 
 // TODO: only allow one 'NcxResource' instance to exist per 'PackageManifest' instance
 
@@ -112,22 +112,72 @@ class PackageManifest internal constructor(
      * @see [collectResources]
      */
     @JvmOverloads
-    fun visitResources(visitor: ResourceVisitor<*>, filter: ResourceFilter = ResourceFilters.ALLOW_ALL) {
-        for (resource in _externalResources.values) {
-            if (!(resource.accept(filter))) {
-                continue
-            }
+    fun visitResources(
+        visitor: ResourceVisitor<*>,
+        filter: ResourceFilter = ResourceFilters.ALLOW_ALL
+    ) {
+        visitor.begin(this)
 
-            resource.accept(visitor)
+        for (resource in _externalResources.values) {
+            if (resource.accept(filter)) {
+                resource.accept(visitor)
+            }
         }
 
         for (resource in _localResources.values) {
-            if (!(resource.accept(filter))) {
-                continue
+            if (resource.accept(filter)) {
+                resource.accept(visitor)
             }
-
-            resource.accept(visitor)
         }
+
+        visitor.end(this)
+    }
+
+    /**
+     * Invokes the given [collector] with the result of invoking the [accept][ManifestResource.accept] function of all
+     * the resources in this `manifest` with the given [visitor].
+     *
+     * The `accept` function of each resource will only be invoked if the given [filter] returns `true` for that
+     * resource.
+     *
+     * If the result is either `null` or [Unit] then it will be ignored.
+     *
+     * @param [visitor] the visitor to collect the results from
+     * @param [filter] the filter to check before visiting the resource with [visitor],
+     * [ALLOW_ALL][ResourceFilters.ALLOW_ALL] by default
+     * @param [collector] the consumer to use to collect all the results
+     *
+     * @see [visitResources]
+     */
+    @JvmOverloads
+    fun <R> collectResources(
+        visitor: ResourceVisitor<R>,
+        filter: ResourceFilter = ResourceFilters.ALLOW_ALL,
+        collector: Consumer<R>,
+    ) {
+        visitor.begin(this)
+
+        for (resource in _externalResources.values) {
+            if (resource.accept(filter)) {
+                val result = resource.accept(visitor)
+
+                if (result != null && result != Unit) {
+                    collector.accept(result)
+                }
+            }
+        }
+
+        for (resource in _localResources.values) {
+            if (resource.accept(filter)) {
+                val result = resource.accept(visitor)
+
+                if (result != null && result != Unit) {
+                    collector.accept(result)
+                }
+            }
+        }
+
+        visitor.end(this)
     }
 
     /**
@@ -136,6 +186,8 @@ class PackageManifest internal constructor(
      *
      * The `accept` function of each resource will only be invoked if the given [filter] returns `true` for that
      * resource.
+     *
+     * If the result is either `null` or [Unit] then it will be ignored.
      *
      * @param [visitor] the visitor to collect the results from
      * @param [filter] the filter to check before visiting the resource with [visitor],
@@ -147,31 +199,7 @@ class PackageManifest internal constructor(
     fun <R> collectResources(
         visitor: ResourceVisitor<R>,
         filter: ResourceFilter = ResourceFilters.ALLOW_ALL,
-    ): PersistentList<R> = buildPersistentList {
-        for (resource in _externalResources.values) {
-            if (!(resource.accept(filter))) {
-                continue
-            }
-
-            val result = resource.accept(visitor)
-
-            if (result != null && result != Unit) {
-                add(result)
-            }
-        }
-
-        for (resource in _localResources.values) {
-            if (!(resource.accept(filter))) {
-                continue
-            }
-
-            val result = resource.accept(visitor)
-
-            if (result != null && result != Unit) {
-                add(result)
-            }
-        }
-    }
+    ): PersistentList<R> = buildPersistentList { collectResources(visitor, filter, this::add) }
 
     @JvmSynthetic
     internal fun updateLocalResourceIdentifier(resource: LocalResource, oldIdentifier: String, newIdentifier: String) {

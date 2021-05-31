@@ -20,8 +20,8 @@ import com.github.michaelbull.logging.InlineLogger
 import dev.epubby.EpubVersion.EPUB_3_0
 import dev.epubby.dublincore.DateEvent
 import dev.epubby.dublincore.DublinCore
-import dev.epubby.files.BookFile
 import dev.epubby.files.DirectoryFile
+import dev.epubby.files.EpubFile
 import dev.epubby.files.RegularFile
 import dev.epubby.internal.models.metainf.MetaInfModel
 import dev.epubby.internal.models.packages.PackageDocumentModel
@@ -65,7 +65,6 @@ import java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME
  * @property [version] The version of the EPUB specification that this epub adheres to.
  * @property [fileSystem] TODO
  */
-// TODO: rename to 'Epub'
 class Epub internal constructor(
     val version: EpubVersion,
     @get:JvmSynthetic
@@ -226,13 +225,13 @@ class Epub internal constructor(
     }
 
     /**
-     * Returns a new [BookFile] that belongs to this epub.
+     * Returns a new [EpubFile] that belongs to this epub.
      *
      * @see [FileSystem.getPath]
      */
     // TODO: rename to something better?
-    fun getFile(first: String, vararg more: String): BookFile =
-        root.resolve(BookFile(fileSystem.getPath(first, *more), this))
+    fun getFile(first: String, vararg more: String): EpubFile =
+        root.resolve(EpubFile(fileSystem.getPath(first, *more), this))
 
     /**
      * Closes the [fileSystem] belonging to this epub, and writes all modifications done to this EPUB back to the

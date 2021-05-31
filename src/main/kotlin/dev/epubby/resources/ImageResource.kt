@@ -16,6 +16,7 @@
 
 package dev.epubby.resources
 
+import com.github.michaelbull.logging.InlineLogger
 import com.google.auto.service.AutoService
 import com.google.common.net.MediaType
 import dev.epubby.Epub
@@ -23,12 +24,15 @@ import dev.epubby.EpubVersion.EPUB_3_0
 import dev.epubby.files.RegularFile
 import dev.epubby.packages.metadata.Opf2Meta
 import dev.epubby.properties.vocabularies.ManifestVocabulary.COVER_IMAGE
+import dev.epubby.utils.ImageDimension
+import dev.epubby.utils.ImageOrientation
 import kotlinx.collections.immutable.persistentHashSetOf
 import moe.kanon.kommons.io.ImageResizeMode
 import moe.kanon.kommons.io.ImageScalingMethod
 import moe.kanon.kommons.io.paths.createDirectories
 import moe.kanon.kommons.io.writeTo
 import org.imgscalr.Scalr
+import org.jetbrains.annotations.Contract
 import java.awt.image.BufferedImage
 import java.awt.image.BufferedImageOp
 import java.io.IOException
@@ -44,7 +48,10 @@ class ImageResource(
     var isCoverImage: Boolean
         get() = when {
             epub.version.isOlder(EPUB_3_0) -> additionalMetadata.any { it.name == "cover" }
-            else -> COVER_IMAGE in properties
+            else -> when {
+                COVER_IMAGE in properties -> true
+                else -> additionalMetadata.any { it.name == "cover" }
+            }
         }
         set(value) {
             // there should only ever be one cover image, so we'll just remove all other entries that are marked with
@@ -67,8 +74,8 @@ class ImageResource(
         }
 
     private object CoverImagePropertyRemover : ResourceVisitorUnit {
-        override fun visitImage(image: ImageResource) {
-            image.properties -= COVER_IMAGE
+        override fun visitImage(resource: ImageResource) {
+            resource.properties -= COVER_IMAGE
         }
     }
 
@@ -76,27 +83,26 @@ class ImageResource(
     private var shouldRefreshImage: Boolean = false
 
     /**
-     * Returns `true` if `image` is landscape oriented, otherwise `false`.
+     * Returns the orientation of the `image` of this resource.
      *
      * Note that this will load `image` if it it is not already loaded, see the documentation of [getOrLoadImage] for
      * more information.
      */
-    val isLandscape: Boolean
-        get() {
-            val image = getOrLoadImage()
-            return image.width > image.height
-        }
+    val orientation: ImageOrientation
+        @Contract("_ -> new", pure = true)
+        get() = ImageOrientation.fromBufferedImage(getOrLoadImage())
 
     /**
-     * Returns `true` if `image` is portrait oriented, otherwise `false`.
+     * Returns the dimensions of the `image` of this resource.
      *
      * Note that this will load `image` if it it is not already loaded, see the documentation of [getOrLoadImage] for
      * more information.
      */
-    val isPortrait: Boolean
+    val dimension: ImageDimension
+        @Contract("_ -> new", pure = true)
         get() {
             val image = getOrLoadImage()
-            return image.height > image.width
+            return ImageDimension(image.width, image.height)
         }
 
     /**
@@ -134,6 +140,7 @@ class ImageResource(
     fun getOrLoadImage(): BufferedImage {
         if (shouldRefreshImage || _image == null) {
             try {
+                LOGGER.debug { "Attempting to read '$file' as a buffered-image.." }
                 val result = file.newInputStream().use(ImageIO::read)
                 isImageLoaded = true
                 shouldRefreshImage = false
@@ -181,6 +188,9 @@ class ImageResource(
         }
     }
 
+    // TODO: implement 'resizeTo' function that takes an integer going from 1 to 100, and use that as a percentage
+    //       based resize
+
     /**
      * Resizes the `image` to the given [width] and [height].
      *
@@ -195,6 +205,7 @@ class ImageResource(
      * @param [scalingMethod] the method to use for resizing the image *([ULTRA_QUALITY][Scalr.Method.ULTRA_QUALITY] by
      * default)*
      * @param [resizeMode] the mode to use for resizing the image *([FIT_EXACT][Scalr.Mode.FIT_EXACT] by default)*
+     * @param [operations] any extra operations to be done on the image after resizing it
      *
      * @see [Scalr.resize]
      */
@@ -208,6 +219,31 @@ class ImageResource(
     ): ImageResource = apply {
         setImage(Scalr.resize(getOrLoadImage(), scalingMethod, resizeMode, width, height, *operations))
     }
+
+    /**
+     * Resizes the `image` to the given [dimension].
+     *
+     * The quality of the resize depends on the [scalingMethod] used, and whether or not the proportions of the resized
+     * image are kept depends on the given [resizeMode].
+     *
+     * Note that invoking this function will result in `image` being cached *(if it is not already cached)*, which may
+     * result in some severe overhead depending on the size of the `image` this resource represents.
+     *
+     * @param [dimension] the dimension to resize the image to
+     * @param [scalingMethod] the method to use for resizing the image *([ULTRA_QUALITY][Scalr.Method.ULTRA_QUALITY] by
+     * default)*
+     * @param [resizeMode] the mode to use for resizing the image *([FIT_EXACT][Scalr.Mode.FIT_EXACT] by default)*
+     * @param [operations] any extra operations to be done on the image after resizing it
+     *
+     * @see [Scalr.resize]
+     */
+    @JvmOverloads
+    fun resizeTo(
+        dimension: ImageDimension,
+        scalingMethod: ImageScalingMethod = ImageScalingMethod.ULTRA_QUALITY,
+        resizeMode: ImageResizeMode = ImageResizeMode.FIT_EXACT,
+        vararg operations: BufferedImageOp,
+    ): ImageResource = resizeTo(dimension.width, dimension.height, scalingMethod, resizeMode, *operations)
 
     /**
      * Applies the given [operations] to [image].
@@ -247,42 +283,9 @@ class ImageResource(
     override fun <R> accept(visitor: ResourceVisitor<R>): R = visitor.visitImage(this)
 
     override fun toString(): String = "ImageResource(identifier='$identifier', mediaType=$mediaType, file='$file')"
-}
 
-/**
- * An orientation that a image can be in.
- */
-// TODO: is 'Orientation' the best way to describe this? Maybe 'ImageDimension' instead?..
-enum class ImageOrientation {
-    /**
-     * The orientation of a portrait photograph, where the `height` is greater than the `width` of the image.
-     */
-    PORTRAIT,
-
-    /**
-     * The orientation of a landscape photograph, where the `width` is greater than the `height` of the image.
-     */
-    LANDSCAPE,
-
-    /**
-     * The orientation of a rectangle photograph, where the `width` and `height` of the image are the same.
-     */
-    RECTANGLE;
-
-    companion object {
-        /**
-         *  Returns a [ImageOrientation] that matches the `width` and `height` of the given [image].
-         *
-         *  @throws [IllegalArgumentException] if the `width` and `height` of [image] somehow doesn't match any of the
-         *  known dimensions
-         */
-        @JvmStatic
-        fun fromBufferedImage(image: BufferedImage): ImageOrientation = when {
-            image.width > image.height -> LANDSCAPE
-            image.height > image.width -> PORTRAIT
-            image.width == image.height -> RECTANGLE
-            else -> throw IllegalArgumentException("(${image.width}, ${image.height}) represents an unknown dimension.")
-        }
+    private companion object {
+        private val LOGGER: InlineLogger = InlineLogger(ImageResource::class)
     }
 }
 

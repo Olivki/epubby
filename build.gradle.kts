@@ -1,43 +1,29 @@
-import name.remal.gradle_plugins.plugins.publish.bintray.RepositoryHandlerBintrayExtension
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
-buildscript {
-    repositories {
-        jcenter()
-    }
-
-    dependencies {
-        classpath("name.remal:gradle-plugins:1.0.129")
-    }
-}
+import name.remal.gradle_plugins.dsl.extensions.convention
+import name.remal.gradle_plugins.dsl.extensions.get
+import name.remal.gradle_plugins.plugins.publish.ossrh.RepositoryHandlerOssrhExtension
 
 plugins {
-    kotlin("jvm").version("1.4.10")
-    kotlin("kapt").version("1.4.10")
-
-    id("com.github.ben-manes.versions").version("0.21.0")
-    
+    kotlin("jvm").version("1.5.10")
+    kotlin("kapt").version("1.5.10")
+    id("name.remal.maven-publish-ossrh") version "1.3.1"
+    id("name.remal.check-dependency-updates") version "1.3.1"
     `maven-publish`
 }
 
-apply(plugin = "name.remal.maven-publish-bintray")
-
-group = "epubby.dev"
-description = "Framework for working with the EPUB file format for Kotlin and Java."
-version = "0.1.0"
-val gitUrl = "https://github.com/Olivki/epubby"
+group = "dev.epubby"
+description = "Framework for working with the EPUB file format for Kotlin."
+version = "0.0.1"
 
 repositories {
+    mavenLocal()
     mavenCentral()
-    jcenter()
 }
 
 dependencies {
     // Kotlin
-    implementation(kotlin("stdlib-jdk8"))
     implementation(kotlin("reflect"))
     implementation(group = "org.jetbrains.kotlinx", name = "kotlinx-html-jvm", version = "0.6.12")
-    api(group = "org.jetbrains.kotlinx", name = "kotlinx-collections-immutable-jvm", version = "0.3")
+    api(group = "org.jetbrains.kotlinx", name = "kotlinx-collections-immutable-jvm", version = "0.3.3")
 
     // Kanon
     implementation(group = "moe.kanon.kommons", name = "kommons.func", version = "2.0.0")
@@ -88,10 +74,12 @@ dependencies {
     kaptTest(group = "com.google.auto.service", name = "auto-service", version = "1.0-rc4")
 }
 
-tasks.withType<KotlinCompile> {
-    kotlinOptions {
-        jvmTarget = "1.8"
-        freeCompilerArgs = listOf("-Xuse-experimental=kotlin.Experimental", "-Xjvm-default=all")
+tasks {
+    compileKotlin {
+        kotlinOptions {
+            jvmTarget = "1.8"
+            freeCompilerArgs = freeCompilerArgs  + listOf("-Xuse-experimental=kotlin.Experimental")
+        }
     }
 }
 
@@ -100,7 +88,7 @@ project.afterEvaluate {
         pom {
             name.set(project.name)
             description.set(project.description)
-            url.set(gitUrl)
+            url.set("https://github.com/Olivki/epubby")
 
             licenses {
                 license {
@@ -112,21 +100,19 @@ project.afterEvaluate {
 
             developers {
                 developer {
-                    email.set("oliver@berg.moe")
                     id.set("Olivki")
                     name.set("Oliver Berg")
+                    email.set("oliver@berg.moe")
                 }
             }
 
             scm {
-                url.set(gitUrl)
+                connection.set("scm:git:git://github.com/Olivki/epubby")
+                developerConnection.set("scm:git:ssh://github.com/Olivki/epubby")
+                url.set("https://github.com/Olivki/epubby")
             }
         }
     }
 
-    publishing.repositories.convention[RepositoryHandlerBintrayExtension::class.java].bintray {
-        owner = "olivki"
-        repositoryName = "epubby"
-        packageName = "core"
-    }
+    publishing.repositories.convention[RepositoryHandlerOssrhExtension::class.java].ossrh()
 }

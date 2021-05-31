@@ -34,7 +34,7 @@ import java.nio.file.Path
 @JvmOverloads
 fun readEpub(epubFile: Path, mode: ParseMode = ParseMode.STRICT): Epub {
     val fileSystem = try {
-        FileSystems.newFileSystem(epubFile, null)
+        FileSystems.newFileSystem(epubFile, null as ClassLoader?)
     } catch (e: IOException) {
         throw IOException("Could not create a zip file-system for '$epubFile'.", e)
     }
@@ -45,12 +45,23 @@ fun readEpub(epubFile: Path, mode: ParseMode = ParseMode.STRICT): Epub {
     val metaInfModel = MetaInfModel.fromDirectory(metaInfDirectory, mode)
     val opfFile = fileSystem.getPath(metaInfModel.container.rootFiles[0].fullPath)
     val (opfDocument, version) = getVersionAndDocument(opfFile)
-    val book = Epub(version, fileSystem, epubFile)
-    book.metaInf = metaInfModel.toMetaInf(book)
+    val epub = Epub(version, fileSystem, epubFile)
+    epub.metaInf = metaInfModel.toMetaInf(epub)
     val packageDocumentModel = PackageDocumentModel.fromDocument(opfDocument, opfFile, mode)
-    book.packageDocument = packageDocumentModel.toPackageDocument(book)
+    epub.packageDocument = packageDocumentModel.toPackageDocument(epub)
+    // TODO: this
+    /*val tableOfContents = when (version) {
+        EPUB_2_0 -> {
+            val file = epub.spine.tableOfContents.file.delegate
+            NavigationCenterExtendedModel.fromFile(file, mode)
+                .map { it.toTableOfContents(epub, mode) }
+                .unwrap()
+        }
+        EPUB_3_0, EPUB_3_1, EPUB_3_2 -> TODO()
+    }
+    epub.tableOfContents = tableOfContents*/
 
-    return book
+    return epub
 }
 
 // Verifies that the EPUB is, at least, minimally sound.

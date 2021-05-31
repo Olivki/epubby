@@ -38,16 +38,15 @@ import java.nio.file.Path
 
 internal data class NavigationCenterExtendedModel internal constructor(
     private val file: Path,
-    // should always be "2005-1"
-    val version: String,
-    val language: String?,
-    val direction: String?,
-    val head: HeadModel,
-    val title: DocTitleModel,
-    val authors: PersistentList<DocAuthorModel>,
-    val navMap: NavMapModel,
-    val pageList: PageListModel?,
-    val navLists: PersistentList<NavListModel>,
+    internal val version: String, // should always be "2005-1"
+    internal val language: String?,
+    internal val direction: String?,
+    internal val head: HeadModel,
+    internal val title: DocTitleModel,
+    internal val authors: PersistentList<DocAuthorModel>,
+    internal val navMap: NavMapModel,
+    internal val pageList: PageListModel?,
+    internal val navLists: PersistentList<NavListModel>,
 ) {
     internal fun toDocument(): Document = documentOf("ncx", DAISY_NCX) { _, root ->
         root.setAttribute("version", version)
@@ -382,9 +381,11 @@ internal data class NavigationCenterExtendedModel internal constructor(
         ): Try<Entry> {
             val title = labels.first().text.content
             val resource = getResource(epub).fold({ return it.toFailure() }, ::self)
-            // TODO: is this logic correct? or should it be 'substringAfterLast'?
-            val fragmentIdentifier = content.source.substringAfter('#')
-            val entry = Entry(container, parent, identifier, title, resource, fragmentIdentifier)
+            val fragment = run {
+                val source = content.source
+                if ('#' in source) source.substringAfterLast('#') else null
+            }
+            val entry = Entry(container, parent, resource, title, identifier, fragment)
             val children = this.children.asSequence()
                 .map { it.toEntry(epub, container, entry, mode) }
                 .flatMapFailure()
@@ -397,16 +398,18 @@ internal data class NavigationCenterExtendedModel internal constructor(
         }
 
         private fun getResource(epub: Epub): Try<PageResource> {
-            val file = when (val temp = epub.opfDirectory.resolve(content.source)) {
+            // TODO: will this always be sound?
+            val fixedSource = content.source.substringBeforeLast('#')
+            val file = when (val temp = epub.opfDirectory.resolve(fixedSource)) {
                 is RegularFile -> temp
-                else -> return malformedFailure("'content/source' of $this points towards a non existent file.")
+                else -> return malformedFailure("'content/source' ($fixedSource) of nav-point '$identifier' points towards a non existent file.")
             }
             val resource = file.resource
-                ?: return malformedFailure("'content/source' of $this points towards a non resource file.")
+                ?: return malformedFailure("'content/source' ($fixedSource) of nav-point '$identifier' points towards a non resource file.")
 
             return when (resource) {
                 is PageResource -> Try.success(resource)
-                else -> malformedFailure("'content/source' of $this points towards a non page resource file.")
+                else -> malformedFailure("'content/source' ($fixedSource) of nav-point '$identifier' points towards a non page resource file.")
             }
         }
 
@@ -439,8 +442,8 @@ internal data class NavigationCenterExtendedModel internal constructor(
 
             internal fun fromEntry(entry: Entry): NavPointModel? {
                 val title = persistentListOf(NavLabelModel(text = TextModel(entry.title)))
-                val href = entry.resource?.href ?: return null
-                val content = ContentModel(entry.fragmentIdentifier?.let { "$href#$it" } ?: href)
+                val href = entry.resource.href
+                val content = ContentModel(entry.fragment?.let { "$href#$it" } ?: href)
                 val children = entry.children.mapNotNull { fromEntry(entry) }.toPersistentList()
 
                 return NavPointModel(entry.identifier, labels = title, content = content, children = children)

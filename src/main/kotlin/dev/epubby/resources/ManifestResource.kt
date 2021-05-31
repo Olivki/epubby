@@ -24,7 +24,6 @@ import dev.epubby.EpubVersion.EPUB_3_0
 import dev.epubby.files.DirectoryFile
 import dev.epubby.files.RegularFile
 import dev.epubby.internal.IntroducedIn
-import dev.epubby.packages.PackageDocument
 import dev.epubby.packages.PackageManifest
 import dev.epubby.packages.metadata.Opf2Meta
 import dev.epubby.properties.Properties
@@ -153,9 +152,9 @@ abstract class LocalResource internal constructor(
     internal var isDeleted: Boolean = false
 
     /**
-     * Returns a path that's relative to the [OPF file][PackageDocument.file] of the [epub].
+     * Returns a path that's relative to the [OPF file][Epub.opfFile] of the [epub].
      */
-    val relativeFile: RegularFile
+    val opfRelativeFile: RegularFile
         get() = epub.opfFile.relativizeFile(file)
 
     override val href: String
@@ -163,8 +162,8 @@ abstract class LocalResource internal constructor(
 
     // TODO: replace any 'relativeHref.substringAfter("../")' with a function that just uses the index instead for
     //       faster speed? or maybe make a property/function specifically for returning a value like that?
-    val relativeHref: String
-        get() = relativeFile.toString()
+    val opfRelativeHref: String
+        get() = opfRelativeFile.toString()
 
     override val properties: Properties = Properties.empty()
 

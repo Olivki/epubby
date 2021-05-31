@@ -25,6 +25,7 @@ package dev.epubby.resources
  * When a `visitXXX` function of this visitor in invoked, if it returns `true` then the other visitor will visit that
  * resource, otherwise if it returns `false` then the other visitor will *not* visit that resource.
  */
+// TODO: turn this into its own standalone interface
 typealias ResourceFilter = ResourceVisitor<Boolean>
 
 /**
@@ -117,6 +118,16 @@ object ResourceFilters {
     @JvmField
     val ONLY_PAGES: ResourceFilter = object : DefaultResourceVisitor<Boolean> {
         override fun getDefaultValue(resource: ManifestResource): Boolean = resource is PageResource
+    }
+
+    /**
+     * A [ResourceFilter] that only lets [PageResource] that have a non `null` [page][PageResource.getPageOrNull]
+     * instance through.
+     */
+    @JvmField
+    val ONLY_SPINE_PAGES: ResourceFilter = object : DefaultResourceVisitor<Boolean> {
+        override fun getDefaultValue(resource: ManifestResource): Boolean =
+            resource is PageResource && resource.getPageOrNull() != null
     }
 
     /**

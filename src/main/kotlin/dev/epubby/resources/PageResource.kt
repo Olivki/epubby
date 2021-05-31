@@ -32,8 +32,14 @@ class PageResource(
     /**
      * Returns the [Page] of this page resource, or `null` if this resource has no `Page` associated with it.
      */
-    val page: Page?
-        get() = epub.spine.pages.firstOrNull { it.reference == this }
+    fun getPageOrNull(): Page? = epub.spine.pages.firstOrNull { it.reference == this }
+
+    /**
+     * Returns the [Page] of this resource, or throws a [NoSuchElementException] if this resource no `Page` associated
+     * with it.
+     */
+    fun getPage(): Page =
+        getPageOrNull() ?: throw NoSuchElementException("No page associated with resource '$identifier'")
 
     /**
      * Returns the result of invoking the [visitPage][ResourceVisitor.visitPage] function of the given [visitor].

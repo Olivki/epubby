@@ -29,7 +29,6 @@ import dev.epubby.resources.StyleSheetResource
 import dev.epubby.utils.*
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.toPersistentList
-import moe.kanon.kommons.require
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 
@@ -115,7 +114,7 @@ class Page private constructor(
      */
     fun addStyleSheet(styleSheet: StyleSheetResource, index: Int) {
         require(index >= 0, "index >= 0")
-        val html = """"<link rel="stylesheet" type="text/css" href="${styleSheet.relativeHref}">"""
+        val html = """"<link rel="stylesheet" type="text/css" href="${styleSheet.opfRelativeHref}">"""
         val styleSheets = head.filter("link[rel=stylesheet]")
 
         if (styleSheets.isNotEmpty()) {
@@ -133,7 +132,7 @@ class Page private constructor(
      * Adds the given [styleSheet] to this page.
      */
     fun addStyleSheet(styleSheet: StyleSheetResource) {
-        val html = """<link rel="stylesheet" type="text/css" href="${styleSheet.relativeHref}">"""
+        val html = """<link rel="stylesheet" type="text/css" href="${styleSheet.opfRelativeHref}">"""
         val styleSheets = head.select("link[rel=stylesheet]")
 
         if (styleSheets.isNotEmpty()) {

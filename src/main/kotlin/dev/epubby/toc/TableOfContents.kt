@@ -22,6 +22,7 @@ import dev.epubby.internal.utils.buildPersistentList
 import dev.epubby.resources.PageResource
 import kotlinx.collections.immutable.PersistentList
 import moe.kanon.kommons.INDEX_NOT_FOUND
+import java.util.concurrent.atomic.AtomicLong
 
 class TableOfContents internal constructor(
     override val epub: Epub,
@@ -29,7 +30,26 @@ class TableOfContents internal constructor(
     override val elementName: String
         get() = "toc"
 
+    private val identifierIncrementer: AtomicLong = AtomicLong(1)
+
     val entries: MutableList<Entry> = arrayListOf()
+
+    @JvmOverloads
+    fun addEntry(
+        resource: PageResource,
+        title: String,
+        identifier: String = newIdentifier(),
+        fragment: String? = null,
+    ): Entry {
+        val entry = Entry(this, null, resource, title, identifier, fragment)
+
+        entries.add(entry)
+
+        return entry
+    }
+
+    // TODO: somehow check if the generated identifier is unique
+    private fun newIdentifier(): String = "entry_${identifierIncrementer.getAndIncrement()}"
 
     @JvmOverloads
     fun hasEntry(entry: Entry, maxDepth: Int = TRAVERSE_ALL): Boolean = TODO()
@@ -61,11 +81,13 @@ class TableOfContents internal constructor(
 
     class Entry internal constructor(
         val container: TableOfContents,
-        var parent: Entry?,
-        var identifier: String,
+        val parent: Entry?,
+        // TODO: this was null before due to something with how the new toc format
+        //       introduced in 3.0 works, maybe just don't serialize those kinds?
+        var resource: PageResource,
         var title: String,
-        var resource: PageResource?,
-        var fragmentIdentifier: String?,
+        var identifier: String,
+        var fragment: String?,
     ) : EpubElement, MutableIterable<Entry> {
         override val epub: Epub
             get() = container.epub
@@ -79,7 +101,7 @@ class TableOfContents internal constructor(
          * Returns how deep into the hierarchy this entry is.
          *
          * If this entry is at the first level, that being the ones stored in [entries][TableOfContents.entries] in
-         * [TableOfContents], then the returned value will be `0`.
+         * [container], then the returned value will be `0`.
          */
         val currentDepth: Int
             get() = when (val parent = parent) {
@@ -103,27 +125,29 @@ class TableOfContents internal constructor(
         override fun equals(other: Any?): Boolean = when {
             this === other -> true
             other !is Entry -> false
+            container != other.container -> false
             parent != other.parent -> false
-            identifier != other.identifier -> false
-            title != other.title -> false
             resource != other.resource -> false
-            fragmentIdentifier != other.fragmentIdentifier -> false
+            title != other.title -> false
+            identifier != other.identifier -> false
+            fragment != other.fragment -> false
             children != other.children -> false
             else -> true
         }
 
         override fun hashCode(): Int {
-            var result = parent?.hashCode() ?: 0
-            result = 31 * result + identifier.hashCode()
-            result = 31 * result + title.hashCode()
+            var result = container.hashCode()
+            result = 31 * result + (parent?.hashCode() ?: 0)
             result = 31 * result + resource.hashCode()
-            result = 31 * result + (fragmentIdentifier?.hashCode() ?: 0)
+            result = 31 * result + title.hashCode()
+            result = 31 * result + identifier.hashCode()
+            result = 31 * result + (fragment?.hashCode() ?: 0)
             result = 31 * result + children.hashCode()
             return result
         }
 
         override fun toString(): String =
-            "Entry(parent=$parent, identifier='$identifier', title='$title', resource=$resource, fragmentIdentifier=$fragmentIdentifier, children=$children)"
+            "Entry(parent=$parent, resource=$resource, title='$title', identifier='$identifier', fragment=$fragment)"
     }
 
     private companion object {

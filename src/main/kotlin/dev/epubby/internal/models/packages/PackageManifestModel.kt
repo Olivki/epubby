@@ -57,7 +57,12 @@ internal data class PackageManifestModel internal constructor(
     @JvmSynthetic
     internal fun toPackageManifest(epub: Epub, prefixes: Prefixes, opfFile: RegularFile): PackageManifest {
         val resources = items.asSequence()
-            .map { it.toManifestResource(epub, prefixes, opfFile) }
+            //.map { it.toManifestResource(epub, prefixes, opfFile) }
+            // TODO: this is a hack job
+            .map {
+                kotlin.runCatching { it.toManifestResource(epub, prefixes, opfFile) }
+            }
+            .mapNotNull { it.getOrNull() }
             .withIndex()
             .associateByTo(hashMapOf()) { it.value.identifier }
         val resolvedResources = resources.values

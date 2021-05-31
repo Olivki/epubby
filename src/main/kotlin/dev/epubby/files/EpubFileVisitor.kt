@@ -20,7 +20,7 @@ import java.io.IOException
 import java.nio.file.FileVisitResult
 import java.nio.file.attribute.BasicFileAttributes
 
-interface BookFileVisitor {
+interface EpubFileVisitor {
     @Throws(IOException::class)
     fun preVisitDirectory(directory: DirectoryFile, attributes: BasicFileAttributes): FileVisitResult
 

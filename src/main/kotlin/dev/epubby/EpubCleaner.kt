@@ -19,7 +19,7 @@
 package dev.epubby
 
 import com.github.michaelbull.logging.InlineLogger
-import dev.epubby.files.AbstractBookFileVisitor
+import dev.epubby.files.AbstractEpubFileVisitor
 import dev.epubby.files.DirectoryFile
 import dev.epubby.files.RegularFile
 import moe.kanon.kommons.io.paths.deleteIfExists
@@ -41,7 +41,7 @@ fun Epub.clean() {
 private val RegularFile.isUseless: Boolean
     get() = !isMetaInfFile && !isMimeType && !isResourceFile && !isOpfFile
 
-private object FileCleanerVisitor : AbstractBookFileVisitor() {
+private object FileCleanerVisitor : AbstractEpubFileVisitor() {
     private val LOGGER: InlineLogger = InlineLogger(FileCleanerVisitor::class)
 
     override fun visitFile(file: RegularFile, attributes: BasicFileAttributes): FileVisitResult {

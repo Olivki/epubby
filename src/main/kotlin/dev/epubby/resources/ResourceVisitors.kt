@@ -26,59 +26,75 @@ import dev.epubby.packages.PackageManifest
  */
 interface ResourceVisitor<R> {
     /**
-     * Returns a value that's appropriate for the given [external] resource.
+     * Gets invoked at the start of the visiting.
      */
-    fun visitExternal(external: ExternalResource): R
+    // TODO: name?
+    fun begin(manifest: PackageManifest) {
+
+    }
 
     /**
-     * Returns a value that's appropriate for the given [page] resource.
+     * Returns a value that's appropriate for the given [resource].
      */
-    fun visitPage(page: PageResource): R
+    fun visitExternal(resource: ExternalResource): R
 
     /**
-     * Returns a value that's appropriate for the given [styleSheet] resource.
+     * Returns a value that's appropriate for the given [resource].
      */
-    fun visitStyleSheet(styleSheet: StyleSheetResource): R
+    fun visitPage(resource: PageResource): R
 
     /**
-     * Returns a value that's appropriate for the given [image] resource.
+     * Returns a value that's appropriate for the given [resource].
      */
-    fun visitImage(image: ImageResource): R
+    fun visitStyleSheet(resource: StyleSheetResource): R
 
     /**
-     * Returns a value that's appropriate for the given [font] resource.
+     * Returns a value that's appropriate for the given [resource].
      */
-    fun visitFont(font: FontResource): R
+    fun visitImage(resource: ImageResource): R
 
     /**
-     * Returns a value that's appropriate for the given [audio] resource.
+     * Returns a value that's appropriate for the given [resource].
      */
-    fun visitAudio(audio: AudioResource): R
+    fun visitFont(resource: FontResource): R
 
     /**
-     * Returns a value that's appropriate for the given [script] resource.
+     * Returns a value that's appropriate for the given [resource].
      */
-    fun visitScript(script: ScriptResource): R
+    fun visitAudio(resource: AudioResource): R
 
     /**
-     * Returns a value that's appropriate for the given [video] resource.
+     * Returns a value that's appropriate for the given [resource].
      */
-    fun visitVideo(video: VideoResource): R
+    fun visitScript(resource: ScriptResource): R
 
     /**
-     * Returns a value that's appropriate for the given [misc] resource.
+     * Returns a value that's appropriate for the given [resource].
      */
-    fun visitMisc(misc: MiscResource): R
+    fun visitVideo(resource: VideoResource): R
 
     /**
-     * Returns a value that's appropriate for the given [ncx] resource.
+     * Returns a value that's appropriate for the given [resource].
      */
-    fun visitNcx(ncx: NcxResource): R
+    fun visitMisc(resource: MiscResource): R
 
     /**
-     * Returns a value that's appropriate for the given [custom] resource.
+     * Returns a value that's appropriate for the given [resource].
      */
-    fun visitCustom(custom: CustomResource): R
+    fun visitNcx(resource: NcxResource): R
+
+    /**
+     * Returns a value that's appropriate for the given [resource].
+     */
+    fun visitCustom(resource: CustomResource): R
+
+    /**
+     * Gets invoked at the end of the visiting.
+     */
+    // TODO: name?
+    fun end(manifest: PackageManifest) {
+
+    }
 }
 
 /**
@@ -93,27 +109,27 @@ interface DefaultResourceVisitor<R> : ResourceVisitor<R> {
      */
     fun getDefaultValue(resource: ManifestResource): R
 
-    override fun visitExternal(external: ExternalResource): R = getDefaultValue(external)
+    override fun visitExternal(resource: ExternalResource): R = getDefaultValue(resource)
 
-    override fun visitPage(page: PageResource): R = getDefaultValue(page)
+    override fun visitPage(resource: PageResource): R = getDefaultValue(resource)
 
-    override fun visitStyleSheet(styleSheet: StyleSheetResource): R = getDefaultValue(styleSheet)
+    override fun visitStyleSheet(resource: StyleSheetResource): R = getDefaultValue(resource)
 
-    override fun visitImage(image: ImageResource): R = getDefaultValue(image)
+    override fun visitImage(resource: ImageResource): R = getDefaultValue(resource)
 
-    override fun visitFont(font: FontResource): R = getDefaultValue(font)
+    override fun visitFont(resource: FontResource): R = getDefaultValue(resource)
 
-    override fun visitAudio(audio: AudioResource): R = getDefaultValue(audio)
+    override fun visitAudio(resource: AudioResource): R = getDefaultValue(resource)
 
-    override fun visitScript(script: ScriptResource): R = getDefaultValue(script)
+    override fun visitScript(resource: ScriptResource): R = getDefaultValue(resource)
 
-    override fun visitVideo(video: VideoResource): R = getDefaultValue(video)
+    override fun visitVideo(resource: VideoResource): R = getDefaultValue(resource)
 
-    override fun visitMisc(misc: MiscResource): R = getDefaultValue(misc)
+    override fun visitMisc(resource: MiscResource): R = getDefaultValue(resource)
 
-    override fun visitNcx(ncx: NcxResource): R = getDefaultValue(ncx)
+    override fun visitNcx(resource: NcxResource): R = getDefaultValue(resource)
 
-    override fun visitCustom(custom: CustomResource): R = getDefaultValue(custom)
+    override fun visitCustom(resource: CustomResource): R = getDefaultValue(resource)
 }
 
 /**
@@ -138,25 +154,25 @@ interface DefaultResourceVisitor<R> : ResourceVisitor<R> {
  *  }
  */
 interface ResourceVisitorUnit : ResourceVisitor<Unit> {
-    override fun visitExternal(external: ExternalResource): Unit = Unit
+    override fun visitExternal(resource: ExternalResource): Unit = Unit
 
-    override fun visitPage(page: PageResource): Unit = Unit
+    override fun visitPage(resource: PageResource): Unit = Unit
 
-    override fun visitStyleSheet(styleSheet: StyleSheetResource): Unit = Unit
+    override fun visitStyleSheet(resource: StyleSheetResource): Unit = Unit
 
-    override fun visitImage(image: ImageResource): Unit = Unit
+    override fun visitImage(resource: ImageResource): Unit = Unit
 
-    override fun visitFont(font: FontResource): Unit = Unit
+    override fun visitFont(resource: FontResource): Unit = Unit
 
-    override fun visitAudio(audio: AudioResource): Unit = Unit
+    override fun visitAudio(resource: AudioResource): Unit = Unit
 
-    override fun visitScript(script: ScriptResource): Unit = Unit
+    override fun visitScript(resource: ScriptResource): Unit = Unit
 
-    override fun visitVideo(video: VideoResource): Unit = Unit
+    override fun visitVideo(resource: VideoResource): Unit = Unit
 
-    override fun visitMisc(misc: MiscResource): Unit = Unit
+    override fun visitMisc(resource: MiscResource): Unit = Unit
 
-    override fun visitNcx(ncx: NcxResource): Unit = Unit
+    override fun visitNcx(resource: NcxResource): Unit = Unit
 
-    override fun visitCustom(custom: CustomResource): Unit = Unit
+    override fun visitCustom(resource: CustomResource): Unit = Unit
 }

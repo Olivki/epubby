@@ -20,7 +20,7 @@ interface EpubElement {
     /**
      * The [Epub] instance that the element belongs to.
      */
-    val epub: Epub
+    val epub: Epub // TODO: remove
 
     /**
      * The name of the element.

@@ -85,9 +85,10 @@ internal class PrefixesParser internal constructor(source: String) {
             }
         }
 
-        return when (val result = Verifier.checkURI(uri)) {
+        // TODO: this fails when given a URI that contains '#', even tho that's allowed for this purpose
+        return when (val result = Verifier.checkURI(uri.substringBeforeLast('#'))) {
             null -> URI(uri)
-            else -> tokenizer.exception(result)
+            else -> tokenizer.exception("$result -> $uri")
         }
     }
 

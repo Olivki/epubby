@@ -16,14 +16,17 @@
 
 package dev.epubby
 
-import dev.epubby.resources.ImageResource
-import dev.epubby.resources.ResourceVisitorUnit
+import com.github.michaelbull.logging.InlineLogger
+import dev.epubby.resources.*
+import dev.epubby.utils.*
+import dev.epubby.utils.ImageOrientation.*
 import moe.kanon.kommons.io.ImageResizeMode
 import moe.kanon.kommons.io.paths.*
+import java.awt.image.BufferedImage
 import java.nio.file.Path
 
-const val FILE_NAME = "test_2.epub"
-const val DIR = "!EPUB3"
+const val FILE_NAME = "test_1.epub"
+const val DIR = "!EPUB2"
 
 private val INPUT: Path = pathOf("H:", "Programming", "JVM", "Kotlin", "Data", "epubby", "reader")
     .resolve(DIR)
@@ -32,9 +35,12 @@ private val OUTPUT: Path = pathOf("H:", "Programming", "JVM", "Kotlin", "Data", 
     .resolve(DIR)
     .resolve(FILE_NAME)
 
+// TODO: make sure that a 'opf' file can never be added to the manifest as a resource as that is disallowed by
+//       by the EPUB spec
 // TODO: move any resources that are outside of the opf directory into it by default.
 // TODO: remove any files that are not inside of the manifest except for those inside of /META-INF/?
 // TODO: verify tableOfContents once that has been properly implemented
+// TODO: introduce the jetbrains annotations library as an API dependency
 
 fun main() {
     OUTPUT.deleteIfExists()
@@ -42,24 +48,39 @@ fun main() {
     val file = INPUT.copyTo(OUTPUT)
 
     readEpub(file).use { epub ->
-        epub.organizeFiles()
-        epub.clean()
-
-        /*val ncxResource = epub.manifest.localResources.values.filterIsInstance<NcxResource>().first()
-        val toc = NavigationCenterExtendedModel
-            .fromFile(ncxResource.file.delegate, ParseMode.STRICT)
-            .unwrap()
-
-        println(toc)
-        println(toc.toDocument().encodeToString())*/
+        epub.manifest.visitResources(ImageResizer, ResourceFilters.ONLY_IMAGES)
+        //println(epub.tableOfContents.entries.joinToString(LINE_SEPARATOR))
     }
 }
 
 private object ImageResizer : ResourceVisitorUnit {
-    override fun visitImage(image: ImageResource) {
-        val bufferedImage = image.getOrLoadImage()
+    private val LOGGER: InlineLogger = InlineLogger(ImageResizer::class)
 
-        image.resizeTo(820, 1200, resizeMode = ImageResizeMode.AUTOMATIC)
+    private val PORTRAIT_DIMENSION = ImageDimension(820, 1200)
+
+    private val LANDSCAPE_DIMENSION = ImageDimension(1584, 1200)
+
+    override fun visitImage(resource: ImageResource) {
+        val image = resource.getOrLoadImage()
+        val orientation = image.orientation
+
+        if (shouldResize(image, orientation)) {
+            val targetDimension = when (orientation) {
+                PORTRAIT -> PORTRAIT_DIMENSION
+                LANDSCAPE -> LANDSCAPE_DIMENSION
+                RECTANGLE -> ImageDimension(image.width, image.height) / 2
+            }
+
+            resource.resizeTo(targetDimension, resizeMode = ImageResizeMode.AUTOMATIC)
+
+            LOGGER.info { "'${resource.file.name}' ${image.dimension} -> ${resource.getOrLoadImage().dimension}." }
+        }
+    }
+
+    private fun shouldResize(image: BufferedImage, orientation: ImageOrientation): Boolean = when (orientation) {
+        PORTRAIT -> image.width > PORTRAIT_DIMENSION.width && image.height > PORTRAIT_DIMENSION.height
+        LANDSCAPE -> image.width > LANDSCAPE_DIMENSION.width && image.height > LANDSCAPE_DIMENSION.height
+        RECTANGLE -> image.width > 1500
     }
 }
 

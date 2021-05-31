@@ -98,7 +98,7 @@ internal data class PackageGuideModel internal constructor(internal val referenc
         private object PageResourceVisitor : DefaultResourceVisitor<PageResource> {
             override fun getDefaultValue(resource: ManifestResource): PageResource = throw IllegalStateException()
 
-            override fun visitPage(page: PageResource): PageResource = page
+            override fun visitPage(resource: PageResource): PageResource = resource
         }
 
         private class MatchingHrefFilter(val href: String) : DefaultResourceVisitor<Boolean> {
