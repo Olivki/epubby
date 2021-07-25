@@ -20,7 +20,7 @@ package dev.epubby.prefixes
 
 import dev.epubby.EpubVersion
 import dev.epubby.internal.IntroducedIn
-import java.util.Collections
+import java.util.*
 
 @IntroducedIn(version = EpubVersion.EPUB_3_0)
 class Prefixes private constructor(private val delegate: MutableMap<String, Prefix>) :
@@ -43,10 +43,7 @@ class Prefixes private constructor(private val delegate: MutableMap<String, Pref
         add(prefix)
     }
 
-    override fun put(key: String, value: Prefix): Prefix? {
-        requireKnown(value)
-        return delegate.put(key, value)
-    }
+    override fun put(key: String, value: Prefix): Prefix? = delegate.put(key, value)
 
     @JvmSynthetic
     operator fun contains(value: Prefix): Boolean = containsValue(value)
@@ -80,8 +77,6 @@ class Prefixes private constructor(private val delegate: MutableMap<String, Pref
 
         private fun validate(prefixes: Iterable<Prefix>) {
             for (prefix in prefixes) {
-                requireKnown(prefix)
-
                 if (prefix.isDefaultVocabularyPrefix()) {
                     throw IllegalArgumentException("prefix must not map to default vocabularies (${prefix.encodeToString()})")
                 }

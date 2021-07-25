@@ -27,7 +27,7 @@ enum class PageProgressionDirection(val value: String) {
          * if `tag` does not match a direction.
          */
         @JvmStatic
-        fun fromTag(tag: String): PageProgressionDirection = when (tag.toLowerCase()) {
+        fun fromTag(tag: String): PageProgressionDirection = when (tag.lowercase()) {
             "ltr" -> LEFT_TO_RIGHT
             "rtl" -> RIGHT_TO_LEFT
             "default" -> DEFAULT

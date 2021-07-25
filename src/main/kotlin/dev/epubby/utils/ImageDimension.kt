@@ -25,6 +25,7 @@ import java.awt.image.BufferedImage
  * @property [width] The width of this dimension.
  * @property [height] The height of this dimension.
  */
+// TODO: makes less nasty
 data class ImageDimension(val width: Int, val height: Int) {
     init {
         require(width >= 0) { "'width' is negative" }

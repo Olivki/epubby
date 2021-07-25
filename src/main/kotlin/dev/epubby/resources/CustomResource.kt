@@ -19,6 +19,7 @@ package dev.epubby.resources
 import dev.epubby.Epub
 import dev.epubby.files.RegularFile
 
+// TODO: remove 'CustomResource'
 abstract class CustomResource(epub: Epub, identifier: String, file: RegularFile) :
     LocalResource(epub, identifier, file) {
     /**

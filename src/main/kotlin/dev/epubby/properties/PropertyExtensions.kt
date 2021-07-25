@@ -21,13 +21,12 @@ package dev.epubby.properties
 import dev.epubby.internal.Patterns
 import dev.epubby.internal.parser.PropertyParser
 import dev.epubby.prefixes.Prefixes
-import dev.epubby.properties.vocabularies.*
 
 typealias Relationship = Property
 
 @get:JvmSynthetic
 internal val Property.isKnownInstance: Boolean
-    get() = this is BasicProperty || this is ManifestVocabulary || this is MetadataLinkRelVocabulary
+    get() = this is PropertyImpl || this is ManifestVocabulary || this is MetadataLinkRelVocabulary
         || this is MetadataLinkVocabulary || this is MetadataMetaVocabulary || this is SpineVocabulary
 
 @JvmSynthetic

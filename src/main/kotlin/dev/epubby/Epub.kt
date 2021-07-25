@@ -37,8 +37,7 @@ import dev.epubby.properties.Property
 import dev.epubby.properties.matches
 import dev.epubby.resources.ResourceFileOrganizer.NameClashStrategy
 import dev.epubby.toc.TableOfContents
-import moe.kanon.kommons.io.paths.moveTo
-import moe.kanon.kommons.io.paths.touch
+import krautils.io.touch
 import java.io.Closeable
 import java.nio.file.FileSystem
 import java.nio.file.Files
@@ -48,6 +47,7 @@ import java.time.ZoneOffset
 import java.time.ZoneOffset.UTC
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME
+import kotlin.io.path.moveTo
 
 // TODO: verify that the 'media-type' of a resource truly does match the media-type we get from probing the content
 //       type of the resources file, remember to drop the parameters of both to make sure we're comparing them
@@ -176,7 +176,7 @@ class Epub internal constructor(
         // TODO: does this work like we want it to?
         if (opfDirectory != desiredOpfDirectory) {
             desiredOpfDirectory.getOrCreateDirectory()
-            val opfPath = opfFile.delegate.moveTo(desiredOpfDirectory.delegate, keepName = true)
+            val opfPath = opfFile.delegate.moveTo(desiredOpfDirectory.delegate.resolve(opfFile.name))
             val newOpfFile = RegularFile(opfPath, this)
             metaInf.container.updateOpfFile(newOpfFile)
         }

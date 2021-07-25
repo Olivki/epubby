@@ -18,16 +18,16 @@
 
 package dev.epubby.prefixes
 
-import dev.epubby.properties.vocabularies.VocabularyPrefixes.MANIFEST
-import dev.epubby.properties.vocabularies.VocabularyPrefixes.METADATA_LINK
-import dev.epubby.properties.vocabularies.VocabularyPrefixes.METADATA_META
-import dev.epubby.properties.vocabularies.VocabularyPrefixes.SPINE
+import dev.epubby.properties.VocabularyPrefixes.MANIFEST
+import dev.epubby.properties.VocabularyPrefixes.METADATA_LINK
+import dev.epubby.properties.VocabularyPrefixes.METADATA_META
+import dev.epubby.properties.VocabularyPrefixes.SPINE
 
 /**
  * Returns `true` if `this` prefix is an implementation that is known by Epubby, otherwise `false`.
  */
 val Prefix.isKnownInstance: Boolean
-    get() = this is BasicPrefix || this is PackagePrefix || this is VocabularyPrefix
+    get() = this is PrefixImpl || this is PackagePrefix || this is VocabularyPrefix
 
 @JvmSynthetic
 internal fun requireKnown(prefix: Prefix) {

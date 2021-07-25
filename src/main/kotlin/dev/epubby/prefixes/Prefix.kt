@@ -23,7 +23,7 @@ import java.net.URI
 import java.net.URISyntaxException
 
 @IntroducedIn(version = EpubVersion.EPUB_3_0)
-interface Prefix {
+sealed interface Prefix {
     /**
      * The shorthand name used by properties when referring to the [uri] mapping that this prefix represents.
      */
@@ -48,13 +48,12 @@ interface Prefix {
          * @throws [IllegalArgumentException] if [prefix] is not a valid `NCName` or if is a reserved prefix or equal
          * to `"_"`
          */
-        @JvmStatic
         fun of(prefix: String, uri: URI): Prefix {
             val verification = Verifier.checkElementName(prefix)
             require(verification == null) { verification }
             require(!PackagePrefix.isReservedPrefix(prefix)) { "'prefix' must not be a reserved prefix" }
             require(prefix != "_") { "'_' is a reserved prefix name" }
-            return BasicPrefix(prefix, uri)
+            return PrefixImpl(prefix, uri)
         }
 
         /**
@@ -63,8 +62,19 @@ interface Prefix {
          * @throws [IllegalArgumentException] if [prefix] is blank or equal to `"_"`
          * @throws [URISyntaxException] if [uri] can not be parsed into a valid [URI]
          */
-        @JvmStatic
-        @Throws(URISyntaxException::class)
+        // TODO: replace with 'Result<Prefix>'
         fun of(prefix: String, uri: String): Prefix = of(prefix, URI(uri))
     }
+}
+
+internal data class PrefixImpl(override val title: String, override val uri: URI) : Prefix {
+    override val isReserved: Boolean
+        get() = false
+}
+
+internal data class VocabularyPrefix internal constructor(override val uri: URI) : Prefix {
+    override val title: String = ""
+
+    override val isReserved: Boolean
+        get() = false
 }

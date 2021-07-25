@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Oliver Berg
+ * Copyright 2019-2021 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,22 +24,24 @@ package dev.epubby.utils
 import kotlinx.html.*
 import kotlinx.html.consumers.onFinalize
 import kotlinx.html.stream.createHTML
-import moe.kanon.kommons.io.paths.newInputStream
-import moe.kanon.kommons.io.paths.pathOf
 import org.jsoup.Jsoup
 import org.jsoup.nodes.*
 import org.jsoup.parser.Parser
 import org.jsoup.parser.Tag
-import org.jsoup.select.*
+import org.jsoup.select.Elements
+import org.jsoup.select.Evaluator
+import org.jsoup.select.NodeFilter
+import org.jsoup.select.NodeVisitor
 import org.w3c.dom.events.Event
 import java.nio.charset.Charset
 import java.nio.file.Path
-import java.util.Deque
-import java.util.LinkedList
+import java.util.*
+import kotlin.io.path.inputStream
 import kotlinx.html.Entities as KEntities
 import kotlinx.html.Tag as KTag
 
 // NODE
+// TODO: remove these ugly things jesus
 val Node.parent: Node?
     @JvmSynthetic
     get() = parent()
@@ -521,14 +523,12 @@ val Document.body: Element
     @JvmSynthetic
     get() = body() ?: throw IllegalStateException("'body' should not be null")
 
-fun m(thing: String?) {
-    val d = documentFrom(pathOf(""))
-    d.text(thing)
-}
+
+// TODO: Move all the stuff below into a separate library
 
 @JvmSynthetic
 @HtmlTagMarker
-inline fun document(namespace: String? = null, crossinline body: HTML.() -> Unit): Document {
+inline fun buildDocument(namespace: String? = null, crossinline body: HTML.() -> Unit): Document {
     val content = createHTML(prettyPrint = false, xhtmlCompatible = true).html(namespace) { apply(body) }
     return Jsoup.parse(content)
 }
@@ -572,7 +572,7 @@ internal class ElementDomBuilder(val document: Document) : TagConsumer<Element> 
     }
 
     override fun onTagEnd(tag: KTag) {
-        if (elements.isEmpty() || elements.last().tagName.toLowerCase() != tag.tagName.toLowerCase()) {
+        if (elements.isEmpty() || elements.last().tagName.lowercase() != tag.tagName.lowercase()) {
             throw IllegalStateException("Tag '${tag.tagName}' has not been entered, but an attempt to leave it was made.")
         }
 
@@ -683,12 +683,12 @@ internal fun Attributes.isNotEmpty(): Boolean = size > 0
 
 @JvmSynthetic
 operator fun Attributes.set(key: String, value: String) {
-    put(key.toLowerCase(), value)
+    put(key.lowercase(), value)
 }
 
 @JvmSynthetic
 operator fun Attributes.set(key: String, value: Boolean) {
-    put(key.toLowerCase(), value)
+    put(key.lowercase(), value)
 }
 
 /**
@@ -750,7 +750,7 @@ internal fun documentShell(baseUri: String, isEpub3: Boolean): Document = Docume
 }
 
 internal fun documentFrom(file: Path, parser: Parser = DEFAULT_PARSER): Document =
-    file.newInputStream().use { Jsoup.parse(it, "UTF-8", file.toUri().toString(), parser) }
+    file.inputStream().use { Jsoup.parse(it, "UTF-8", file.toUri().toString(), parser) }
 
 internal fun documentFrom(html: String, baseUri: String, parser: Parser = DEFAULT_PARSER): Document =
     Jsoup.parse(html, baseUri, parser)

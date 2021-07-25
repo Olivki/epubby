@@ -23,14 +23,13 @@ import dev.epubby.Epub
 import dev.epubby.EpubVersion.EPUB_3_0
 import dev.epubby.files.RegularFile
 import dev.epubby.packages.metadata.Opf2Meta
-import dev.epubby.properties.vocabularies.ManifestVocabulary.COVER_IMAGE
+import dev.epubby.properties.ManifestVocabulary.COVER_IMAGE
 import dev.epubby.utils.ImageDimension
 import dev.epubby.utils.ImageOrientation
 import kotlinx.collections.immutable.persistentHashSetOf
-import moe.kanon.kommons.io.ImageResizeMode
-import moe.kanon.kommons.io.ImageScalingMethod
-import moe.kanon.kommons.io.paths.createDirectories
-import moe.kanon.kommons.io.writeTo
+import krautils.io.writeTo
+import krautils.scalr.ImageResizeMode
+import krautils.scalr.ImageScalingMethod
 import org.imgscalr.Scalr
 import org.jetbrains.annotations.Contract
 import java.awt.image.BufferedImage
@@ -38,6 +37,7 @@ import java.awt.image.BufferedImageOp
 import java.io.IOException
 import java.nio.file.FileSystem
 import javax.imageio.ImageIO
+import kotlin.io.path.createDirectories
 
 class ImageResource(
     epub: Epub,

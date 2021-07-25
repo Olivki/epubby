@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Oliver Berg
+ * Copyright 2019-2021 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,12 +55,3 @@ enum class ImageOrientation {
         }
     }
 }
-
-/**
- *  Returns a [ImageOrientation] that matches the `width` and `height` of the given [image].
- *
- *  @throws [IllegalArgumentException] if the `width` and `height` of [image] somehow doesn't match any of the
- *  known dimensions
- */
-val BufferedImage.orientation: ImageOrientation
-    get() = ImageOrientation.fromBufferedImage(this)

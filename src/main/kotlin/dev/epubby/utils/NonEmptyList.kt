@@ -22,6 +22,7 @@ package dev.epubby.utils
  * Note that attempted to invoke [clear], [removeAt] *(with `index` set to `0`)* or any other other removal operations
  * that would remove the *first* element in any manner will result in a [UnsupportedOperationException] being thrown.
  */
+// TODO: rename to 'NonEmptyMutableList' and extract it to an interface
 class NonEmptyList<E> private constructor(
     head: E,
     @get:JvmName("tail")

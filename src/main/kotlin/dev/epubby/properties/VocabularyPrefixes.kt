@@ -17,9 +17,19 @@
 package dev.epubby.properties
 
 import dev.epubby.prefixes.Prefix
+import dev.epubby.prefixes.VocabularyPrefix
 import java.net.URI
 
-internal data class BasicProperty internal constructor(
-    override val prefix: Prefix,
-    override val reference: URI
-) : Property
+object VocabularyPrefixes {
+    @JvmField
+    val MANIFEST: Prefix = VocabularyPrefix(URI.create("http://idpf.org/epub/vocab/package/item/#"))
+
+    @JvmField
+    val METADATA_LINK: Prefix = VocabularyPrefix(URI.create("http://idpf.org/epub/vocab/package/link/#"))
+
+    @JvmField
+    val METADATA_META: Prefix = VocabularyPrefix(URI.create("http://idpf.org/epub/vocab/package/meta/#"))
+
+    @JvmField
+    val SPINE: Prefix = VocabularyPrefix(URI.create("http://idpf.org/epub/vocab/package/itemref/#"))
+}

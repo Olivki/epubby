@@ -22,10 +22,10 @@ import com.github.michaelbull.logging.InlineLogger
 import dev.epubby.files.AbstractEpubFileVisitor
 import dev.epubby.files.DirectoryFile
 import dev.epubby.files.RegularFile
-import moe.kanon.kommons.io.paths.deleteIfExists
 import java.io.IOException
 import java.nio.file.FileVisitResult
 import java.nio.file.attribute.BasicFileAttributes
+import kotlin.io.path.deleteIfExists
 
 /**
  * Cleans the general structure of this EPUB.

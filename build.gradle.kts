@@ -17,23 +17,17 @@ version = "0.0.1"
 repositories {
     mavenLocal()
     mavenCentral()
+    maven(url = "https//maven.pkg.jetbrains.space/public/p/kotlinx-html/maven")
 }
 
 dependencies {
     // Kotlin
     implementation(kotlin("reflect"))
-    implementation(group = "org.jetbrains.kotlinx", name = "kotlinx-html-jvm", version = "0.6.12")
+    implementation(group = "org.jetbrains.kotlinx", name = "kotlinx-html-jvm", version = "0.7.3")
     api(group = "org.jetbrains.kotlinx", name = "kotlinx-collections-immutable-jvm", version = "0.3.3")
 
-    // Kanon
-    implementation(group = "moe.kanon.kommons", name = "kommons.func", version = "2.0.0")
-    implementation(group = "moe.kanon.kommons", name = "kommons.reflection", version = "0.6.0")
-    implementation(group = "moe.kanon.kommons", name = "kommons.io", version = "1.5.1")
-    implementation(group = "moe.kanon.kommons", name = "kommons.lang", version = "0.6.0")
-    implementation(group = "moe.kanon.kommons", name = "kommons.collections", version = "0.14.1")
-
-    // kassava
-    implementation(group = "au.com.console", name = "kassava", version = "2.1.0-rc.1")
+    implementation(group = "moe.kanon.krautils", name = "krautils-core", version = "0.0.6")
+    implementation(group = "moe.kanon.krautils", name = "krautils-scalr", version = "1.0.0")
 
     // XML
     implementation(group = "org.jdom", name = "jdom2", version = "2.0.6")
@@ -54,7 +48,8 @@ dependencies {
     api(group = "org.jsoup", name = "jsoup", version = "1.12.1")
 
     // css dsl
-    implementation(group = "azadev.kotlin", name = "aza-kotlin-css", version = "1.0")
+    // replace this with https://github.com/JetBrains/kotlin-wrappers/tree/master/kotlin-css ?
+    //implementation(group = "azadev.kotlin", name = "aza-kotlin-css", version = "1.0")
 
     // Google
     api(group = "com.google.guava", name = "guava", version = "28.1-jre")
@@ -77,8 +72,11 @@ dependencies {
 tasks {
     compileKotlin {
         kotlinOptions {
-            jvmTarget = "1.8"
-            freeCompilerArgs = freeCompilerArgs  + listOf("-Xuse-experimental=kotlin.Experimental")
+            jvmTarget = "11"
+            freeCompilerArgs = freeCompilerArgs  + listOf(
+                "-Xuse-experimental=kotlin.Experimental",
+                "-Xjvm-default=all"
+            )
         }
     }
 }

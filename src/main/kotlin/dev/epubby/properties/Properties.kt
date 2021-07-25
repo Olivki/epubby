@@ -35,8 +35,7 @@ import dev.epubby.internal.IntroducedIn
  */
 @IntroducedIn(version = EpubVersion.EPUB_3_0)
 class Properties private constructor(private val delegate: MutableSet<Property>) : AbstractMutableSet<Property>() {
-    override val size: Int
-        get() = delegate.size
+    override val size: Int get() = delegate.size
 
     override fun add(element: Property): Boolean = delegate.add(element)
 

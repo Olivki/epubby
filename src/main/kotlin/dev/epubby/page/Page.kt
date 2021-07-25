@@ -23,7 +23,7 @@ import dev.epubby.EpubVersion
 import dev.epubby.internal.IntroducedIn
 import dev.epubby.packages.PackageSpine
 import dev.epubby.properties.Properties
-import dev.epubby.properties.vocabularies.SpineVocabulary
+import dev.epubby.properties.SpineVocabulary
 import dev.epubby.resources.PageResource
 import dev.epubby.resources.StyleSheetResource
 import dev.epubby.utils.*
@@ -73,13 +73,13 @@ class Page private constructor(
     }
 
     /**
-     * The [head][Document.head] of the [document] of this page.
+     * The [head][Document.head] of the [buildDocument] of this page.
      */
     val head: Element
         get() = document.head
 
     /**
-     * The [body][Document.body] of the [document] of this page.
+     * The [body][Document.body] of the [buildDocument] of this page.
      */
     val body: Element
         get() = document.body
@@ -113,7 +113,7 @@ class Page private constructor(
      * stylesheets available, then `styleSheet` will be appended as the *last* element.
      */
     fun addStyleSheet(styleSheet: StyleSheetResource, index: Int) {
-        require(index >= 0, "index >= 0")
+        require(index >= 0) { "index >= 0" }
         val html = """"<link rel="stylesheet" type="text/css" href="${styleSheet.opfRelativeHref}">"""
         val styleSheets = head.filter("link[rel=stylesheet]")
 

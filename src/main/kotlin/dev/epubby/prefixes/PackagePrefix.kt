@@ -22,7 +22,7 @@ import dev.epubby.internal.IntroducedIn
 import dev.epubby.packages.PackageDocument
 import dev.epubby.properties.Property
 import kotlinx.collections.immutable.toPersistentHashMap
-import moe.kanon.kommons.collections.getOrThrow
+import krautils.collections.getOrThrow
 import java.net.URI
 
 /**

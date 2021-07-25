@@ -37,7 +37,7 @@ enum class Direction(val value: String) {
          * Returns the [Direction] that matches the given [string], or `null` if `string` does not match a direction.
          */
         @JvmStatic
-        fun fromStringOrNull(string: String): Direction? = when (string.toLowerCase()) {
+        fun fromStringOrNull(string: String): Direction? = when (string.lowercase()) {
             "ltr" -> LEFT_TO_RIGHT
             "rtl" -> RIGHT_TO_LEFT
             else -> null

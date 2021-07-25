@@ -16,7 +16,6 @@
 
 package dev.epubby.utils
 
-import moe.kanon.kommons.CloseableSequence
 import java.io.Closeable
 
 /**
@@ -25,16 +24,3 @@ import java.io.Closeable
  * Generally used for cases where a `Iterable` needs to be closed after being iterated.
  */
 interface CloseableIterable<out T> : Iterable<T>, Closeable
-
-/**
- * Returns a [CloseableIterable] wrapping around [this] sequence.
- *
- * Invoking [close][CloseableIterable.close] on the returned instance will close `this` sequence.
- */
-fun <T> CloseableSequence<T>.asCloseableIterable(): CloseableIterable<T> = object : CloseableIterable<T> {
-    override fun iterator(): Iterator<T> = this@asCloseableIterable.iterator()
-
-    override fun close() {
-        this@asCloseableIterable.close()
-    }
-}

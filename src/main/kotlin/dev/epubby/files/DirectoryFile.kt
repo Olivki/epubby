@@ -126,10 +126,8 @@ class DirectoryFile private constructor(
     fun newEntriesIterable(glob: String): CloseableIterable<EpubFile> =
         EntriesIterable(Files.newDirectoryStream(delegate, glob))
 
-    fun newEntriesIterable(filter: (EpubFile) -> Boolean): CloseableIterable<EpubFile> {
-        val filterImpl = DirectoryStream.Filter<Path> { filter(it.toBookFile()) }
-        return EntriesIterable(Files.newDirectoryStream(delegate, filterImpl))
-    }
+    fun newEntriesIterable(filter: (EpubFile) -> Boolean): CloseableIterable<EpubFile> =
+        EntriesIterable(Files.newDirectoryStream(delegate) { filter(it.toBookFile()) })
 
     /**
      * Walks the file tree of this directory with the given [visitor].

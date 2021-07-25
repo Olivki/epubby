@@ -21,7 +21,6 @@ import dev.epubby.EpubElement
 import dev.epubby.internal.utils.buildPersistentList
 import dev.epubby.resources.PageResource
 import kotlinx.collections.immutable.PersistentList
-import moe.kanon.kommons.INDEX_NOT_FOUND
 import java.util.concurrent.atomic.AtomicLong
 
 class TableOfContents internal constructor(
@@ -112,7 +111,7 @@ class TableOfContents internal constructor(
         // TODO: remove?
         val currentIndex: Int
             get() = when (val parent = parent) {
-                null -> INDEX_NOT_FOUND
+                null -> -1
                 else -> parent.children.indexOf(this)
             }
 

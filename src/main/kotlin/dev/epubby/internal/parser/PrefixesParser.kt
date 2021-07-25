@@ -16,8 +16,8 @@
 
 package dev.epubby.internal.parser
 
-import dev.epubby.prefixes.BasicPrefix
 import dev.epubby.prefixes.Prefix
+import dev.epubby.prefixes.PrefixImpl
 import dev.epubby.prefixes.Prefixes
 import dev.epubby.prefixes.toPrefixes
 import org.jdom2.Verifier
@@ -73,7 +73,7 @@ internal class PrefixesParser internal constructor(source: String) {
         space()
         val uri = uri()
 
-        return BasicPrefix(name, uri)
+        return PrefixImpl(name, uri)
     }
 
     private fun uri(): URI {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Oliver Berg
+ * Copyright 2019-2021 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,21 +17,25 @@
 package dev.epubby
 
 import com.github.michaelbull.logging.InlineLogger
-import dev.epubby.resources.*
-import dev.epubby.utils.*
+import dev.epubby.resources.ImageResource
+import dev.epubby.resources.ResourceFilters
+import dev.epubby.resources.ResourceVisitorUnit
+import dev.epubby.utils.ImageDimension
+import dev.epubby.utils.ImageOrientation
 import dev.epubby.utils.ImageOrientation.*
-import moe.kanon.kommons.io.ImageResizeMode
-import moe.kanon.kommons.io.paths.*
+import dev.epubby.utils.dimension
+import krautils.scalr.ImageResizeMode
 import java.awt.image.BufferedImage
 import java.nio.file.Path
+import kotlin.io.path.*
 
 const val FILE_NAME = "test_1.epub"
 const val DIR = "!EPUB2"
 
-private val INPUT: Path = pathOf("H:", "Programming", "JVM", "Kotlin", "Data", "epubby", "reader")
+private val INPUT: Path = Path("H:", "Programming", "JVM", "Kotlin", "Data", "epubby", "reader")
     .resolve(DIR)
     .resolve(FILE_NAME)
-private val OUTPUT: Path = pathOf("H:", "Programming", "JVM", "Kotlin", "Data", "epubby", "writer")
+private val OUTPUT: Path = Path("H:", "Programming", "JVM", "Kotlin", "Data", "epubby", "writer")
     .resolve(DIR)
     .resolve(FILE_NAME)
 
@@ -62,7 +66,7 @@ private object ImageResizer : ResourceVisitorUnit {
 
     override fun visitImage(resource: ImageResource) {
         val image = resource.getOrLoadImage()
-        val orientation = image.orientation
+        val orientation = ImageOrientation.fromBufferedImage(image)
 
         if (shouldResize(image, orientation)) {
             val targetDimension = when (orientation) {
@@ -85,4 +89,4 @@ private object ImageResizer : ResourceVisitorUnit {
 }
 
 private fun createBackup(original: Path): Path =
-    original.copyTo(createTmpDirectory("epubby"), keepName = true).apply { toFile().deleteOnExit() }
+    original.copyTo(createTempDirectory("epubby").resolve(original.name)).apply { toFile().deleteOnExit() }

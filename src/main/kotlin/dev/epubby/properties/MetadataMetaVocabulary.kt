@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Oliver Berg
+ * Copyright 2019-2021 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,44 +14,44 @@
  * limitations under the License.
  */
 
-package dev.epubby.properties.vocabularies
+package dev.epubby.properties
 
-import dev.epubby.page.Page
 import dev.epubby.prefixes.Prefix
-import dev.epubby.properties.Property
 import kotlinx.collections.immutable.toPersistentHashMap
-import moe.kanon.kommons.collections.getOrThrow
+import krautils.collections.getOrThrow
 import java.net.URI
 
 // TODO: documentation
 /**
- * Represents the [spine properties vocabulary](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#app-itemref-properties-vocab).
- *
- * TODO
+ * Represents the [metadata meta properties vocabulary](https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#sec-meta-property-values).
  */
-enum class SpineVocabulary(reference: String) : Property {
-    /**
-     * Indicates that the first page of the associated [Page] represents the left-hand side of a two-page spread.
-     */
-    PAGE_SPREAD_LEFT("page-spread-left"),
-
-    /**
-     * Indicates that the first page of the associated [Page] represents the right-hand side of a two-page spread.
-     */
-    PAGE_SPREAD_RIGHT("page-spread-right");
+enum class MetadataMetaVocabulary(reference: String) : Property {
+    ALTERNATE_SCRIPT("alternate-script"),
+    AUTHORITY("authority"),
+    BELONGS_TO_COLLECTION("belongs-to-collection"),
+    COLLECTION_TYPE("collection-type"),
+    DISPLAY_SEQUENCE("display-seq"),
+    FILE_AS("file-as"),
+    GROUP_POSITION("group-position"),
+    IDENTIFIER_TYPE("identifier-type"),
+    META_AUTH("meta-auth"),
+    ROLE("role"),
+    SOURCE_OF("source-of"),
+    TERM("term"),
+    TITLE_TYPE("title-type");
 
     override val reference: URI = URI.create(reference)
 
-    override val prefix: Prefix = VocabularyPrefixes.SPINE
+    override val prefix: Prefix = VocabularyPrefixes.METADATA_META
 
     companion object {
         private val REFERENCES = values().associateBy { it.reference.toString() }.toPersistentHashMap()
 
         @JvmStatic
-        fun fromReference(reference: String): SpineVocabulary =
+        fun fromReference(reference: String): MetadataMetaVocabulary =
             REFERENCES.getOrThrow(reference) { "No vocabulary entry found with the given reference '$reference'." }
 
         @JvmStatic
-        fun fromReferenceOrNull(reference: String): SpineVocabulary? = REFERENCES[reference]
+        fun fromReferenceOrNull(reference: String): MetadataMetaVocabulary? = REFERENCES[reference]
     }
 }

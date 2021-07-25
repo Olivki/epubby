@@ -19,12 +19,10 @@ package dev.epubby.properties
 import dev.epubby.EpubVersion
 import dev.epubby.internal.IntroducedIn
 import dev.epubby.prefixes.Prefix
-import dev.epubby.prefixes.requireKnown
 import java.net.URI
-import java.net.URISyntaxException
 
 @IntroducedIn(version = EpubVersion.EPUB_3_0)
-interface Property {
+sealed interface Property {
     /**
      * The prefix of `this` property.
      *
@@ -35,23 +33,23 @@ interface Property {
     /**
      * The entry that `this` property is referring to.
      */
+    // TODO: should this really be a URI? I feel like it shouldn't?
     val reference: URI
 
     /**
      * Returns the result of resolving [reference] against the `uri` of the [prefix] of `this` property.
      */
-    @JvmDefault
     fun process(): URI = prefix.uri.resolve(reference)
 
     companion object {
-        @JvmStatic
-        fun of(prefix: Prefix, reference: URI): Property {
-            requireKnown(prefix)
-            return BasicProperty(prefix, reference)
-        }
+        fun of(prefix: Prefix, reference: URI): Property = PropertyImpl(prefix, reference)
 
-        @JvmStatic
-        @Throws(URISyntaxException::class)
+        // TODO: Result<Property>
         fun of(prefix: Prefix, reference: String): Property = of(prefix, URI(reference))
     }
 }
+
+internal data class PropertyImpl internal constructor(
+    override val prefix: Prefix,
+    override val reference: URI,
+) : Property
