@@ -37,6 +37,8 @@ import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.toPersistentList
 import org.apache.commons.validator.routines.UrlValidator
 import org.jdom2.Element
+import java.net.URLDecoder
+import java.net.URLEncoder
 import dev.epubby.internal.Namespaces.OPF as NAMESPACE
 
 @SerializedName("manifest")
@@ -108,7 +110,7 @@ internal data class PackageManifestModel internal constructor(
         @JvmSynthetic
         internal fun toElement(): Element = elementOf("item", NAMESPACE) {
             it.setAttribute("id", identifier)
-            it.setAttribute("href", href)
+            it.setAttribute("href", URLEncoder.encode(href, Charsets.UTF_8))
             it.setAttribute("media-type", mediaType)
             if (fallback != null) it.setAttribute("fallback", fallback)
             if (mediaOverlay != null) it.setAttribute("media-overlay", mediaOverlay)
@@ -147,7 +149,7 @@ internal data class PackageManifestModel internal constructor(
             }
         }
 
-        private fun getFileFromHref(opf: RegularFile): RegularFile = when (val file = opf.resolveSibling(this.href)) {
+        private fun getFileFromHref(opf: RegularFile): RegularFile = when (val file = opf.resolveSibling(URLDecoder.decode(this.href, Charsets.UTF_8))) {
             is RegularFile -> file
             is DirectoryFile -> throw MalformedBookException("'href' of item $this points towards a directory file.")
             is GhostFile -> throw MalformedBookException("'href' of item $this points towards non-existent file.")
