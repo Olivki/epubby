@@ -212,6 +212,8 @@ abstract class LocalResource internal constructor(
 
     companion object {
         private val LOGGER: InlineLogger = InlineLogger(LocalResource::class)
+        // TODO: this *really* needs to go, it's incredibly wonky because it entirely relies on the classpath that
+        //       executes this, and that's not very safe and leads to very weird errors
         private val LOCATORS: List<LocalResourceLocator> by lazy { loadServices<LocalResourceLocator>().toPersistentList() }
         private val FACTORY_CACHE: MutableMap<MediaType, LocalResourceFactory> = hashMapOf()
 
