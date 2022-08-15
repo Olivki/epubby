@@ -31,6 +31,7 @@ import kotlin.reflect.full.createInstance
 import kotlin.reflect.full.isSuperclassOf
 import kotlin.reflect.jvm.jvmName
 
+// TODO: remove
 internal class KServiceLoader<S : Any> private constructor(
     val serviceClass: KClass<S>,
     val loader: ClassLoader,
