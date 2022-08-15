@@ -79,7 +79,7 @@ internal data class PackageSpineModel internal constructor(
             ?: createNcxResource(manifest)
 
         if (resource !is NcxResource) {
-            throw MalformedBookException("toc '$toc' references a resource that is not a page resource.")
+            throw MalformedBookException("toc '$toc' references a resource that is not a ncx resource: $resource")
         }
 
         return resource
