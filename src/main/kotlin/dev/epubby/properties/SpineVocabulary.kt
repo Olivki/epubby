@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Oliver Berg
+ * Copyright 2019-2022 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,6 +39,7 @@ enum class SpineVocabulary(reference: String) : Property {
      */
     PAGE_SPREAD_RIGHT("page-spread-right");
 
+    // TODO: this doesn't look right at all?..
     override val reference: URI = URI.create(reference)
 
     override val prefix: Prefix = VocabularyPrefixes.SPINE

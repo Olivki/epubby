@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Oliver Berg
+ * Copyright 2019-2022 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,4 +23,5 @@ import java.io.Closeable
  *
  * Generally used for cases where a `Iterable` needs to be closed after being iterated.
  */
+// TODO: remove this, the type information about this gets lost *very* quickly so it's actually very unsafe to use
 interface CloseableIterable<out T> : Iterable<T>, Closeable

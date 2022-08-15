@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Oliver Berg
+ * Copyright 2019-2022 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,6 +29,7 @@ import kotlinx.collections.immutable.toPersistentList
 import java.io.IOException
 import kotlin.properties.Delegates
 
+// TODO: sealed class?
 abstract class LocalResource internal constructor(
     override val epub: Epub,
     identifier: String,
@@ -131,7 +132,7 @@ abstract class LocalResource internal constructor(
     }
 
     /**
-     * Returns whether or not the given [href] is equal to this resources [href][ManifestResource.href].
+     * Returns whether the given [href] is equal to `this` resources [href][ManifestResource.href].
      *
      * This function also takes care of cases where an `href` attribute might contain a fragment-identifier *(`#`)*.
      */

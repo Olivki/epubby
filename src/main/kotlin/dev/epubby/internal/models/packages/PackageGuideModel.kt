@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Oliver Berg
+ * Copyright 2019-2022 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,21 +16,24 @@
 
 package dev.epubby.internal.models.packages
 
+import arrow.core.Either
 import com.github.michaelbull.logging.InlineLogger
 import dev.epubby.Epub
 import dev.epubby.ParseMode
 import dev.epubby.internal.models.SerializedName
 import dev.epubby.internal.utils.*
 import dev.epubby.packages.PackageManifest
-import dev.epubby.packages.guide.*
+import dev.epubby.packages.guide.CustomGuideReference
+import dev.epubby.packages.guide.GuideReference
+import dev.epubby.packages.guide.PackageGuide
+import dev.epubby.packages.guide.ReferenceType
 import dev.epubby.resources.DefaultResourceVisitor
 import dev.epubby.resources.ManifestResource
 import dev.epubby.resources.PageResource
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.plus
 import kotlinx.collections.immutable.toPersistentList
-import moe.kanon.kommons.collections.emptyEnumMap
-import moe.kanon.kommons.func.Either
+import krautils.collections.emptyEnumMap
 import org.apache.commons.collections4.map.CaseInsensitiveMap
 import org.jdom2.Element
 import dev.epubby.internal.Namespaces.OPF as NAMESPACE
@@ -48,11 +51,11 @@ internal data class PackageGuideModel internal constructor(internal val referenc
     internal fun toPackageGuide(epub: Epub, manifest: PackageManifest): PackageGuide {
         val allReferences = references.asSequence()
             .mapNotNull { it.toReference(epub, manifest) }
-        val references = allReferences.filter { it.isLeft }
-            .map { it.leftValue }
+        val references = allReferences.filterIsInstance<Either.Left<GuideReference>>()
+            .map { it.value }
             .associateByTo(emptyEnumMap()) { it.type }
-        val customReferences = allReferences.filter { it.isRight }
-            .map { it.rightValue }
+        val customReferences = allReferences.filterIsInstance<Either.Right<CustomGuideReference>>()
+            .map { it.value }
             .associateByTo(CaseInsensitiveMap()) { it.type }
         return PackageGuide(epub, references, customReferences)
     }
@@ -77,10 +80,10 @@ internal data class PackageGuideModel internal constructor(internal val referenc
         internal fun toReference(epub: Epub, manifest: PackageManifest): `Reference | CustomReference`? {
             val resource = getPageResource(manifest) ?: return null
             return when {
-                hasCustomType -> Either.right(CustomGuideReference(epub, type.substring(6), resource, title))
+                hasCustomType -> Either.Right(CustomGuideReference(epub, type.substring(6), resource, title))
                 else -> {
                     val type = ReferenceType.fromType(type)
-                    Either.left(GuideReference(epub, type, resource, title))
+                    Either.Left(GuideReference(epub, type, resource, title))
                 }
             }
         }
@@ -125,6 +128,7 @@ internal data class PackageGuideModel internal constructor(internal val referenc
 
                     "other.$value"
                 }
+
                 else -> value
             }
 

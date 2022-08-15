@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Oliver Berg
+ * Copyright 2019-2022 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,10 @@ package dev.epubby.internal.models.metainf
 
 import com.github.michaelbull.logging.InlineLogger
 import com.google.common.net.MediaType
-import dev.epubby.*
+import dev.epubby.Epub
+import dev.epubby.EpubVersion
+import dev.epubby.MalformedBookException
+import dev.epubby.ParseMode
 import dev.epubby.files.RegularFile
 import dev.epubby.internal.models.SerializedName
 import dev.epubby.internal.utils.*

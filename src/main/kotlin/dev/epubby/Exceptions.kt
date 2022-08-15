@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Oliver Berg
+ * Copyright 2019-2022 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,7 +43,7 @@ class MalformedBookExceptionList(
     /**
      * Returns a string of all the messages of [causes].
      */
-    override val message: String?
+    override val message: String
         get() = buildString {
             appendLine("Cause messages: [")
             causes.joinTo(separator = "\n", buffer = this) { "    \"${it.message}\"" }

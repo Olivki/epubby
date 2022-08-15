@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Oliver Berg
+ * Copyright 2019-2022 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,7 +33,7 @@ import dev.epubby.utils.Direction
 import org.jdom2.Document
 import org.jdom2.Namespace
 import java.nio.file.Path
-import java.util.Locale
+import java.util.*
 
 @SerializedName("package")
 internal data class PackageDocumentModel internal constructor(

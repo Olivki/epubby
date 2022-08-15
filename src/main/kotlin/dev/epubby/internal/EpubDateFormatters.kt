@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Oliver Berg
+ * Copyright 2019-2022 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,12 +19,7 @@ package dev.epubby.internal
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeFormatterBuilder
 import java.time.format.SignStyle.EXCEEDS_PAD
-import java.time.temporal.ChronoField.DAY_OF_MONTH
-import java.time.temporal.ChronoField.HOUR_OF_DAY
-import java.time.temporal.ChronoField.MINUTE_OF_HOUR
-import java.time.temporal.ChronoField.MONTH_OF_YEAR
-import java.time.temporal.ChronoField.SECOND_OF_MINUTE
-import java.time.temporal.ChronoField.YEAR_OF_ERA
+import java.time.temporal.ChronoField.*
 
 object EpubDateFormatters {
     @JvmField

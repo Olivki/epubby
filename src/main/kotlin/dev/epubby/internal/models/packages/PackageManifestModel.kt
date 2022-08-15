@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Oliver Berg
+ * Copyright 2019-2022 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,10 +26,16 @@ import dev.epubby.files.DirectoryFile
 import dev.epubby.files.GhostFile
 import dev.epubby.files.RegularFile
 import dev.epubby.internal.models.SerializedName
-import dev.epubby.internal.utils.*
+import dev.epubby.internal.utils.elementOf
+import dev.epubby.internal.utils.getAttributeValueOrThrow
+import dev.epubby.internal.utils.mapToValues
+import dev.epubby.internal.utils.tryMap
 import dev.epubby.packages.PackageManifest
 import dev.epubby.prefixes.Prefixes
-import dev.epubby.properties.*
+import dev.epubby.properties.Properties
+import dev.epubby.properties.encodeToString
+import dev.epubby.properties.propertiesOf
+import dev.epubby.properties.resolveManifestProperties
 import dev.epubby.resources.ExternalResource
 import dev.epubby.resources.LocalResource
 import dev.epubby.resources.ManifestResource
@@ -149,11 +155,12 @@ internal data class PackageManifestModel internal constructor(
             }
         }
 
-        private fun getFileFromHref(opf: RegularFile): RegularFile = when (val file = opf.resolveSibling(URLDecoder.decode(this.href, Charsets.UTF_8))) {
-            is RegularFile -> file
-            is DirectoryFile -> throw MalformedBookException("'href' of item $this points towards a directory file.")
-            is GhostFile -> throw MalformedBookException("'href' of item $this points towards non-existent file.")
-        }
+        private fun getFileFromHref(opf: RegularFile): RegularFile =
+            when (val file = opf.resolveSibling(URLDecoder.decode(this.href, Charsets.UTF_8))) {
+                is RegularFile -> file
+                is DirectoryFile -> throw MalformedBookException("'href' of item $this points towards a directory file.")
+                is GhostFile -> throw MalformedBookException("'href' of item $this points towards non-existent file.")
+            }
 
         private fun toExternalResource(
             epub: Epub,
@@ -190,6 +197,7 @@ internal data class PackageManifestModel internal constructor(
                         origin.mediaOverlay,
                         properties
                     )
+
                     is LocalResource -> {
                         val href = origin.href
                         val mediaType = origin.mediaType.toString()

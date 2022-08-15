@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Oliver Berg
+ * Copyright 2019-2022 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ import java.net.URI
  *
  * The values defined here can be used as the `rel` of a [metadata link][PackageMetadata.Link].
  *
- * @property [refinesRelation] Defines whether or not the constant can be used when the `refines` attribute is
+ * @property [refinesRelation] Defines whether the constant can be used when the `refines` attribute is
  * present.
  */
 enum class MetadataLinkRelVocabulary(reference: String, private val refinesRelation: Refines) : Property {

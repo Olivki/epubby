@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Oliver Berg
+ * Copyright 2019-2022 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,8 +48,8 @@ class ImageResource(
     var isCoverImage: Boolean
         get() = when {
             epub.version.isOlder(EPUB_3_0) -> additionalMetadata.any { it.name == "cover" }
-            else -> when {
-                COVER_IMAGE in properties -> true
+            else -> when (COVER_IMAGE) {
+                in properties -> true
                 else -> additionalMetadata.any { it.name == "cover" }
             }
         }
@@ -79,7 +79,7 @@ class ImageResource(
         }
     }
 
-    // whether or not 'image' should be reread from the 'file' next time the getter for 'image' is invoked
+    // whether 'image' should be reread from the 'file' next time the getter for 'image' is invoked
     private var shouldRefreshImage: Boolean = false
 
     /**
@@ -95,7 +95,7 @@ class ImageResource(
     /**
      * Returns the dimensions of the `image` of this resource.
      *
-     * Note that this will load `image` if it it is not already loaded, see the documentation of [getOrLoadImage] for
+     * Note that this will load `image` if it's not already loaded, see the documentation of [getOrLoadImage] for
      * more information.
      */
     val dimension: ImageDimension
@@ -180,6 +180,7 @@ class ImageResource(
      *
      * @throws [IOException] if an i/o error occurs when reading [file] into a [BufferedImage]
      */
+    // TODO: rename to 'resetImage'
     @Throws(IOException::class)
     fun refreshImage(): ImageResource = apply {
         if (isImageLoaded) {

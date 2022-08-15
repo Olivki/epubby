@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Oliver Berg
+ * Copyright 2019-2022 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ import dev.epubby.dublincore.LocalizedDublinCore.Title
 import dev.epubby.internal.utils.buildPersistentList
 import dev.epubby.utils.NonEmptyList
 import kotlinx.collections.immutable.PersistentList
-import moe.kanon.kommons.collections.asUnmodifiableList
+import krautils.collections.asUnmodifiableList
 
 class PackageMetadata(
     override val epub: Epub,

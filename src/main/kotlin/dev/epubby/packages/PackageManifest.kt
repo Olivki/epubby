@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Oliver Berg
+ * Copyright 2019-2022 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,8 +22,8 @@ import dev.epubby.files.RegularFile
 import dev.epubby.internal.utils.buildPersistentList
 import dev.epubby.resources.*
 import kotlinx.collections.immutable.PersistentList
-import moe.kanon.kommons.collections.asUnmodifiableMap
-import moe.kanon.kommons.collections.getOrThrow
+import krautils.collections.asUnmodifiableMap
+import krautils.collections.getOrThrow
 import java.io.IOException
 import java.util.function.Consumer
 
@@ -61,7 +61,7 @@ class PackageManifest internal constructor(
         get() = "PackageManifest"
 
     fun addLocalResource(resource: LocalResource) {
-        require(resource.epub == epub, "resource.epub == this.epub")
+        require(resource.epub == epub) { "resource.epub == this.epub" }
         require(resource !in this) { "Resource '$resource' already exists in this manifest." }
         require(resource.identifier !in this) { "Identifier '${resource.identifier}' must be unique." }
         // TODO: throw an error if 'identifier' is already registered here?
@@ -79,7 +79,8 @@ class PackageManifest internal constructor(
      * [identifier][ManifestResource.identifier] as the given [identifier], otherwise `false`.
      */
     @JvmName("hasResource")
-    operator fun contains(identifier: String): Boolean = identifier in _localResources || identifier in _externalResources
+    operator fun contains(identifier: String): Boolean =
+        identifier in _localResources || identifier in _externalResources
 
     operator fun contains(resource: LocalResource): Boolean = _localResources.containsValue(resource)
 
@@ -214,7 +215,7 @@ class PackageManifest internal constructor(
 
             if (resource != null) {
                 fileToLocalResource -= oldFile.fullPath
-                fileToLocalResource[newFile.fullPath] =  resource
+                fileToLocalResource[newFile.fullPath] = resource
             } else {
                 throw IllegalStateException("Given oldFile '$oldFile' does not represent a resource file.")
             }

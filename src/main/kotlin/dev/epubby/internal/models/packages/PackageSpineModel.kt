@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Oliver Berg
+ * Copyright 2019-2022 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,10 @@ import dev.epubby.EpubVersion.EPUB_3_0
 import dev.epubby.MalformedBookException
 import dev.epubby.ParseMode
 import dev.epubby.internal.models.SerializedName
-import dev.epubby.internal.utils.*
+import dev.epubby.internal.utils.elementOf
+import dev.epubby.internal.utils.getAttributeValueOrThrow
+import dev.epubby.internal.utils.mapToValues
+import dev.epubby.internal.utils.tryMap
 import dev.epubby.packages.PackageManifest
 import dev.epubby.packages.PackageSpine
 import dev.epubby.page.Page
@@ -35,11 +38,9 @@ import dev.epubby.resources.PageResource
 import dev.epubby.utils.PageProgressionDirection
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.toPersistentList
-import moe.kanon.kommons.io.paths.createFile
-import moe.kanon.kommons.lang.ParseException
-import moe.kanon.kommons.lang.parse
 import org.jdom2.Element
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.io.path.createFile
 import dev.epubby.internal.Namespaces.OPF as NAMESPACE
 
 @SerializedName("spine")
@@ -158,10 +159,11 @@ internal data class PackageSpineModel internal constructor(
                 return ItemReferenceModel(identifierReference, identifier, isLinear, properties)
             }
 
-            private fun parseLinear(value: String): Boolean = try {
-                Boolean.parse(value)
-            } catch (e: ParseException) {
-                throw MalformedBookException("Expected value of 'linear' is 'yes' or 'no', was '$value'.", e)
+            // TODO: this used a more lenient boolean parsing function before, but now we're just matching directly
+            private fun parseLinear(value: String): Boolean = when (value) {
+                "yes" -> true
+                "no" -> false
+                else -> throw MalformedBookException("Expected value of 'linear' is 'yes' or 'no', was '$value'.")
             }
 
             @JvmSynthetic

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Oliver Berg
+ * Copyright 2019-2022 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,11 +24,13 @@ import dev.epubby.prefixes.Prefixes
 
 typealias Relationship = Property
 
+// TODO: remove as we now have sealed interfaces
 @get:JvmSynthetic
 internal val Property.isKnownInstance: Boolean
     get() = this is PropertyImpl || this is ManifestVocabulary || this is MetadataLinkRelVocabulary
-        || this is MetadataLinkVocabulary || this is MetadataMetaVocabulary || this is SpineVocabulary
+            || this is MetadataLinkVocabulary || this is MetadataMetaVocabulary || this is SpineVocabulary
 
+// TODO: remove as we now have sealed interfaces
 @JvmSynthetic
 internal fun requireKnown(property: Property) {
     if (!property.isKnownInstance) {

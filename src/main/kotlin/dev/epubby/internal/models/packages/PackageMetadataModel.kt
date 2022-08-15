@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Oliver Berg
+ * Copyright 2019-2022 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,7 +32,10 @@ import dev.epubby.internal.models.dublincore.DublinCoreModel
 import dev.epubby.internal.models.dublincore.DublinCoreModel.IdentifierModel
 import dev.epubby.internal.models.dublincore.DublinCoreModel.LanguageModel
 import dev.epubby.internal.models.dublincore.LocalizedDublinCoreModel.TitleModel
-import dev.epubby.internal.utils.*
+import dev.epubby.internal.utils.elementOf
+import dev.epubby.internal.utils.getAttributeValueOrThrow
+import dev.epubby.internal.utils.mapToValues
+import dev.epubby.internal.utils.tryMap
 import dev.epubby.packages.metadata.*
 import dev.epubby.prefixes.Prefixes
 import dev.epubby.properties.*
@@ -187,12 +190,15 @@ internal data class PackageMetadataModel internal constructor(
                 (httpEquiv != null && content != null) && (name == null && charset == null) -> {
                     Opf2Meta.HttpEquiv(epub, httpEquiv, content, scheme, attributes)
                 }
+
                 (name != null && content != null) && (httpEquiv == null && charset == null) -> {
                     Opf2Meta.Name(epub, name, content, scheme, attributes)
                 }
+
                 (charset != null) && (name == null && httpEquiv == null && content == null) -> {
                     Opf2Meta.Charset(epub, charset, scheme, attributes)
                 }
+
                 else -> {
                     LOGGER.error { "Can't convert $this to either of HttpEquiv/Name/Charset as it has a faulty combination of attributes." }
                     null
@@ -284,7 +290,8 @@ internal data class PackageMetadataModel internal constructor(
                 else -> when {
                     // TODO: this might not be needed?
                     refines.startsWith("#") -> dublinCoreElements
-                        .firstOrNull { it.identifier == refines.drop(1) } ?: return null// TODO: bring this back or something invalidRefines()
+                        .firstOrNull { it.identifier == refines.drop(1) }
+                        ?: return null// TODO: bring this back or something invalidRefines()
                     else -> dublinCoreElements.firstOrNull { it.identifier == refines } ?: invalidRefines()
                 }
             }?.toDublinCore(epub)
@@ -494,9 +501,9 @@ internal data class PackageMetadataModel internal constructor(
         }
 
         private fun Element.isOpf2MetaElement(): Boolean = attributes.none { it.name in Opf3MetaModel.metaAttributes }
-            && attributes.any { it.name in Opf2MetaModel.metaAttributes }
+                && attributes.any { it.name in Opf2MetaModel.metaAttributes }
 
         private fun Element.isOpf3MetaElement(): Boolean = attributes.any { it.name in Opf3MetaModel.metaAttributes }
-            && attributes.none { it.name in Opf2MetaModel.metaAttributes }
+                && attributes.none { it.name in Opf2MetaModel.metaAttributes }
     }
 }

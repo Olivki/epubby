@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Oliver Berg
+ * Copyright 2019-2022 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,9 +18,13 @@ package dev.epubby.internal
 
 internal object Patterns {
     // -- WHITESPACE -- \\
-    @JvmField val WHITESPACE = """\s""".toRegex()
-    @JvmField val EXCESSIVE_WHITESPACE = """\s{2,}""".toRegex()
+    @JvmField
+    val WHITESPACE = """\s""".toRegex()
+
+    @JvmField
+    val EXCESSIVE_WHITESPACE = """\s{2,}""".toRegex()
 
     // -- SPACE -- \\
-    @JvmField val EXCESSIVE_SPACE = " {2,}".toRegex()
+    @JvmField
+    val EXCESSIVE_SPACE = " {2,}".toRegex()
 }

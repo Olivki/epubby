@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Oliver Berg
+ * Copyright 2019-2022 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,7 +44,7 @@ class CustomGuideReference internal constructor(
     }
 
     override fun hashCode(): Int {
-        var result = type.toLowerCase().hashCode()
+        var result = type.lowercase().hashCode()
         result = 31 * result + reference.hashCode()
         result = 31 * result + (title?.hashCode() ?: 0)
         return result

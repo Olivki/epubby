@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Oliver Berg
+ * Copyright 2019-2022 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@
 
 package dev.epubby.internal.models.toc
 
+import arrow.core.Either
+import arrow.core.left
 import com.github.michaelbull.logging.InlineLogger
 import dev.epubby.Epub
 import dev.epubby.ParseMode
@@ -29,8 +31,6 @@ import dev.epubby.toc.TableOfContents.Entry
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toPersistentList
-import moe.kanon.kommons.func.Try
-import moe.kanon.kommons.func.toFailure
 import org.jdom2.Document
 import org.jdom2.Element
 import org.jdom2.Namespace.XML_NAMESPACE
@@ -125,7 +125,7 @@ internal data class NavigationCenterExtendedModel internal constructor(
                     val content = element.getAttributeValue("content") ?: return missingAttribute(element, "content")
                     val scheme: String? = element.getAttributeValue("scheme")
 
-                    return Try.success(MetaModel(name, content, scheme))
+                    return Either.Right(MetaModel(name, content, scheme))
                 }
             }
         }
@@ -142,7 +142,7 @@ internal data class NavigationCenterExtendedModel internal constructor(
                     .toPersistentList()
                     .ifEmpty { return missingChild(element, "meta") }
 
-                return Try.success(HeadModel(metaEntries))
+                return Either.Right(HeadModel(metaEntries))
             }
         }
     }
@@ -194,7 +194,7 @@ internal data class NavigationCenterExtendedModel internal constructor(
                 val identifier: String? = element.getAttributeValue("id")
                 val clazz: String? = element.getAttributeValue("class")
 
-                return Try.success(ImageModel(source, identifier, clazz))
+                return Either.Right(ImageModel(source, identifier, clazz))
             }
         }
     }
@@ -216,7 +216,7 @@ internal data class NavigationCenterExtendedModel internal constructor(
                 val source = element.getAttributeValue("src") ?: return missingAttribute(element, "src")
                 val identifier: String? = element.getAttributeValue("id")
 
-                return Try.success(ContentModel(source, identifier))
+                return Either.Right(ContentModel(source, identifier))
             }
         }
     }
@@ -244,10 +244,10 @@ internal data class NavigationCenterExtendedModel internal constructor(
                     TextModel.fromElement(it)
                 } ?: return missingChild(element, "text")
                 val image = element.getChild("img", element.namespace)?.let {
-                    ImageModel.fromElement(it).fold({ e -> return e.toFailure() }, ::self)
+                    ImageModel.fromElement(it).fold({ e -> return e.left() }, ::self)
                 }
 
-                return Try.success(DocTitleModel(identifier, text, image))
+                return Either.Right(DocTitleModel(identifier, text, image))
             }
         }
     }
@@ -275,10 +275,10 @@ internal data class NavigationCenterExtendedModel internal constructor(
                     TextModel.fromElement(it)
                 } ?: return missingChild(element, "text")
                 val image = element.getChild("img", element.namespace)?.let {
-                    ImageModel.fromElement(it).fold({ e -> return e.toFailure() }, ::self)
+                    ImageModel.fromElement(it).fold({ e -> return e.left() }, ::self)
                 }
 
-                return Try.success(DocAuthorModel(identifier, text, image))
+                return Either.Right(DocAuthorModel(identifier, text, image))
             }
         }
     }
@@ -336,7 +336,7 @@ internal data class NavigationCenterExtendedModel internal constructor(
                     .toPersistentList()
                     .ifEmpty { return missingChild(element, "navPoint") }
 
-                return Try.success(NavMapModel(identifier, infoEntries, labels, points))
+                return Either.Right(NavMapModel(identifier, infoEntries, labels, points))
             }
         }
     }
@@ -380,7 +380,7 @@ internal data class NavigationCenterExtendedModel internal constructor(
             mode: ParseMode,
         ): Try<Entry> {
             val title = labels.first().text.content
-            val resource = getResource(epub).fold({ return it.toFailure() }, ::self)
+            val resource = getResource(epub).fold({ return it.left() }, ::self)
             val fragment = run {
                 val source = content.source
                 if ('#' in source) source.substringAfterLast('#') else null
@@ -394,7 +394,7 @@ internal data class NavigationCenterExtendedModel internal constructor(
 
             entry.children.addAll(children)
 
-            return Try.success(entry)
+            return Either.Right(entry)
         }
 
         private fun getResource(epub: Epub): Try<PageResource> {
@@ -408,7 +408,7 @@ internal data class NavigationCenterExtendedModel internal constructor(
                 ?: return malformedFailure("'content/source' ($fixedSource) of nav-point '$identifier' points towards a non resource file.")
 
             return when (resource) {
-                is PageResource -> Try.success(resource)
+                is PageResource -> Either.Right(resource)
                 else -> malformedFailure("'content/source' ($fixedSource) of nav-point '$identifier' points towards a non page resource file.")
             }
         }
@@ -428,7 +428,7 @@ internal data class NavigationCenterExtendedModel internal constructor(
                     .toPersistentList()
                     .ifEmpty { return missingChild(element, "navLabel") }
                 val content = element.getChild("content", element.namespace)?.let {
-                    ContentModel.fromElement(it).fold({ e -> return e.toFailure() }, ::self)
+                    ContentModel.fromElement(it).fold({ e -> return e.left() }, ::self)
                 } ?: return missingChild(element, "content")
                 val children = element.getChildren("navPoint", element.namespace)
                     .asSequence()
@@ -437,10 +437,10 @@ internal data class NavigationCenterExtendedModel internal constructor(
                     .filterFailure(LOGGER, mode)
                     .toPersistentList()
 
-                return Try.success(NavPointModel(identifier, clazz, playOrder, labels, content, children))
+                return Either.Right(NavPointModel(identifier, clazz, playOrder, labels, content, children))
             }
 
-            internal fun fromEntry(entry: Entry): NavPointModel? {
+            internal fun fromEntry(entry: Entry): NavPointModel {
                 val title = persistentListOf(NavLabelModel(text = TextModel(entry.title)))
                 val href = entry.resource.href
                 val content = ContentModel(entry.fragment?.let { "$href#$it" } ?: href)
@@ -478,10 +478,10 @@ internal data class NavigationCenterExtendedModel internal constructor(
                     TextModel.fromElement(it)
                 } ?: return missingChild(element, "text")
                 val image = element.getChild("img", element.namespace)?.let {
-                    ImageModel.fromElement(it).fold({ e -> return e.toFailure() }, ::self)
+                    ImageModel.fromElement(it).fold({ e -> return e.left() }, ::self)
                 }
 
-                return Try.success(NavLabelModel(language, direction, text, image))
+                return Either.Right(NavLabelModel(language, direction, text, image))
             }
         }
     }
@@ -514,10 +514,10 @@ internal data class NavigationCenterExtendedModel internal constructor(
                     TextModel.fromElement(it)
                 } ?: return missingChild(element, "text")
                 val image = element.getChild("img", element.namespace)?.let {
-                    ImageModel.fromElement(it).fold({ e -> return e.toFailure() }, ::self)
+                    ImageModel.fromElement(it).fold({ e -> return e.left() }, ::self)
                 }
 
-                return Try.success(NavInfoModel(language, direction, text, image))
+                return Either.Right(NavInfoModel(language, direction, text, image))
             }
         }
     }
@@ -580,7 +580,7 @@ internal data class NavigationCenterExtendedModel internal constructor(
                     .toPersistentList()
                     .ifEmpty { return missingChild(element, "pageTarget") }
 
-                return Try.success(PageListModel(identifier, clazz, infoEntries, labels, targets))
+                return Either.Right(PageListModel(identifier, clazz, infoEntries, labels, targets))
             }
         }
     }
@@ -632,10 +632,10 @@ internal data class NavigationCenterExtendedModel internal constructor(
                     .filterFailure(LOGGER, mode)
                     .toPersistentList()
                 val content = element.getChild("content")?.let {
-                    ContentModel.fromElement(it).fold({ e -> return e.toFailure() }, ::self)
+                    ContentModel.fromElement(it).fold({ e -> return e.left() }, ::self)
                 } ?: return missingChild(element, "content")
 
-                return Try.success(PageTargetModel(identifier, type, value, clazz, playOrder, labels, content))
+                return Either.Right(PageTargetModel(identifier, type, value, clazz, playOrder, labels, content))
             }
         }
     }
@@ -700,7 +700,7 @@ internal data class NavigationCenterExtendedModel internal constructor(
                     .toPersistentList()
                     .ifEmpty { return missingChild(element, "navTarget") }
 
-                return Try.success(NavListModel(identifier, clazz, infoEntries, labels, targets))
+                return Either.Right(NavListModel(identifier, clazz, infoEntries, labels, targets))
             }
         }
     }
@@ -749,10 +749,10 @@ internal data class NavigationCenterExtendedModel internal constructor(
                     .toPersistentList()
                     .ifEmpty { return missingChild(element, "navLabel") }
                 val content = element.getChild("content", element.namespace)?.let {
-                    ContentModel.fromElement(it).fold({ e -> return e.toFailure() }, ::self)
+                    ContentModel.fromElement(it).fold({ e -> return e.left() }, ::self)
                 } ?: return missingChild(element, "content")
 
-                return Try.success(NavTargetModel(identifier, value, clazz, playOrder, labels, content))
+                return Either.Right(NavTargetModel(identifier, value, clazz, playOrder, labels, content))
             }
         }
     }
@@ -769,10 +769,10 @@ internal data class NavigationCenterExtendedModel internal constructor(
             val direction: String? = root.getAttributeValue("dir")
 
             val head = root.getChild("head", root.namespace)?.let {
-                HeadModel.fromElement(it, mode).fold({ e -> return e.toFailure() }, ::self)
+                HeadModel.fromElement(it, mode).fold({ e -> return e.left() }, ::self)
             } ?: return missingChild(root, "head")
             val title = root.getChild("docTitle", root.namespace)?.let {
-                DocTitleModel.fromElement(it).fold({ e -> return e.toFailure() }, ::self)
+                DocTitleModel.fromElement(it).fold({ e -> return e.left() }, ::self)
             } ?: return missingChild(root, "docTitle")
             val authors = root.getChildren("docAuthor", root.namespace)
                 .asSequence()
@@ -781,10 +781,10 @@ internal data class NavigationCenterExtendedModel internal constructor(
                 .filterFailure(LOGGER, mode)
                 .toPersistentList()
             val navMap = root.getChild("navMap", root.namespace)?.let {
-                NavMapModel.fromElement(it, mode).fold({ e -> return e.toFailure() }, ::self)
+                NavMapModel.fromElement(it, mode).fold({ e -> return e.left() }, ::self)
             } ?: return missingChild(root, "navMap")
             val pageList = root.getChild("pageList", root.namespace)?.let {
-                PageListModel.fromElement(it, mode).fold({ e -> return e.toFailure() }, ::self)
+                PageListModel.fromElement(it, mode).fold({ e -> return e.left() }, ::self)
             }
             val navLists = root.getChildren("navList", root.namespace)
                 .asSequence()
@@ -793,7 +793,7 @@ internal data class NavigationCenterExtendedModel internal constructor(
                 .filterFailure(LOGGER, mode)
                 .toPersistentList()
 
-            return@use Try.success(
+            return@use Either.Right(
                 NavigationCenterExtendedModel(
                     ncx,
                     version,

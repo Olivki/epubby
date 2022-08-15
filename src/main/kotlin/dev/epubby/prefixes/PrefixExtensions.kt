@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Oliver Berg
+ * Copyright 2019-2022 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,9 +26,11 @@ import dev.epubby.properties.VocabularyPrefixes.SPINE
 /**
  * Returns `true` if `this` prefix is an implementation that is known by Epubby, otherwise `false`.
  */
+// TODO: remove this, as we now have sealed interfaces
 val Prefix.isKnownInstance: Boolean
     get() = this is PrefixImpl || this is PackagePrefix || this is VocabularyPrefix
 
+// TODO: remove this, as we now have sealed interfaces
 @JvmSynthetic
 internal fun requireKnown(prefix: Prefix) {
     if (!prefix.isKnownInstance) {

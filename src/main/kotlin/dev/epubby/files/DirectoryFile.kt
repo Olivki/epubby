@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 Oliver Berg
+ * Copyright 2020-2022 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -101,8 +101,10 @@ class DirectoryFile private constructor(
 
                 true
             }
+
             else -> false
         }
+
         else -> throw UnsupportedOperationException("File at '$fullPath' can not be deleted.")
     }
 
@@ -113,8 +115,10 @@ class DirectoryFile private constructor(
                 walkFileTree(DeletingFileVisitor)
                 true
             }
+
             else -> false
         }
+
         else -> false
     }
 
@@ -235,6 +239,7 @@ class DirectoryFile private constructor(
                     DirectoryFile(parent.epub, target)
                 }
             }
+
             else -> throw IllegalArgumentException("File at '$path' is not a directory file.")
         }
 

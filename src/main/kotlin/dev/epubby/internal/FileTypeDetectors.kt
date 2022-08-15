@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Oliver Berg
+ * Copyright 2019-2022 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,9 +17,9 @@
 package dev.epubby.internal
 
 import com.google.auto.service.AutoService
-import moe.kanon.kommons.io.paths.name
 import java.nio.file.Path
 import java.nio.file.spi.FileTypeDetector
+import kotlin.io.path.name
 
 /**
  * [Navigation Center eXtended](http://www.idpf.org/epub/20/spec/OPF_2.0.1_draft.htm#Section2.4.1)

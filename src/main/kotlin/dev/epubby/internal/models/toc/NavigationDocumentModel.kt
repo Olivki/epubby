@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Oliver Berg
+ * Copyright 2019-2022 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,9 +19,12 @@ package dev.epubby.internal.models.toc
 import dev.epubby.internal.models.SerializedName
 import dev.epubby.utils.*
 import kotlinx.collections.immutable.PersistentList
-import moe.kanon.kommons.io.paths.writeString
-import org.jsoup.nodes.*
+import org.jsoup.nodes.Attributes
+import org.jsoup.nodes.Document
+import org.jsoup.nodes.Element
+import org.jsoup.nodes.TextNode
 import java.nio.file.Path
+import kotlin.io.path.writeText
 
 internal class NavigationDocumentModel internal constructor(
     private val file: Path,
@@ -32,7 +35,7 @@ internal class NavigationDocumentModel internal constructor(
 ) {
     internal fun writeToFile() {
         val document = toDocument(file.toUri().toString())
-        file.writeString(document.toOuterHtml())
+        file.writeText(document.toOuterHtml())
     }
 
     private fun toDocument(baseUri: String): Document = documentShell(baseUri, true).also {

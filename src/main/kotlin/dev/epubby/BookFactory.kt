@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Oliver Berg
+ * Copyright 2019-2022 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,13 +23,13 @@ import dev.epubby.internal.models.packages.PackageDocumentModel
 import dev.epubby.internal.utils.documentFrom
 import dev.epubby.internal.utils.getAttributeValueOrThrow
 import dev.epubby.internal.utils.use
-import moe.kanon.kommons.io.paths.*
 import org.jdom2.Document
 import java.io.IOException
 import java.nio.charset.StandardCharsets
 import java.nio.file.FileSystem
 import java.nio.file.FileSystems
 import java.nio.file.Path
+import kotlin.io.path.*
 
 @JvmOverloads
 fun readEpub(epubFile: Path, mode: ParseMode = ParseMode.STRICT): Epub {
@@ -67,26 +67,26 @@ fun readEpub(epubFile: Path, mode: ParseMode = ParseMode.STRICT): Epub {
 // Verifies that the EPUB is, at least, minimally sound.
 private fun verifyFile(mimeType: Path, metaInf: Path, fileSystem: FileSystem) {
     // the 'META-INF' directory NEEDS to exist because the 'container.xml' NEEDS to exist inside of it
-    if (metaInf.notExists || !metaInf.isDirectory) {
+    if (metaInf.notExists() || !metaInf.isDirectory()) {
         invalidFile("'META-INF' directory is missing from root of epub", fileSystem)
     }
 
     val container = metaInf.resolve("container.xml")
 
     // the 'container.xml' file NEEDS to exist, as it is the document providing the location of the 'opf' document
-    if (container.notExists || !container.isRegularFile) {
+    if (container.notExists() || !container.isRegularFile()) {
         invalidFile("'container.xml' file is missing from the '/META-INF/' directory", fileSystem)
     }
 
     // 'mimetype' NEEDS to exist in the root of the epub file
-    if (mimeType.notExists || !mimeType.isRegularFile) {
+    if (mimeType.notExists() || !mimeType.isRegularFile()) {
         invalidFile("'mimetype' file is missing from root of epub", fileSystem)
     }
 
     // 'mimetype' NEEDS to contain the string "application/epub+zip" encoded in ASCII
-    if (mimeType.exists) {
+    if (mimeType.exists()) {
         val contents = try {
-            mimeType.readString(StandardCharsets.US_ASCII)
+            mimeType.readText(StandardCharsets.US_ASCII)
         } catch (e: IOException) {
             invalidFile("could not read 'mimetype' file with ASCII charset: ${e.message}", fileSystem, e)
         }

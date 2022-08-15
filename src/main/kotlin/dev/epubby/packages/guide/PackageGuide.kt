@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Oliver Berg
+ * Copyright 2019-2022 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,13 +22,11 @@ import dev.epubby.EpubElement
 import dev.epubby.EpubVersion.EPUB_3_0
 import dev.epubby.internal.MarkedAsLegacy
 import dev.epubby.packages.PackageDocument
-import dev.epubby.packages.guide.CorrectorDuplicationStrategy.DO_NOTHING
-import dev.epubby.packages.guide.CorrectorDuplicationStrategy.REMOVE_CUSTOM
-import dev.epubby.packages.guide.CorrectorDuplicationStrategy.REPLACE_EXISTING
+import dev.epubby.packages.guide.CorrectorDuplicationStrategy.*
 import dev.epubby.resources.PageResource
-import moe.kanon.kommons.collections.asUnmodifiableMap
-import moe.kanon.kommons.collections.emptyEnumMap
-import moe.kanon.kommons.collections.getOrThrow
+import krautils.collections.asUnmodifiableMap
+import krautils.collections.emptyEnumMap
+import krautils.collections.getOrThrow
 
 // TODO: silently map any custom references that use actual proper reference types to a GuideReference instead of
 //       throwing an exception when attempting to add them?
@@ -129,10 +127,12 @@ class PackageGuide(
                             _customReferences -= customType
                             _references[type] = reference
                         }
+
                         REMOVE_CUSTOM -> {
                             LOGGER.debug { "Removing $customReference in favour of $knownReference" }
                             _customReferences -= customType
                         }
+
                         DO_NOTHING -> {}
                     }
                 } else {

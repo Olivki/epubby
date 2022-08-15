@@ -32,6 +32,7 @@ dependencies {
 
     // logging
     implementation(group = "com.michael-bull.kotlin-inline-logger", name = "kotlin-inline-logger", version = "1.0.2")
+    implementation("io.arrow-kt:arrow-core:1.1.2")
 
     // css handler
     api(group = "com.helger", name = "ph-css", version = "6.2.0")

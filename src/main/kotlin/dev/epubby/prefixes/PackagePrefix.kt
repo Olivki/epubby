@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Oliver Berg
+ * Copyright 2019-2022 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,6 +42,7 @@ import java.net.URI
 @IntroducedIn(version = EpubVersion.EPUB_3_0)
 enum class PackagePrefix(override val title: String, override val uri: URI) : Prefix {
     A11Y("a11y", URI.create("http://www.idpf.org/epub/vocab/package/a11y/#")),
+
     // TODO: is the actual prefix 'dc'?
     DC_TERMS("dcterms", URI.create("http://purl.org/dc/terms/")),
     MARC("marc", URI.create("http://id.loc.gov/vocabulary/")),

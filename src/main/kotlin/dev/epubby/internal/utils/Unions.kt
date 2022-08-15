@@ -16,8 +16,9 @@
 
 package dev.epubby.internal.utils
 
+import arrow.core.Either
 import dev.epubby.packages.guide.CustomGuideReference
 import dev.epubby.packages.guide.GuideReference
-import moe.kanon.kommons.func.Either
 
+// TODO: refactor this
 internal typealias `Reference | CustomReference` = Either<GuideReference, CustomGuideReference>

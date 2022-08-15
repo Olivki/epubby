@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 Oliver Berg
+ * Copyright 2020-2022 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 package dev.epubby.files
 
 import dev.epubby.Epub
-import moe.kanon.kommons.io.paths.createFrom
+import krautils.io.copyTo
 import java.io.*
 import java.nio.ByteBuffer
 import java.nio.channels.SeekableByteChannel
@@ -109,11 +109,13 @@ class RegularFile private constructor(
      * @see [Files.newOutputStream]
      */
     @JvmOverloads
-    fun newOutputStream(vararg options: OpenOption = arrayOf(
-        StandardOpenOption.CREATE,
-        StandardOpenOption.TRUNCATE_EXISTING,
-        StandardOpenOption.WRITE
-    )): OutputStream {
+    fun newOutputStream(
+        vararg options: OpenOption = arrayOf(
+            StandardOpenOption.CREATE,
+            StandardOpenOption.TRUNCATE_EXISTING,
+            StandardOpenOption.WRITE
+        )
+    ): OutputStream {
         checkModificationPermissions()
         return Files.newOutputStream(delegate, *options)
     }
@@ -133,11 +135,13 @@ class RegularFile private constructor(
      * @see [Files.newBufferedWriter]
      */
     @JvmOverloads
-    fun newBufferedWriter(vararg options: OpenOption = arrayOf(
-        StandardOpenOption.CREATE,
-        StandardOpenOption.TRUNCATE_EXISTING,
-        StandardOpenOption.WRITE
-    )): BufferedWriter {
+    fun newBufferedWriter(
+        vararg options: OpenOption = arrayOf(
+            StandardOpenOption.CREATE,
+            StandardOpenOption.TRUNCATE_EXISTING,
+            StandardOpenOption.WRITE
+        )
+    ): BufferedWriter {
         checkModificationPermissions()
         return Files.newBufferedWriter(delegate, *options)
     }
@@ -166,11 +170,13 @@ class RegularFile private constructor(
      * @see [Files.newByteChannel]
      */
     @JvmOverloads
-    fun newByteChannel(vararg options: OpenOption = arrayOf(
-        StandardOpenOption.CREATE,
-        StandardOpenOption.TRUNCATE_EXISTING,
-        StandardOpenOption.WRITE
-    )): SeekableByteChannel {
+    fun newByteChannel(
+        vararg options: OpenOption = arrayOf(
+            StandardOpenOption.CREATE,
+            StandardOpenOption.TRUNCATE_EXISTING,
+            StandardOpenOption.WRITE
+        )
+    ): SeekableByteChannel {
         val channel = Files.newByteChannel(delegate, *options)
         return when {
             canBeModified -> channel
@@ -329,7 +335,7 @@ class RegularFile private constructor(
                 fileAlreadyExists(parent.delegate)
             }
 
-            target.createFrom(input)
+            input.copyTo(target)
 
             return RegularFile(parent.epub, target)
         }
@@ -370,6 +376,7 @@ class RegularFile private constructor(
                     RegularFile(parent.epub, Files.copy(path, target, StandardCopyOption.COPY_ATTRIBUTES))
                 }
             }
+
             else -> throw IllegalArgumentException("File at '$path' is not a regular file.")
         }
 

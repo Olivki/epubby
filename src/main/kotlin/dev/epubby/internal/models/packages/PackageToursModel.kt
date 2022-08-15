@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Oliver Berg
+ * Copyright 2019-2022 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,10 @@ import dev.epubby.Epub
 import dev.epubby.MalformedBookException
 import dev.epubby.ParseMode
 import dev.epubby.internal.models.SerializedName
-import dev.epubby.internal.utils.*
+import dev.epubby.internal.utils.elementOf
+import dev.epubby.internal.utils.getAttributeValueOrThrow
+import dev.epubby.internal.utils.mapToValues
+import dev.epubby.internal.utils.tryMap
 import dev.epubby.packages.PackageTours
 import dev.epubby.utils.toNonEmptyList
 import kotlinx.collections.immutable.PersistentList

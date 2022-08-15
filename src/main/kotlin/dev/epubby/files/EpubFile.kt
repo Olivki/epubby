@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Oliver Berg
+ * Copyright 2019-2022 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -201,6 +201,7 @@ sealed class EpubFile {
      *
      * If a file can't [be modified][canBeDeleted] then it can't be deleted either.
      */
+    // TODO: rename to something like 'isProtected'? Of course in that case the semantics would be the opposite of this
     val canBeDeleted: Boolean
         @JvmName("canBeDeleted")
         get() = !isResourceFile && canBeModified && !isOpfFile && !isOpfDirectory

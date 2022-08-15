@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Oliver Berg
+ * Copyright 2019-2022 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package dev.epubby
 
+// TODO: make this not an enum?
 enum class EpubVersion(val major: Int, val minor: Int) {
     /**
      * Represents the [EPUB 2.0](http://www.idpf.org/epub/dir/#epub201) format.

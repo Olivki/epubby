@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Oliver Berg
+ * Copyright 2019-2022 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -80,6 +80,8 @@ class Epub internal constructor(
      * these files is ***highly discouraged***, as that can, and most likely will, cause severe issues for the system.
      */
     // TODO: will this work correctly?
+    // TODO: instead of providing file stuff directly on this instance, provide some sort of Virtual File System container
+    //       like 'EpubFileSystem' that uses our custom File types
     val root: DirectoryFile = DirectoryFile(fileSystem.getPath("/"), this)
 
     /**
@@ -169,6 +171,7 @@ class Epub internal constructor(
         }
 
     // TODO: documentation
+    // TODO: move this to the proposed EpubFileSystem class, as it would make more sense in there
     @JvmOverloads
     fun organizeFiles(nameClashStrategy: NameClashStrategy = NameClashStrategy.THROW_EXCEPTION) {
         val desiredOpfDirectory = root.resolveDirectory("OEBPS/")
@@ -211,6 +214,7 @@ class Epub internal constructor(
                     metadata.addDublinCore(entry)
                 }
             }
+
             else -> {
                 val property = Property.of(PackagePrefix.DC_TERMS, "modified")
                 val meta = metadata.opf3MetaEntries.firstOrNull { property matches it.property }
@@ -237,6 +241,10 @@ class Epub internal constructor(
      * Closes the [fileSystem] belonging to this epub, and writes all modifications done to this EPUB back to the
      * appropriate files.
      */
+    // TODO: 'close' shouldn't be the thing that writes everything back ideally
+    //       we probably want a function that does write everything but also saves the files, but with a clearer name
+    //       because 'close' does not make it clear that this function will actually modify the epub.
+    //       a normal 'close' should just not save any changes done.
     override fun close() {
         VerifierEpub.verify(this)
         LOGGER.debug { "Closing filesystem of $this and writing contents.." }

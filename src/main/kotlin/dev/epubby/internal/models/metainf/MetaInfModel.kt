@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Oliver Berg
+ * Copyright 2019-2022 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,9 +21,9 @@ import dev.epubby.ParseMode
 import dev.epubby.files.DirectoryFile
 import dev.epubby.metainf.MetaInf
 import dev.epubby.prefixes.Prefixes
-import moe.kanon.kommons.io.paths.exists
 import java.nio.file.FileSystem
 import java.nio.file.Path
+import kotlin.io.path.exists
 
 internal data class MetaInfModel internal constructor(
     private val directory: Path,
@@ -64,19 +64,19 @@ internal data class MetaInfModel internal constructor(
 
             val container = MetaInfContainerModel.fromFile(containerFile, mode)
             val encryption = directory.resolve("encryption.xml")
-                .takeIf { it.exists }
+                .takeIf { it.exists() }
                 ?.let { MetaInfEncryptionModel.fromFile(it) }
             val manifest = directory.resolve("manifest.xml")
-                .takeIf { it.exists }
+                .takeIf { it.exists() }
                 ?.let { MetaInfManifestModel.fromFile(it) }
             val metadata = directory.resolve("metadata.xml")
-                .takeIf { it.exists }
+                .takeIf { it.exists() }
                 ?.let { MetaInfMetadataModel.fromFile(it) }
             val rights = directory.resolve("rights.xml")
-                .takeIf { it.exists }
+                .takeIf { it.exists() }
                 ?.let { MetaInfRightsModel.fromFile(it) }
             val signatures = directory.resolve("signatures.xml")
-                .takeIf { it.exists }
+                .takeIf { it.exists() }
                 ?.let { MetaInfSignaturesModel.fromFile(it) }
 
             return MetaInfModel(directory, container, encryption, manifest, metadata, rights, signatures)

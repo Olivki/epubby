@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Oliver Berg
+ * Copyright 2019-2022 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,6 +32,7 @@ import kotlin.reflect.full.isSuperclassOf
 import kotlin.reflect.jvm.jvmName
 
 // TODO: remove
+// TODO: to remove this we'd need to revamp how the LocalResourceLocator system works, do that
 internal class KServiceLoader<S : Any> private constructor(
     val serviceClass: KClass<S>,
     val loader: ClassLoader,

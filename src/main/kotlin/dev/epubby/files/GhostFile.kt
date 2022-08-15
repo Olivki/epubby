@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 Oliver Berg
+ * Copyright 2020-2022 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,6 +50,7 @@ class GhostFile private constructor(
                 Files.isRegularFile(delegate) -> delegate.toRegularFile()
                 else -> throw IOException("File at '$delegate' exists, but it is not a regular file.")
             }
+
             else -> Files.createFile(delegate, *attributes).toRegularFile()
         }
     }
@@ -72,6 +73,7 @@ class GhostFile private constructor(
                 Files.isDirectory(delegate) -> delegate.toDirectoryFile()
                 else -> throw IOException("File at '$delegate' exists, but it is not a directory.")
             }
+
             else -> Files.createFile(delegate, *attributes).toDirectoryFile()
         }
     }

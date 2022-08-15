@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Oliver Berg
+ * Copyright 2019-2022 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,8 +20,12 @@ import com.google.common.collect.Maps
 import dev.epubby.Epub
 import dev.epubby.EpubVersion.EPUB_3_0
 import dev.epubby.MalformedBookException
-import dev.epubby.dublincore.*
+import dev.epubby.dublincore.CreativeRole
+import dev.epubby.dublincore.DateEvent
+import dev.epubby.dublincore.DublinCore
 import dev.epubby.dublincore.DublinCore.*
+import dev.epubby.dublincore.DublinCore.Date
+import dev.epubby.dublincore.DublinCoreVisitor
 import dev.epubby.dublincore.LocalizedDublinCore.*
 import dev.epubby.internal.Namespaces
 import dev.epubby.internal.models.SerializedName
@@ -31,8 +35,7 @@ import dev.epubby.internal.utils.ifNotNull
 import dev.epubby.utils.Direction
 import org.jdom2.Element
 import org.jdom2.Namespace
-import java.util.Collections
-import java.util.Locale
+import java.util.*
 
 internal sealed class DublinCoreModel(internal val name: String) {
     internal abstract val identifier: String?
@@ -146,7 +149,7 @@ internal sealed class DublinCoreModel(internal val name: String) {
         internal fun fromElement(element: Element): DublinCoreModel {
             val content = element.textNormalize
             val identifier = element.getAttributeValue("id")
-            val dublinCore = when (element.name.toLowerCase()) {
+            val dublinCore = when (element.name.lowercase()) {
                 "language" -> LanguageModel(content, identifier)
                 "identifier" -> IdentifierModel(content, identifier)
                 "date" -> DateModel(content, identifier)
@@ -348,7 +351,7 @@ internal sealed class LocalizedDublinCoreModel(name: String) : DublinCoreModel(n
             val direction = element.getAttributeValue("dir")
             val language = element.getAttributeValue("lang", Namespace.XML_NAMESPACE)
 
-            return when (element.name.toLowerCase()) {
+            return when (element.name.lowercase()) {
                 "title" -> TitleModel(content, identifier, direction, language)
                 "contributor" -> ContributorModel(content, identifier, direction, language)
                 "coverage" -> CoverageModel(content, identifier, direction, language)

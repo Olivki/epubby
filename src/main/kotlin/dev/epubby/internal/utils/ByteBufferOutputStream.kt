@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Oliver Berg
+ * Copyright 2020-2022 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import java.nio.ByteBuffer
 
 // from https://gist.github.com/hoijui/7fe8a6d31b20ae7af945
 
+// TODO: can this be removed?
 internal class ByteBufferOutputStream(private var buffer: ByteBuffer, private val canGrow: Boolean) : OutputStream() {
     private fun growTo(minCapacity: Int) {
         // overflow-conscious code

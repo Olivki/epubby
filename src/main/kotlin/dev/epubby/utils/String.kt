@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2022 Oliver Berg
+ * Copyright 2022 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,14 +14,6 @@
  * limitations under the License.
  */
 
-package dev.epubby.internal.verifiers
+package dev.epubby.utils
 
-import dev.epubby.metainf.MetaInf
-
-internal object VerifierMetaInf {
-    // TODO: verify more things
-    @JvmSynthetic
-    internal fun verify(metaInf: MetaInf) {
-        VerifierMetaInfContainer.verify(metaInf.container)
-    }
-}
+fun String.isLowerCase(): Boolean = all { it.isLowerCase() }
