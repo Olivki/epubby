@@ -69,6 +69,7 @@ tasks {
             jvmTarget = "11"
             freeCompilerArgs = freeCompilerArgs + listOf(
                 "-opt-in=kotlin.contracts.ExperimentalContracts",
+                "-Xjvm-default=all",
             )
         }
     }
