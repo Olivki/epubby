@@ -150,7 +150,7 @@ internal data class MetaInfContainerModel internal constructor(
             internal fun fromLink(origin: MetaInfContainer.Link): LinkModel {
                 val href = origin.href
                 val relation = when {
-                    origin.epub.version.isNewer(EpubVersion.EPUB_2_0) -> origin.relation?.encodeToString()
+                    origin.epub.version.isNewerThan(EpubVersion.EPUB_2_0) -> origin.relation?.encodeToString()
                     else -> null
                 }
                 val mediaType = origin.mediaType.toString()

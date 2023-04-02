@@ -32,7 +32,7 @@ internal class VersionedProperty<T : Any>(
 ) : ReadWriteProperty<EpubElement, T?> {
     init {
         value ifNotNull {
-            if (currentVersion.isOlder(minVersion)) {
+            if (currentVersion.isOlderThan(minVersion)) {
                 invalidVersion(currentVersion, minVersion, containerName, featureName)
             }
 
@@ -44,7 +44,7 @@ internal class VersionedProperty<T : Any>(
 
     override fun setValue(thisRef: EpubElement, property: KProperty<*>, value: T?) {
         if (value != null) {
-            if (currentVersion.isOlder(minVersion)) {
+            if (currentVersion.isOlderThan(minVersion)) {
                 invalidVersion(currentVersion, minVersion, containerName, featureName)
             } else {
                 this.value = value

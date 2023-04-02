@@ -170,7 +170,7 @@ internal data class PackageSpineModel internal constructor(
             internal fun fromPage(origin: Page): ItemReferenceModel {
                 val idRef = origin.reference.identifier
                 val properties = when {
-                    origin.epub.version.isOlder(EPUB_3_0) -> null
+                    origin.epub.version.isOlderThan(EPUB_3_0) -> null
                     else -> origin.properties.ifEmpty { null }?.encodeToString()
                 }
 

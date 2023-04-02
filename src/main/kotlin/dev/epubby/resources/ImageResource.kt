@@ -47,7 +47,7 @@ class ImageResource(
 ) : LocalResource(epub, identifier, file) {
     var isCoverImage: Boolean
         get() = when {
-            epub.version.isOlder(EPUB_3_0) -> additionalMetadata.any { it.name == "cover" }
+            epub.version.isOlderThan(EPUB_3_0) -> additionalMetadata.any { it.name == "cover" }
             else -> when (COVER_IMAGE) {
                 in properties -> true
                 else -> additionalMetadata.any { it.name == "cover" }
@@ -57,7 +57,7 @@ class ImageResource(
             // there should only ever be one cover image, so we'll just remove all other entries that are marked with
             // it, regardless if there's more than one
 
-            if (epub.version.isOlder(EPUB_3_0)) {
+            if (epub.version.isOlderThan(EPUB_3_0)) {
                 val entries = epub.metadata.opf2MetaEntries
                 entries.removeIf { it is Opf2Meta.Name && it.name == "cover" && if (!value) it.isFor(this) else true }
 

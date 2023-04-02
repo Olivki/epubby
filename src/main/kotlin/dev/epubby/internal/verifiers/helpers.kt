@@ -33,7 +33,7 @@ internal class VersionChecker(val name: String, val currentVersion: EpubVersion)
 
     @HelperMarker
     internal inline fun <T> verify(min: EpubVersion, property: KProperty0<T?>) {
-        if (property.get() != null && currentVersion isOlder min) {
+        if (property.get() != null && currentVersion isOlderThan min) {
             raise(min, property.name)
         }
     }

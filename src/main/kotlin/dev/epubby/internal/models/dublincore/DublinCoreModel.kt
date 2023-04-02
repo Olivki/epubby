@@ -168,7 +168,7 @@ internal sealed class DublinCoreModel(internal val name: String) {
 
         private object DublinCoreToModelVisitor : DublinCoreVisitor<DublinCoreModel> {
             override fun visitDate(date: Date): DateModel = DateModel(date.value, date.identifier).apply {
-                if (date.epub.version.isOlder(EPUB_3_0)) {
+                if (date.epub.version isOlderThan EPUB_3_0) {
                     date.event ifNotNull { attributes["event"] = it.name }
                 }
             }
@@ -178,7 +178,7 @@ internal sealed class DublinCoreModel(internal val name: String) {
             override fun visitIdentifier(
                 identifier: Identifier,
             ): IdentifierModel = IdentifierModel(identifier.value, identifier.identifier).apply {
-                if (identifier.epub.version.isOlder(EPUB_3_0)) {
+                if (identifier.epub.version isOlderThan EPUB_3_0) {
                     identifier.scheme ifNotNull { attributes["scheme"] = it }
                 }
             }
@@ -196,7 +196,7 @@ internal sealed class DublinCoreModel(internal val name: String) {
                 contributor.direction?.value,
                 contributor.language?.toLanguageTag()
             ).apply {
-                if (contributor.epub.version.isOlder(EPUB_3_0)) {
+                if (contributor.epub.version isOlderThan EPUB_3_0) {
                     contributor.role ifNotNull { attributes["role"] = it.code }
                     contributor.fileAs ifNotNull { attributes["file-as"] = it }
                 }
@@ -215,7 +215,7 @@ internal sealed class DublinCoreModel(internal val name: String) {
                 creator.direction?.value,
                 creator.language?.toLanguageTag()
             ).apply {
-                if (creator.epub.version.isOlder(EPUB_3_0)) {
+                if (creator.epub.version isOlderThan EPUB_3_0) {
                     creator.role ifNotNull { attributes["role"] = it.code }
                     creator.fileAs ifNotNull { attributes["file-as"] = it }
                 }

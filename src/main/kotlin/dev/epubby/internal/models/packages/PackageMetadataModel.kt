@@ -371,12 +371,12 @@ internal data class PackageMetadataModel internal constructor(
         internal fun toLink(epub: Epub, prefixes: Prefixes): MetadataLink? {
             val href = URI(href)
             val relation = when {
-                epub.version.isOlder(EPUB_3_0) -> null
+                epub.version.isOlderThan(EPUB_3_0) -> null
                 else -> relation?.let { resolveLinkRelationship(it, prefixes) ?: return null }
             }
             val mediaType = mediaType?.let(MediaType::parse)
             val properties = when {
-                epub.version.isOlder(EPUB_3_0) -> null
+                epub.version.isOlderThan(EPUB_3_0) -> null
                 else -> properties?.let { resolveLinkProperties(it, prefixes).ifEmpty { return null } }
             } ?: Properties.empty()
 
@@ -399,12 +399,12 @@ internal data class PackageMetadataModel internal constructor(
             internal fun fromLink(link: MetadataLink): LinkModel {
                 val href = link.href.toString()
                 val relation = when {
-                    link.epub.version.isOlder(EPUB_3_0) -> null
+                    link.epub.version.isOlderThan(EPUB_3_0) -> null
                     else -> link.relation?.encodeToString()
                 }
                 val mediaType = link.mediaType?.toString()
                 val properties = when {
-                    link.epub.version.isOlder(EPUB_3_0) -> null
+                    link.epub.version.isOlderThan(EPUB_3_0) -> null
                     else -> link.properties.ifEmpty { null }?.encodeToString()
                 }
 

@@ -59,7 +59,7 @@ enum class EpubVersion(val major: Int, val minor: Int) {
     /**
      * Returns `true` if `this` version is newer than the [other] version, otherwise `false`.
      */
-    infix fun isNewer(other: EpubVersion): Boolean = compareVersions(other) > 0
+    infix fun isNewerThan(other: EpubVersion): Boolean = compareVersions(other) > 0
 
     /**
      * Returns `true` if `this` version is newer, or equal, to  the [other] version, otherwise `false`.
@@ -69,7 +69,7 @@ enum class EpubVersion(val major: Int, val minor: Int) {
     /**
      * Returns `true` if `this` version is older than the [other] version, otherwise `false`.
      */
-    infix fun isOlder(other: EpubVersion): Boolean = compareVersions(other) < 0
+    infix fun isOlderThan(other: EpubVersion): Boolean = compareVersions(other) < 0
 
     /**
      * Returns `true` if `this` version is older, or equal, to the [other] version, otherwise `false`.

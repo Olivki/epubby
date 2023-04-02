@@ -23,6 +23,8 @@ import dev.epubby.dublincore.DublinCore
 import dev.epubby.files.DirectoryFile
 import dev.epubby.files.EpubFile
 import dev.epubby.files.RegularFile
+import dev.epubby.files.revamped.ConcreteEpubFileSystem
+import dev.epubby.files.revamped.EpubFileSystem
 import dev.epubby.internal.models.metainf.MetaInfModel
 import dev.epubby.internal.models.packages.PackageDocumentModel
 import dev.epubby.internal.verifiers.VerifierEpub
@@ -56,6 +58,7 @@ import kotlin.io.path.moveTo
 //       sound by verifying it against the schemas provided by adobe
 //       https://w3c.github.io/publ-epub-revision/epub32/spec/epub-packages.html#app-package-schema
 //       http://idpf.org/epub/20/spec/OPF_2.0.1_draft.htm#AppendixA
+// TODO: replace all lists that are marked as 'stale' with Sequence<T>
 
 /**
  * Represents an EPUB file.
@@ -72,6 +75,8 @@ class Epub internal constructor(
     @get:JvmSynthetic
     internal val epubFile: Path,
 ) : Closeable {
+    val epubFileSystem: EpubFileSystem = ConcreteEpubFileSystem(this, fileSystem)
+
     /**
      * The root directory of the epub.
      *
@@ -171,7 +176,7 @@ class Epub internal constructor(
         }
 
     // TODO: documentation
-    // TODO: move this to the proposed EpubFileSystem class, as it would make more sense in there
+    // TODO: move this to a like 'EpubFiles' class that contains properties for all the known and important epub files
     @JvmOverloads
     fun organizeFiles(nameClashStrategy: NameClashStrategy = NameClashStrategy.THROW_EXCEPTION) {
         val desiredOpfDirectory = root.resolveDirectory("OEBPS/")
@@ -202,7 +207,7 @@ class Epub internal constructor(
         LOGGER.debug { "Updating last-modified date of $this to '$currentDateTime'.." }
 
         when {
-            version.isOlder(EPUB_3_0) -> {
+            version isOlderThan EPUB_3_0 -> {
                 val dublinCore = metadata.dublinCoreEntries
                     .filterIsInstance<DublinCore.Date>()
                     .firstOrNull { it.event == DateEvent.MODIFICATION }

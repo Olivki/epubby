@@ -42,6 +42,7 @@ import org.jsoup.nodes.Element
  *
  * See [SpineVocabulary] for a list of properties that are available by default.
  */
+// TODO: support a mechanism of reloading the contents of the file into a new document
 class Page private constructor(
     val reference: PageResource,
     // TODO: update things that reference this 'identifier' ?

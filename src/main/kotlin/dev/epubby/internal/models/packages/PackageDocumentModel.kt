@@ -170,7 +170,7 @@ internal data class PackageDocumentModel internal constructor(
             val version = origin.epub.version.toString()
             val direction = origin.direction?.value
             val prefixes = when {
-                origin.epub.version.isOlder(EPUB_3_0) -> null
+                origin.epub.version.isOlderThan(EPUB_3_0) -> null
                 else -> origin.prefixes.ifEmpty { null }?.encodeToString()
             }
             val language = origin.language?.toLanguageTag()

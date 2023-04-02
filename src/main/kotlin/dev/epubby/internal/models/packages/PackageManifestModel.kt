@@ -184,7 +184,7 @@ internal data class PackageManifestModel internal constructor(
             @JvmSynthetic
             internal fun fromManifestResource(origin: ManifestResource): ItemModel {
                 val properties = when {
-                    origin.epub.version.isOlder(EPUB_3_0) -> null
+                    origin.epub.version.isOlderThan(EPUB_3_0) -> null
                     else -> origin.properties.ifEmpty { null }?.encodeToString()
                 }
 
