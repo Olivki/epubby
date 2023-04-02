@@ -1,3 +1,3 @@
-include("other")
+include("epubby")
 
 rootProject.name = "epubby"
