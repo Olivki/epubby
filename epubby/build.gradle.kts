@@ -27,3 +27,8 @@ dependencies {
     // Google
     api("com.google.guava:guava:31.1-jre")
 }
+
+kotlin {
+    jvmToolchain(17)
+    explicitApi()
+}
