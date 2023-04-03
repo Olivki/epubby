@@ -14,10 +14,13 @@
  * limitations under the License.
  */
 
+@file:OptIn(Epub2Feature::class)
+
 package net.ormr.epubby.internal.models.dublincore
 
 import dev.epubby.Epub2Feature
 import dev.epubby.dublincore.DateEvent
+import dev.epubby.dublincore.DublinCore
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import net.ormr.epubby.internal.Namespaces.OPF_PREFIX
@@ -33,6 +36,8 @@ internal sealed interface DublinCoreModel {
     val identifier: String?
     val content: String?
 
+    fun toDublinCore(): DublinCore
+
     @Serializable
     @SerialName("date")
     data class DateModel(
@@ -43,7 +48,9 @@ internal sealed interface DublinCoreModel {
         val event: DateEvent?,
         @XmlTextValue
         override val content: String?,
-    ) : DublinCoreModel
+    ) : DublinCoreModel {
+        override fun toDublinCore(): DublinCore.Date = DublinCore.Date(identifier, event, content)
+    }
 
     @Serializable
     @SerialName("format")
@@ -52,7 +59,9 @@ internal sealed interface DublinCoreModel {
         override val identifier: String?,
         @XmlTextValue
         override val content: String?,
-    ) : DublinCoreModel
+    ) : DublinCoreModel {
+        override fun toDublinCore(): DublinCore.Format = DublinCore.Format(identifier, content)
+    }
 
     @Serializable
     @SerialName("identifier")
@@ -64,7 +73,9 @@ internal sealed interface DublinCoreModel {
         val scheme: String?,
         @XmlTextValue
         override val content: String?,
-    ) : DublinCoreModel
+    ) : DublinCoreModel {
+        override fun toDublinCore(): DublinCore.Identifier = DublinCore.Identifier(identifier, scheme, content)
+    }
 
     @Serializable
     @SerialName("language")
@@ -73,7 +84,9 @@ internal sealed interface DublinCoreModel {
         override val identifier: String?,
         @XmlTextValue
         override val content: String?,
-    ) : DublinCoreModel
+    ) : DublinCoreModel {
+        override fun toDublinCore(): DublinCore.Language = DublinCore.Language(identifier, content)
+    }
 
     @Serializable
     @SerialName("source")
@@ -82,7 +95,9 @@ internal sealed interface DublinCoreModel {
         override val identifier: String?,
         @XmlTextValue
         override val content: String?,
-    ) : DublinCoreModel
+    ) : DublinCoreModel {
+        override fun toDublinCore(): DublinCore.Source = DublinCore.Source(identifier, content)
+    }
 
     @Serializable
     @SerialName("type")
@@ -91,5 +106,7 @@ internal sealed interface DublinCoreModel {
         override val identifier: String?,
         @XmlTextValue
         override val content: String?,
-    ) : DublinCoreModel
+    ) : DublinCoreModel {
+        override fun toDublinCore(): DublinCore.Type = DublinCore.Type(identifier, content)
+    }
 }
