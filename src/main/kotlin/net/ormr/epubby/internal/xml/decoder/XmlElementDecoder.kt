@@ -68,7 +68,7 @@ internal class XmlElementDecoder(
                     StructureKind.LIST -> {
                         val wrapperName = tag.listWrapperElementName
                         if (wrapperName != null) {
-                            if (element.anyChildWithName(wrapperName) || absenceIsNull(descriptor, index)) {
+                            if (element.anyChildWithName(wrapperName, namespace) || absenceIsNull(descriptor, index)) {
                                 return index
                             } else if (isRequired) {
                                 throw SerializationException("Missing wrapper element '$wrapperName' on element '${element.name}'")
@@ -83,7 +83,12 @@ internal class XmlElementDecoder(
                         when (val elementKind = elementDescriptor.kind) {
                             SerialKind.CONTEXTUAL -> {
                                 // 'elementsName' is not applied for contextual
-                                if (elementDescriptor.elementDescriptors.any { element.anyChildWithName(it.serialName) } || absenceIsNull(
+                                if (elementDescriptor.elementDescriptors.any {
+                                        element.anyChildWithName(
+                                            it.serialName,
+                                            namespace
+                                        )
+                                    } || absenceIsNull(
                                         descriptor,
                                         index
                                     )) {
@@ -95,7 +100,11 @@ internal class XmlElementDecoder(
                             }
                             is StructureKind -> {
                                 val elementName = tag.elementsName ?: elementDescriptor.serialName
-                                if (element.anyChildWithName(elementName) || absenceIsNull(descriptor, index)) {
+                                if (element.anyChildWithName(elementName, namespace) || absenceIsNull(
+                                        descriptor,
+                                        index
+                                    )
+                                ) {
                                     return index
                                 } else if (isRequired) {
                                     throw SerializationException("Missing element '$elementName' on element '${element.name}'")
@@ -104,7 +113,7 @@ internal class XmlElementDecoder(
                             else -> throw SerializationException("Can't decode list of kind $elementKind")
                         }
                     }
-                    else -> if (element.anyChildWithName(name) || absenceIsNull(descriptor, index)) {
+                    else -> if (element.anyChildWithName(name, namespace) || absenceIsNull(descriptor, index)) {
                         return index
                     } else if (isRequired) {
                         // TODO: include namespace prefix if available
@@ -125,11 +134,14 @@ internal class XmlElementDecoder(
     // TODO: support contextual for normal element decode
     override fun beginStructure(descriptor: SerialDescriptor): CompositeDecoder = when (descriptor.kind) {
         StructureKind.CLASS, StructureKind.OBJECT -> {
-            val child = element.getSingleChild(currentTag.name)
+            val tag = currentTag
+            val namespace = tag.namespace ?: element.namespace
+            val child = element.getSingleChild(tag.name, namespace)
             XmlElementDecoder(child, serializersModule)
         }
         StructureKind.LIST -> {
             val tag = currentTag
+            val namespace = tag.namespace ?: element.namespace
             // TODO: use elementsName
             when (val wrapperName = tag.listWrapperElementName) {
                 null -> {
@@ -142,7 +154,7 @@ internal class XmlElementDecoder(
                             // 'elementsName' is not applied for contextual
                             val children = element
                                 .children
-                                .filter { it.name in availableNames }
+                                .filter { it.name in availableNames && it.namespace == namespace }
                             XmlListDecoder(children, serializersModule)
                         }
                         is StructureKind -> {
@@ -150,14 +162,14 @@ internal class XmlElementDecoder(
                             // TODO: check namespace
                             val children = element
                                 .children
-                                .filter { it.name == elementName }
+                                .filter { it.name == elementName && it.namespace == namespace }
                             XmlListDecoder(children, serializersModule)
                         }
                         else -> throw SerializationException("Can't decode list of kind $elementKind")
                     }
                 }
                 else -> {
-                    val child = element.getSingleChild(wrapperName)
+                    val child = element.getSingleChild(wrapperName, namespace)
                     XmlListDecoder(child.children, serializersModule)
                 }
             }
@@ -166,18 +178,16 @@ internal class XmlElementDecoder(
         else -> throw SerializationException("Unsupported kind: ${descriptor.kind}")
     }
 
-    private fun Element.filterChildren(name: String, namespace: Namespace?): List<Element> =
-        children.filter { it.name == name && it.namespace == namespace }
-
-    private fun Element.anyAttribute(name: String, namespace: Namespace?): Boolean =
+    private fun Element.anyAttribute(name: String, namespace: Namespace): Boolean =
         getAttribute(name, namespace) != null
 
     // TODO: use 'getChild' with namespace or some shit
-    private fun Element.anyChildWithName(name: String): Boolean = children.any { it.name == name }
+    private fun Element.anyChildWithName(name: String, namespace: Namespace): Boolean =
+        getChild(name, namespace) != null
 
     // TODO: use 'getChild' instead? but that requires the use of namespace
-    private fun Element.getSingleChild(name: String): Element {
-        val matchedElements = children.filter { it.name == name }
+    private fun Element.getSingleChild(name: String, namespace: Namespace): Element {
+        val matchedElements = children.filter { it.name == name && it.namespace == namespace }
         if (matchedElements.isEmpty()) {
             throw SerializationException("Missing element '${name}'")
         }
@@ -186,7 +196,7 @@ internal class XmlElementDecoder(
         }
         return matchedElements.first()
     }
-    
+
     override fun decodeTaggedNotNullMark(tag: XmlTag): Boolean = !forceNull && when (val kind = tag.descriptor.kind) {
         is PrimitiveKind, SerialKind.ENUM -> when (tag.textValue) {
             null -> element.getAttribute(tag.name, tag.namespace ?: element.namespace) != null
