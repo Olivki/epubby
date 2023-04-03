@@ -38,6 +38,7 @@ internal class XmlElementDecoder(
     override val serializersModule: SerializersModule,
 ) : XmlDecoder() {
     private var currentIndex = 0
+    private var forceNull = false
 
     // TODO: support contextual for normal element decode
     @OptIn(ExperimentalSerializationApi::class)
@@ -45,20 +46,21 @@ internal class XmlElementDecoder(
         while (currentIndex < descriptor.elementsCount) {
             val tag = descriptor.getTag(currentIndex++)
             val index = currentIndex - 1
-            val isOptional = descriptor.isElementOptional(index)
             val name = tag.name
             val namespace = tag.namespace ?: element.namespace
+            val isRequired = !descriptor.isElementOptional(index)
+            forceNull = false
             when (val kind = tag.descriptor.kind) {
                 is PrimitiveKind, SerialKind.ENUM -> when (tag.textValue) {
-                    null -> if (element.anyAttribute(name, namespace)) {
+                    null -> if (element.anyAttribute(name, namespace) || absenceIsNull(descriptor, index)) {
                         return index
-                    } else if (!isOptional) {
+                    } else if (isRequired) {
                         // TODO: include namespace prefix if available
                         throw SerializationException("Missing attribute '$name' on element '${element.name}'")
                     }
-                    else -> if (getOwnText(element) != null) {
+                    else -> if (getOwnText(element) != null || absenceIsNull(descriptor, index)) {
                         return index
-                    } else if (!isOptional) {
+                    } else if (isRequired) {
                         throw SerializationException("Missing required text content on element '${element.name}'")
                     }
                 }
@@ -66,9 +68,9 @@ internal class XmlElementDecoder(
                     StructureKind.LIST -> {
                         val wrapperName = tag.listWrapperElementName
                         if (wrapperName != null) {
-                            if (element.anyChildWithName(wrapperName)) {
+                            if (element.anyChildWithName(wrapperName) || absenceIsNull(descriptor, index)) {
                                 return index
-                            } else if (!isOptional) {
+                            } else if (isRequired) {
                                 throw SerializationException("Missing wrapper element '$wrapperName' on element '${element.name}'")
                             }
                         }
@@ -81,27 +83,30 @@ internal class XmlElementDecoder(
                         when (val elementKind = elementDescriptor.kind) {
                             SerialKind.CONTEXTUAL -> {
                                 // 'elementsName' is not applied for contextual
-                                if (elementDescriptor.elementDescriptors.any { element.anyChildWithName(it.serialName) }) {
+                                if (elementDescriptor.elementDescriptors.any { element.anyChildWithName(it.serialName) } || absenceIsNull(
+                                        descriptor,
+                                        index
+                                    )) {
                                     return index
-                                } else if (!isOptional) {
+                                } else if (isRequired) {
                                     val names = elementDescriptor.elementDescriptors.map { it.serialName }
                                     throw SerializationException("None of $names found on element '${element.name}'")
                                 }
                             }
                             is StructureKind -> {
                                 val elementName = tag.elementsName ?: elementDescriptor.serialName
-                                if (element.anyChildWithName(elementName)) {
+                                if (element.anyChildWithName(elementName) || absenceIsNull(descriptor, index)) {
                                     return index
-                                } else if (!isOptional) {
+                                } else if (isRequired) {
                                     throw SerializationException("Missing element '$elementName' on element '${element.name}'")
                                 }
                             }
                             else -> throw SerializationException("Can't decode list of kind $elementKind")
                         }
                     }
-                    else -> if (element.anyChildWithName(name)) {
+                    else -> if (element.anyChildWithName(name) || absenceIsNull(descriptor, index)) {
                         return index
-                    } else {
+                    } else if (isRequired) {
                         // TODO: include namespace prefix if available
                         throw SerializationException("Missing element '$name' on element '${element.name}'")
                     }
@@ -110,6 +115,11 @@ internal class XmlElementDecoder(
             }
         }
         return CompositeDecoder.DECODE_DONE
+    }
+
+    private fun absenceIsNull(descriptor: SerialDescriptor, index: Int): Boolean {
+        forceNull = !descriptor.isElementOptional(index) && descriptor.getElementDescriptor(index).isNullable
+        return forceNull
     }
 
     // TODO: support contextual for normal element decode
@@ -178,13 +188,16 @@ internal class XmlElementDecoder(
     }
 
     // TODO: make this smarter if we support using text as value
-    override fun decodeTaggedNotNullMark(tag: XmlTag): Boolean = when (val kind = tag.descriptor.kind) {
-        is PrimitiveKind, SerialKind.ENUM -> when (tag.textValue) {
-            null -> element.getAttribute(tag.name, tag.namespace ?: element.namespace) != null
-            else -> getOwnText(element) != null
+    override fun decodeTaggedNotNullMark(tag: XmlTag): Boolean {
+        val value = when (val kind = tag.descriptor.kind) {
+            is PrimitiveKind, SerialKind.ENUM -> when (tag.textValue) {
+                null -> element.getAttribute(tag.name, tag.namespace ?: element.namespace) != null
+                else -> getOwnText(element) != null
+            }
+            is StructureKind -> TODO("Handle nullable structures")
+            else -> throw SerializationException("Can't decode not null mark for kind $kind")
         }
-        is StructureKind -> TODO("Handle nullable structures")
-        else -> throw SerializationException("Can't decode not null mark for kind $kind")
+        return !forceNull && value
     }
 
     // numbers

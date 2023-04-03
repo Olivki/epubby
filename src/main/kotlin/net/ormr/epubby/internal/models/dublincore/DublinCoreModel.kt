@@ -45,18 +45,18 @@ internal sealed interface DublinCoreModel {
     @SerialName("date")
     data class DateModel(
         @SerialName("id")
-        override val identifier: String? = null,
+        override val identifier: String?,
         @XmlTextValue
-        override val content: String? = null,
+        override val content: String?,
     ) : DublinCoreModel
 
     @Serializable
     @SerialName("format")
     data class FormatModel(
         @SerialName("id")
-        override val identifier: String? = null,
+        override val identifier: String?,
         @XmlTextValue
-        override val content: String? = null,
+        override val content: String?,
     ) : DublinCoreModel
 }
 
@@ -68,13 +68,13 @@ internal sealed interface LocalizedDublinCoreModel : DublinCoreModel {
     @SerialName("contributor")
     data class ContributorModel internal constructor(
         @SerialName("id")
-        override val identifier: String? = null,
+        override val identifier: String?,
         @SerialName("dir")
-        override val direction: String? = null,
+        override val direction: String?,
         @SerialName("lang")
-        override val language: String? = null,
+        override val language: String?,
         @XmlTextValue
-        override val content: String? = null,
+        override val content: String?,
     ) : LocalizedDublinCoreModel
 }
 

@@ -19,6 +19,7 @@ package dev.epubby
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import net.ormr.epubby.internal.Namespaces.DUBLIN_CORE_PREFIX
 import net.ormr.epubby.internal.Namespaces.DUBLIN_CORE_URI
 import net.ormr.epubby.internal.Namespaces.OPF_PREFIX
@@ -47,6 +48,7 @@ private fun checkThing() {
 }
 
 private fun checkMetadata() {
+    Json {  }
     val data = """
     <metadata xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:opf="http://www.idpf.org/2007/opf">
         <dc:title>86 - Volume 02 - RUN THROUGH THE BATTLEFRONT &lt;UP&gt;</dc:title>
