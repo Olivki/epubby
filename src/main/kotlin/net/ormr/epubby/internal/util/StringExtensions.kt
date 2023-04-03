@@ -14,13 +14,6 @@
  * limitations under the License.
  */
 
-package dev.epubby
+package net.ormr.epubby.internal.util
 
-@RequiresOptIn
-public annotation class Epub2Feature
-
-@RequiresOptIn
-public annotation class Epub3Feature
-
-@RequiresOptIn
-public annotation class Epub31Feature
+internal fun String.isLowerCase(): Boolean = all { it.isLowerCase() }

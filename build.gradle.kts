@@ -17,8 +17,6 @@ dependencies {
     // Kotlin
     implementation(kotlin("reflect"))
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.5.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-properties:1.5.0")
 
     // XML
     implementation("org.jdom:jdom2:2.0.6.1")
@@ -40,6 +38,9 @@ dependencies {
 
     // Google
     api("com.google.guava:guava:31.1-jre")
+
+    // misc
+    implementation("net.pearx.kasechange:kasechange:1.3.0")
 
     // test
     testImplementation("io.kotest:kotest-framework-engine:$kotestVersion")

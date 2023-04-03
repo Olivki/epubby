@@ -16,22 +16,14 @@
 
 package net.ormr.epubby.internal.models.dublincore
 
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.InternalSerializationApi
-import kotlinx.serialization.KSerializer
+import dev.epubby.Epub2Feature
+import dev.epubby.dublincore.DateEvent
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.descriptors.SerialDescriptor
-import kotlinx.serialization.descriptors.SerialKind
-import kotlinx.serialization.descriptors.buildSerialDescriptor
-import kotlinx.serialization.encoding.Decoder
-import kotlinx.serialization.encoding.Encoder
-import kotlinx.serialization.serializer
+import net.ormr.epubby.internal.Namespaces.OPF_PREFIX
+import net.ormr.epubby.internal.Namespaces.OPF_URI
 import net.ormr.epubby.internal.xml.XmlNamespace
 import net.ormr.epubby.internal.xml.XmlTextValue
-import net.ormr.epubby.internal.xml.decoder.XmlListDecoder
-import net.ormr.epubby.internal.xml.encoder.XmlListEncoder
-import kotlin.reflect.full.findAnnotation
 import net.ormr.epubby.internal.Namespaces.DUBLIN_CORE_PREFIX as PREFIX
 import net.ormr.epubby.internal.Namespaces.DUBLIN_CORE_URI as URI
 
@@ -46,6 +38,9 @@ internal sealed interface DublinCoreModel {
     data class DateModel(
         @SerialName("id")
         override val identifier: String?,
+        @property:Epub2Feature
+        @XmlNamespace(OPF_PREFIX, OPF_URI)
+        val event: DateEvent?,
         @XmlTextValue
         override val content: String?,
     ) : DublinCoreModel
@@ -58,59 +53,43 @@ internal sealed interface DublinCoreModel {
         @XmlTextValue
         override val content: String?,
     ) : DublinCoreModel
-}
-
-internal sealed interface LocalizedDublinCoreModel : DublinCoreModel {
-    val direction: String?
-    val language: String?
 
     @Serializable
-    @SerialName("contributor")
-    data class ContributorModel internal constructor(
+    @SerialName("identifier")
+    data class IdentifierModel(
         @SerialName("id")
         override val identifier: String?,
-        @SerialName("dir")
-        override val direction: String?,
-        @SerialName("lang")
-        override val language: String?,
+        @property:Epub2Feature
+        @XmlNamespace(OPF_PREFIX, OPF_URI)
+        val scheme: String?,
         @XmlTextValue
         override val content: String?,
-    ) : LocalizedDublinCoreModel
-}
+    ) : DublinCoreModel
 
-@OptIn(InternalSerializationApi::class, ExperimentalSerializationApi::class)
-internal object DublinCoreModelSerializer : KSerializer<DublinCoreModel> {
-    override val descriptor: SerialDescriptor by lazy {
-        buildSerialDescriptor("net.ormr.epubby.internal.models.dublincore.DublinCoreModel", SerialKind.CONTEXTUAL) {
-            serialName2Serializer.forEach { (name, serializer) ->
-                element(name, serializer.descriptor)
-            }
-        }
-    }
-    private val class2Serializer by lazy {
-        val dcClasses = DublinCoreModel::class.sealedSubclasses.filterNot { it.java.isInterface }
-        val ldcClasses = LocalizedDublinCoreModel::class.sealedSubclasses
-        val classes = dcClasses + ldcClasses
-        classes.associateWith { it.serializer() }
-    }
-    private val serialName2Serializer by lazy {
-        class2Serializer.mapKeys { (clz, _) ->
-            clz.findAnnotation<SerialName>()?.value ?: error("Missing @SerialName annotation on $clz")
-        }
-    }
+    @Serializable
+    @SerialName("language")
+    data class LanguageModel(
+        @SerialName("id")
+        override val identifier: String?,
+        @XmlTextValue
+        override val content: String?,
+    ) : DublinCoreModel
 
-    override fun deserialize(decoder: Decoder): DublinCoreModel {
-        require(decoder is XmlListDecoder) { decoder.javaClass }
-        val tag = decoder.findTag()
-        val name = decoder.getElementName(tag.index)
-        val serializer = serialName2Serializer.getValue(name)
-        return decoder.decodeSerializableValue(serializer)
-    }
+    @Serializable
+    @SerialName("source")
+    data class SourceModel(
+        @SerialName("id")
+        override val identifier: String?,
+        @XmlTextValue
+        override val content: String?,
+    ) : DublinCoreModel
 
-    @Suppress("UNCHECKED_CAST")
-    override fun serialize(encoder: Encoder, value: DublinCoreModel) {
-        require(encoder is XmlListEncoder) { encoder.javaClass }
-        val serializer = class2Serializer.getValue(value::class) as KSerializer<DublinCoreModel>
-        return encoder.encodeSerializableValue(serializer, value)
-    }
+    @Serializable
+    @SerialName("type")
+    data class TypeModel(
+        @SerialName("id")
+        override val identifier: String?,
+        @XmlTextValue
+        override val content: String?,
+    ) : DublinCoreModel
 }
