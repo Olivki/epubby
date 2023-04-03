@@ -186,18 +186,14 @@ internal class XmlElementDecoder(
         }
         return matchedElements.first()
     }
-
-    // TODO: make this smarter if we support using text as value
-    override fun decodeTaggedNotNullMark(tag: XmlTag): Boolean {
-        val value = when (val kind = tag.descriptor.kind) {
-            is PrimitiveKind, SerialKind.ENUM -> when (tag.textValue) {
-                null -> element.getAttribute(tag.name, tag.namespace ?: element.namespace) != null
-                else -> getOwnText(element) != null
-            }
-            is StructureKind -> TODO("Handle nullable structures")
-            else -> throw SerializationException("Can't decode not null mark for kind $kind")
+    
+    override fun decodeTaggedNotNullMark(tag: XmlTag): Boolean = !forceNull && when (val kind = tag.descriptor.kind) {
+        is PrimitiveKind, SerialKind.ENUM -> when (tag.textValue) {
+            null -> element.getAttribute(tag.name, tag.namespace ?: element.namespace) != null
+            else -> getOwnText(element) != null
         }
-        return !forceNull && value
+        is StructureKind -> TODO("Handle nullable structures")
+        else -> throw SerializationException("Can't decode not null mark for kind $kind")
     }
 
     // numbers
