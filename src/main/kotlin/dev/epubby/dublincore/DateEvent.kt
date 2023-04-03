@@ -16,9 +16,11 @@
 
 package dev.epubby.dublincore
 
+import dev.epubby.Epub2Feature
 import kotlinx.serialization.Serializable
 import net.ormr.epubby.internal.models.dublincore.DateEventSerializer
 
+@Epub2Feature
 @Serializable(with = DateEventSerializer::class)
 public class DateEvent private constructor(public val name: String) {
     override fun equals(other: Any?): Boolean = when {
@@ -33,7 +35,7 @@ public class DateEvent private constructor(public val name: String) {
 
     public companion object {
         private val cache = hashMapOf<String, DateEvent>()
-        
+
         /**
          * Represents the date when the epub was created.
          */

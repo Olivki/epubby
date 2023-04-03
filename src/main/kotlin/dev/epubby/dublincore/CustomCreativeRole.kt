@@ -16,6 +16,8 @@
 
 package dev.epubby.dublincore
 
+import dev.epubby.Epub2Feature
+
 /**
  * Represents a custom creative role that helped in some manner with the creation of some part of an epub.
  *
@@ -23,6 +25,7 @@ package dev.epubby.dublincore
  *
  * This code can only be max `3` characters long.
  */
+@Epub2Feature
 public class CustomCreativeRole internal constructor(
     public val customCode: String,
     override val name: String?,

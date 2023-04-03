@@ -18,9 +18,12 @@
 
 package dev.epubby.dublincore
 
+import dev.epubby.Epub2Feature
 import kotlinx.serialization.Serializable
 import net.ormr.epubby.internal.models.dublincore.CreativeRoleSerializer
 import net.ormr.epubby.internal.util.isLowerCase
+
+// http://idpf.org/epub/20/spec/OPF_2.0.1_draft.htm#Section2.2.6
 
 /**
  * Represents a creative role that helped in some manner with the creation of some part of an epub.
@@ -28,6 +31,7 @@ import net.ormr.epubby.internal.util.isLowerCase
  * @see [DefaultCreativeRole]
  * @see [CustomCreativeRole]
  */
+@Epub2Feature
 @Serializable(with = CreativeRoleSerializer::class)
 public sealed interface CreativeRole {
     /**
