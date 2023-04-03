@@ -48,4 +48,115 @@ internal sealed interface LocalizedDublinCoreModel : DublinCoreModel {
         @XmlTextValue
         override val content: String?,
     ) : LocalizedDublinCoreModel
+
+    @Serializable
+    @SerialName("coverage")
+    data class CoverageModel internal constructor(
+        @SerialName("id")
+        override val identifier: String?,
+        @SerialName("dir")
+        override val direction: String?,
+        @SerialName("lang")
+        override val language: String?,
+        @XmlTextValue
+        override val content: String?,
+    ) : LocalizedDublinCoreModel
+
+    @Serializable
+    @SerialName("creator")
+    data class CreatorModel internal constructor(
+        @SerialName("id")
+        override val identifier: String?,
+        @SerialName("dir")
+        override val direction: String?,
+        @SerialName("lang")
+        override val language: String?,
+        @property:Epub2Feature
+        @XmlNamespace(OPF_PREFIX, OPF_URI)
+        val role: CreativeRole?,
+        @SerialName("file-as")
+        @property:Epub2Feature
+        @XmlNamespace(OPF_PREFIX, OPF_URI)
+        val fileAs: String?,
+        @XmlTextValue
+        override val content: String?,
+    ) : LocalizedDublinCoreModel
+
+    @Serializable
+    @SerialName("description")
+    data class DescriptionModel internal constructor(
+        @SerialName("id")
+        override val identifier: String?,
+        @SerialName("dir")
+        override val direction: String?,
+        @SerialName("lang")
+        override val language: String?,
+        @XmlTextValue
+        override val content: String?,
+    ) : LocalizedDublinCoreModel
+
+    @Serializable
+    @SerialName("publisher")
+    data class PublisherModel internal constructor(
+        @SerialName("id")
+        override val identifier: String?,
+        @SerialName("dir")
+        override val direction: String?,
+        @SerialName("lang")
+        override val language: String?,
+        @XmlTextValue
+        override val content: String?,
+    ) : LocalizedDublinCoreModel
+
+    @Serializable
+    @SerialName("relation")
+    data class RelationModel internal constructor(
+        @SerialName("id")
+        override val identifier: String?,
+        @SerialName("dir")
+        override val direction: String?,
+        @SerialName("lang")
+        override val language: String?,
+        @XmlTextValue
+        override val content: String?,
+    ) : LocalizedDublinCoreModel
+
+    @Serializable
+    @SerialName("rights")
+    data class RightsModel internal constructor(
+        @SerialName("id")
+        override val identifier: String?,
+        @SerialName("dir")
+        override val direction: String?,
+        @SerialName("lang")
+        override val language: String?,
+        @XmlTextValue
+        override val content: String?,
+    ) : LocalizedDublinCoreModel
+
+    @Serializable
+    @SerialName("subject")
+    data class SubjectModel internal constructor(
+        @SerialName("id")
+        override val identifier: String?,
+        @SerialName("dir")
+        override val direction: String?,
+        @SerialName("lang")
+        override val language: String?,
+        @XmlTextValue
+        override val content: String?,
+    ) : LocalizedDublinCoreModel
+
+    @Serializable
+    @SerialName("title")
+    data class TitleModel internal constructor(
+        @SerialName("id")
+        override val identifier: String?,
+        @SerialName("dir")
+        override val direction: String?,
+        @SerialName("lang")
+        override val language: String?,
+        @XmlTextValue
+        override val content: String?,
+    ) : LocalizedDublinCoreModel
 }
