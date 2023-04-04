@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package dev.epubby
+package dev.epubby.property
 
-import dev.epubby.version.EpubVersion
+import dev.epubby.Epub3Feature
+import dev.epubby.prefix.Prefix
 
-public interface Epub {
-    public val version: EpubVersion
-}
+@Epub3Feature
+internal data class PropertyImpl(override val prefix: Prefix, override val reference: String) : Property

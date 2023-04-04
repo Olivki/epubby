@@ -24,3 +24,6 @@ public annotation class Epub3Feature
 
 @RequiresOptIn
 public annotation class Epub31Feature
+
+@RequiresOptIn
+public annotation class UnstableEpubFeature

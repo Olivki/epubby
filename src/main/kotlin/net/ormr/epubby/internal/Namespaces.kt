@@ -25,4 +25,7 @@ internal object Namespaces {
 
     const val META_INF_CONTAINER_PREFIX = ""
     const val META_INF_CONTAINER_URI = "urn:oasis:names:tc:opendocument:xmlns:container"
+
+    const val XML_PREFIX = "xml"
+    const val XML_URI = "http://www.w3.org/XML/1998/namespace"
 }

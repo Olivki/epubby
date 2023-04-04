@@ -19,7 +19,6 @@ package dev.epubby
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 import net.ormr.epubby.internal.Namespaces.DUBLIN_CORE_PREFIX
 import net.ormr.epubby.internal.Namespaces.DUBLIN_CORE_URI
 import net.ormr.epubby.internal.Namespaces.OPF_PREFIX
@@ -48,7 +47,6 @@ private fun checkThing() {
 }
 
 private fun checkMetadata() {
-    Json {  }
     val data = """
     <metadata xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:opf="http://www.idpf.org/2007/opf">
         <dc:title>86 - Volume 02 - RUN THROUGH THE BATTLEFRONT &lt;UP&gt;</dc:title>
@@ -87,7 +85,11 @@ private data class Child(val name: String)
 @Serializable
 @SerialName("metadata")
 @XmlAdditionalNamespaces([XmlNamespace(DUBLIN_CORE_PREFIX, DUBLIN_CORE_URI), XmlNamespace(OPF_PREFIX, OPF_URI)])
-private data class Metadata(val dcModels: List<DublinCoreModel>, val metaModels: List<Meta>)
+private data class Metadata(
+    @XmlNamespace(DUBLIN_CORE_PREFIX, DUBLIN_CORE_URI)
+    val dcModels: List<DublinCoreModel>,
+    val metaModels: List<Meta>,
+)
 
 @Serializable
 @SerialName("meta")

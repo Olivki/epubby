@@ -23,19 +23,22 @@ import dev.epubby.Epub31Feature
 /**
  * Represents a supported version of the epub specification.
  */
+// TODO: Epub 3.3
 public sealed class EpubVersion(public val major: Int, public val minor: Int) : Comparable<EpubVersion> {
     /**
-     * Represents the [EPUB 2.0](http://www.idpf.org/epub/dir/#epub201) format.
+     * The [EPUB 2.0](https://idpf.org/epub/201) format.
+     *
+     * The spec this refers to is actually EPUB 2.0.1, but epub documents do not serialize patch versions.
      */
     public object EPUB_2_0 : StableEpubVersion(2, 0)
 
     /**
-     * Represents the [EPUB 3.0](http://www.idpf.org/epub/dir/#epub301) format.
+     * The [EPUB 3.0](https://idpf.org/epub/30/) format.
      */
     public object EPUB_3_0 : StableEpubVersion(3, 0)
 
     /**
-     * Represents the [EPUB 3.1](http://www.idpf.org/epub/dir/#epub31) format.
+     * The [EPUB 3.1](https://idpf.org/epub/31/) format.
      *
      * The EPUB 3.1 format is [officially discouraged](http://www.idpf.org/epub/dir/#epub31) from use, and as such
      * the format is explicitly ***not*** supported by epubby, and it should never be used.
@@ -44,7 +47,7 @@ public sealed class EpubVersion(public val major: Int, public val minor: Int) : 
     public object EPUB_3_1 : EpubVersion(3, 1)
 
     /**
-     * Represents the [EPUB 3.2](http://www.idpf.org/epub/dir/#epub32) format.
+     * The [EPUB 3.2](https://www.w3.org/publishing/epub3/epub-spec.html) format.
      */
     public object EPUB_3_2 : StableEpubVersion(3, 2)
 

@@ -14,10 +14,13 @@
  * limitations under the License.
  */
 
-package dev.epubby
+package net.ormr.epubby.internal.models.content
 
-import dev.epubby.version.EpubVersion
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
-public interface Epub {
-    public val version: EpubVersion
-}
+// https://idpf.org/epub/20/spec/OPF_2.0.1_draft.htm#Section2.2
+// https://www.w3.org/publishing/epub3/epub-packages.html#sec-metadata-elem
+@Serializable
+@SerialName("metadata")
+internal class MetadataModel

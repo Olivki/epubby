@@ -14,10 +14,19 @@
  * limitations under the License.
  */
 
-package dev.epubby
+package dev.epubby.prefix
 
-import dev.epubby.version.EpubVersion
+import dev.epubby.Epub3Feature
 
-public interface Epub {
-    public val version: EpubVersion
+@Epub3Feature
+public sealed interface Prefix {
+    /**
+     * The shorthand name used by properties when referring to the [uri] mapping that this prefix represents.
+     */
+    public val name: String
+
+    /**
+     * TODO
+     */
+    public val uri: String
 }

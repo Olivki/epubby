@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-package dev.epubby
+package dev.epubby.property
 
-import dev.epubby.version.EpubVersion
+import dev.epubby.Epub3Feature
 
-public interface Epub {
-    public val version: EpubVersion
+@Epub3Feature
+public interface PropertySet : MutableSet<Property> {
+    public fun asString(): String
 }

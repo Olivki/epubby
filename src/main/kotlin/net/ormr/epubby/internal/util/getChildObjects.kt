@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-package dev.epubby
+package net.ormr.epubby.internal.util
 
-import dev.epubby.version.EpubVersion
-
-public interface Epub {
-    public val version: EpubVersion
-}
+internal inline fun <reified T : Any> getChildObjects(): Sequence<T> = T::class
+    .sealedSubclasses
+    .asSequence()
+    .mapNotNull { it.objectInstance }

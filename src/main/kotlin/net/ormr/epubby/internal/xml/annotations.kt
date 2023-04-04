@@ -30,7 +30,7 @@ internal annotation class XmlListWrapperElement(val name: String)
 internal annotation class XmlElementsName(val name: String)
 
 @InheritableSerialInfo
-@Target(AnnotationTarget.CLASS, AnnotationTarget.PROPERTY)
+@Target(AnnotationTarget.CLASS, AnnotationTarget.PROPERTY, AnnotationTarget.VALUE_PARAMETER)
 internal annotation class XmlNamespace(val prefix: String, val uri: String)
 
 @SerialInfo
