@@ -28,12 +28,11 @@ import kotlinx.serialization.descriptors.StructureKind
 import kotlinx.serialization.descriptors.elementDescriptors
 import kotlinx.serialization.encoding.CompositeDecoder
 import kotlinx.serialization.modules.SerializersModule
+import net.ormr.epubby.internal.util.getOwnText
 import net.ormr.epubby.internal.xml.QName
-import net.ormr.epubby.internal.xml.XmlElementSerializer
 import net.ormr.epubby.internal.xml.XmlTag
 import org.jdom2.Element
 import org.jdom2.Namespace
-import org.jdom2.Text
 import kotlin.reflect.typeOf
 
 internal class XmlElementDecoder(
@@ -203,17 +202,12 @@ internal class XmlElementDecoder(
     @Suppress("UNCHECKED_CAST")
     override fun <T> decodeSerializableValue(deserializer: DeserializationStrategy<T>): T =
         when (val tag = currentTagOrNull) {
-            null -> decodeSerializable(deserializer)
+            null -> decodeSerializable(deserializer, element)
             else -> when {
                 tag.isAttributeOverflowTarget -> elementAttributes.toMap() as T
-                else -> decodeSerializable(deserializer)
+                else -> decodeSerializable(deserializer, element)
             }
         }
-
-    private fun <T> decodeSerializable(deserializer: DeserializationStrategy<T>): T = when (deserializer) {
-        is XmlElementSerializer<T> -> deserializer.deserializeElement(this, element)
-        else -> deserializer.deserialize(this)
-    }
 
     override fun decodeTaggedNotNullMark(tag: XmlTag): Boolean = !forceNull && when (val kind = tag.descriptor.kind) {
         is PrimitiveKind, SerialKind.ENUM -> when (tag.textValue) {
@@ -272,12 +266,5 @@ internal class XmlElementDecoder(
     }
 
     // because jdom returns empty string even if no text exists and some other behavior we don't really want :-^)
-    private fun getOwnText(element: Element, normalize: Boolean = false): String? = when (element.contentSize) {
-        0 -> null
-        1 -> {
-            val child = element.content.first() as? Text
-            if (normalize) child?.textNormalize else child?.text
-        }
-        else -> null
-    }
+    private fun getOwnText(element: Element, normalize: Boolean = false): String? = element.getOwnText(normalize)
 }

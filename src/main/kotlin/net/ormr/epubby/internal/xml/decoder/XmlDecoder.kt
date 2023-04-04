@@ -16,13 +16,16 @@
 
 package net.ormr.epubby.internal.xml.decoder
 
+import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.CompositeDecoder
 import kotlinx.serialization.internal.TaggedDecoder
+import net.ormr.epubby.internal.xml.XmlElementSerializer
 import net.ormr.epubby.internal.xml.XmlTag
 import net.ormr.epubby.internal.xml.getXmlTag
+import org.jdom2.Element
 
 @OptIn(InternalSerializationApi::class)
 internal sealed class XmlDecoder : TaggedDecoder<XmlTag>() {
@@ -37,4 +40,10 @@ internal sealed class XmlDecoder : TaggedDecoder<XmlTag>() {
     }
 
     fun findTag(): XmlTag = currentTag
+
+    protected fun <T> decodeSerializable(deserializer: DeserializationStrategy<T>, element: Element): T =
+        when (deserializer) {
+            is XmlElementSerializer<T> -> deserializer.deserializeElement(this, element)
+            else -> deserializer.deserialize(this)
+        }
 }

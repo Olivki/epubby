@@ -26,6 +26,7 @@ import net.ormr.epubby.internal.util.loadDocument
 import net.ormr.epubby.internal.xml.decoder.XmlDocumentDecoder
 import net.ormr.epubby.internal.xml.encoder.XmlDocumentEncoder
 import org.jdom2.Document
+import org.jdom2.Element
 import org.jdom2.output.XMLOutputter
 import java.nio.file.Path
 
@@ -44,6 +45,9 @@ internal sealed class Xml(
         return encoder.document
     }
 
+    fun <T> encodeToElement(serializer: SerializationStrategy<T>, value: T): Element =
+        encodeToDocument(serializer, value).detachRootElement()
+
     final override fun <T> encodeToString(serializer: SerializationStrategy<T>, value: T): String {
         val document = encodeToDocument(serializer, value)
         return outputter.outputString(document)
@@ -53,6 +57,9 @@ internal sealed class Xml(
         val decoder = XmlDocumentDecoder(document, serializersModule)
         return decoder.decodeSerializableValue(deserializer)
     }
+
+    fun <T> decodeFromElement(deserializer: DeserializationStrategy<T>, element: Element): T =
+        decodeFromDocument(deserializer, Document(element.detach()))
 
     final override fun <T> decodeFromString(deserializer: DeserializationStrategy<T>, string: String): T =
         decodeFromDocument(deserializer, loadDocument(string))

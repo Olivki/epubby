@@ -16,6 +16,7 @@
 
 package net.ormr.epubby.internal.xml.decoder
 
+import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -42,6 +43,9 @@ internal class XmlListDecoder(
         StructureKind.MAP -> TODO("map")
         else -> throw SerializationException("Unsupported kind: ${descriptor.kind}")
     }
+
+    override fun <T> decodeSerializableValue(deserializer: DeserializationStrategy<T>): T =
+        decodeSerializable(deserializer, children[currentIndex - 1])
 
     override fun decodeTaggedValue(tag: XmlTag): Any =
         throw SerializationException("Primitives are not allowed in lists (tag: $tag)")

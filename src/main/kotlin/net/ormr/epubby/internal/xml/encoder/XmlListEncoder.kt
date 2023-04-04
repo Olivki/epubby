@@ -18,6 +18,7 @@ package net.ormr.epubby.internal.xml.encoder
 
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerializationException
+import kotlinx.serialization.SerializationStrategy
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.StructureKind
 import kotlinx.serialization.encoding.CompositeEncoder
@@ -46,5 +47,9 @@ internal class XmlListEncoder(
 
     override fun encodeTaggedValue(tag: XmlTag, value: Any) {
         throw SerializationException("Primitives are not allowed in lists (tag: $tag, value: $value)")
+    }
+
+    override fun <T> encodeSerializableValue(serializer: SerializationStrategy<T>, value: T) {
+        encodeSerializable(serializer, value, parent)
     }
 }

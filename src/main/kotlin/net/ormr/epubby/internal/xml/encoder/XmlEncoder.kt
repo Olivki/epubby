@@ -21,8 +21,10 @@ import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.SerializationStrategy
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.internal.TaggedEncoder
+import net.ormr.epubby.internal.xml.XmlElementSerializer
 import net.ormr.epubby.internal.xml.XmlTag
 import net.ormr.epubby.internal.xml.getXmlTag
+import org.jdom2.Element
 
 @OptIn(InternalSerializationApi::class)
 internal sealed class XmlEncoder : TaggedEncoder<XmlTag>() {
@@ -58,6 +60,13 @@ internal sealed class XmlEncoder : TaggedEncoder<XmlTag>() {
             popTag()
         }
         return shouldEncode
+    }
+
+    protected fun <T> encodeSerializable(serializer: SerializationStrategy<T>, value: T, element: Element) {
+        when (serializer) {
+            is XmlElementSerializer<T> -> serializer.serializeElement(this, element, value)
+            else -> serializer.serialize(this, value)
+        }
     }
 
     protected open fun shouldEncodeElement(descriptor: SerialDescriptor, index: Int): Boolean = true

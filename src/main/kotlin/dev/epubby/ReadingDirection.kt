@@ -28,4 +28,12 @@ public enum class ReadingDirection(public val value: String) {
 
     @SerialName("rtl")
     RIGHT_TO_LEFT("rtl");
+
+    public companion object {
+        public fun fromValueOrNull(value: String): ReadingDirection? = when (value) {
+            "ltr" -> LEFT_TO_RIGHT
+            "rtl" -> RIGHT_TO_LEFT
+            else -> null
+        }
+    }
 }

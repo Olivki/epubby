@@ -20,6 +20,7 @@ import org.jdom2.Document
 import org.jdom2.Element
 import org.jdom2.Namespace
 import org.jdom2.SlimJDOMFactory
+import org.jdom2.Text
 import org.jdom2.input.SAXBuilder
 import org.jdom2.input.sax.XMLReaders
 import org.jdom2.output.Format
@@ -100,7 +101,7 @@ internal inline fun Element.element(
     addContent(it)
 }
 
-internal inline fun createElement(
+internal inline fun buildElement(
     name: String,
     namespace: Namespace? = null,
     builder: Element.() -> Unit,
@@ -110,6 +111,31 @@ internal operator fun Element.get(name: String): String = getAttributeValue(name
     "Missing required attribute '$name' on: ${encodeToString(compactXmlOutputter)}"
 )
 
+internal operator fun Element.set(name: String, value: String?) {
+    if (value == null) {
+        removeAttribute(name)
+    } else {
+        setAttribute(name, value)
+    }
+}
+
+internal operator fun Element.set(name: String, namespace: Namespace, value: String?) {
+    if (value == null) {
+        removeAttribute(name, namespace)
+    } else {
+        setAttribute(name, value, namespace)
+    }
+}
+
 internal fun Element.addAdditionalNamespaces(namespaces: Iterable<Namespace>) {
     for (namespace in namespaces) addNamespaceDeclaration(namespace)
+}
+
+internal fun Element.getOwnText(normalize: Boolean = false): String? = when (contentSize) {
+    0 -> null
+    1 -> {
+        val child = content.first() as? Text
+        if (normalize) child?.textNormalize else child?.text
+    }
+    else -> null
 }
