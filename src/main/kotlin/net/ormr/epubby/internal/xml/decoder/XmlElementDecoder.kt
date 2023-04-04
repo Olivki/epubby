@@ -29,6 +29,7 @@ import kotlinx.serialization.descriptors.elementDescriptors
 import kotlinx.serialization.encoding.CompositeDecoder
 import kotlinx.serialization.modules.SerializersModule
 import net.ormr.epubby.internal.xml.QName
+import net.ormr.epubby.internal.xml.XmlElementSerializer
 import net.ormr.epubby.internal.xml.XmlTag
 import org.jdom2.Element
 import org.jdom2.Namespace
@@ -202,12 +203,17 @@ internal class XmlElementDecoder(
     @Suppress("UNCHECKED_CAST")
     override fun <T> decodeSerializableValue(deserializer: DeserializationStrategy<T>): T =
         when (val tag = currentTagOrNull) {
-            null -> super.decodeSerializableValue(deserializer)
+            null -> decodeSerializable(deserializer)
             else -> when {
                 tag.isAttributeOverflowTarget -> elementAttributes.toMap() as T
-                else -> super.decodeSerializableValue(deserializer)
+                else -> decodeSerializable(deserializer)
             }
         }
+
+    private fun <T> decodeSerializable(deserializer: DeserializationStrategy<T>): T = when (deserializer) {
+        is XmlElementSerializer<T> -> deserializer.deserializeElement(this, element)
+        else -> deserializer.deserialize(this)
+    }
 
     override fun decodeTaggedNotNullMark(tag: XmlTag): Boolean = !forceNull && when (val kind = tag.descriptor.kind) {
         is PrimitiveKind, SerialKind.ENUM -> when (tag.textValue) {

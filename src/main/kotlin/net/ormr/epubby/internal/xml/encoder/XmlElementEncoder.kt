@@ -25,6 +25,7 @@ import kotlinx.serialization.encoding.CompositeEncoder
 import kotlinx.serialization.modules.SerializersModule
 import net.ormr.epubby.internal.util.addAdditionalNamespaces
 import net.ormr.epubby.internal.xml.QName
+import net.ormr.epubby.internal.xml.XmlElementSerializer
 import net.ormr.epubby.internal.xml.XmlTag
 import org.jdom2.Element
 import org.jdom2.Namespace
@@ -65,7 +66,7 @@ internal class XmlElementEncoder(
     @Suppress("UNCHECKED_CAST")
     override fun <T> encodeSerializableValue(serializer: SerializationStrategy<T>, value: T) {
         when (val tag = currentTagOrNull) {
-            null -> super.encodeSerializableValue(serializer, value)
+            null -> encodeSerializable(serializer, value)
             else -> when {
                 tag.isAttributeOverflowTarget -> {
                     val attributes = value as Map<QName, String>
@@ -73,8 +74,15 @@ internal class XmlElementEncoder(
                         element.setAttribute(qualifiedName.name, text, qualifiedName.namespace)
                     }
                 }
-                else -> super.encodeSerializableValue(serializer, value)
+                else -> encodeSerializable(serializer, value)
             }
+        }
+    }
+
+    private fun <T> encodeSerializable(serializer: SerializationStrategy<T>, value: T) {
+        when (serializer) {
+            is XmlElementSerializer<T> -> serializer.serializeElement(this, element, value)
+            else -> serializer.serialize(this, value)
         }
     }
 
