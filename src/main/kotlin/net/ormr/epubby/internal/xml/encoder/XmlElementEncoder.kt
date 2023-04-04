@@ -37,7 +37,7 @@ internal class XmlElementEncoder(
     override fun beginStructure(descriptor: SerialDescriptor): CompositeEncoder = when (val kind = descriptor.kind) {
         is StructureKind -> {
             val tag = currentTag
-            val namespace = tag.namespace ?: element.namespace
+            val namespace = getNamespace(tag)
             val additionalNamespaces = tag.additionalNamespaces
             when (kind) {
                 StructureKind.CLASS, StructureKind.OBJECT -> {
@@ -78,9 +78,13 @@ internal class XmlElementEncoder(
         }
     }
 
+    private fun getNamespace(tag: XmlTag): Namespace = when {
+        tag.shouldInheritNamespace -> tag.namespace ?: element.namespace
+        else -> tag.namespace ?: Namespace.NO_NAMESPACE
+    }
+
     // don't encode elements with default values
-    override fun shouldEncodeElement(descriptor: SerialDescriptor, index: Int): Boolean =
-        !descriptor.isElementOptional(index)
+    override fun shouldEncodeElement(descriptor: SerialDescriptor, index: Int): Boolean = true
 
     override fun encodeNull() {
         // null values are represented as missing attributes
@@ -92,12 +96,12 @@ internal class XmlElementEncoder(
             // TODO: apply normalization here?
             element.text = value.toString()
         } else {
-            element.setAttribute(tag.name, value.toString(), tag.namespace ?: element.namespace)
+            element.setAttribute(tag.name, value.toString(), getNamespace(tag))
         }
     }
 
     override fun encodeTaggedEnum(tag: XmlTag, enumDescriptor: SerialDescriptor, ordinal: Int) {
-        element.setAttribute(tag.name, enumDescriptor.getElementName(ordinal), tag.namespace ?: element.namespace)
+        element.setAttribute(tag.name, enumDescriptor.getElementName(ordinal), getNamespace(tag))
     }
 
     private fun createChild(name: String, namespace: Namespace): Element {

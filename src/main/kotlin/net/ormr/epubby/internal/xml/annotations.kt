@@ -42,5 +42,9 @@ internal annotation class XmlAdditionalNamespaces(val namespaces: Array<XmlNames
 internal annotation class XmlAttributeOverflow
 
 @SerialInfo
+@Target(AnnotationTarget.CLASS, AnnotationTarget.PROPERTY)
+internal annotation class XmlInheritNamespace
+
+@SerialInfo
 @Target(AnnotationTarget.PROPERTY)
 internal annotation class XmlTextValue(val normalize: Boolean = true)

@@ -40,9 +40,9 @@ import net.ormr.epubby.internal.xml.XmlNamespace
 internal data class MetadataModel(
     val links: List<LinkModel> = emptyList(),
     @XmlNamespace(DUBLIN_CORE_PREFIX, DUBLIN_CORE_URI)
-    val dublinCoreElements: List<DublinCoreModel>,
+    val dublinCoreElements: List<DublinCoreModel> = emptyList(),
     @XmlElementsName("meta")
-    val metaElements: List<OpfMeta>,
+    val metaElements: List<OpfMeta> = emptyList(),
 ) {
     // identifiers, titles and languages are just contained in 'dublinCoreElements'
 

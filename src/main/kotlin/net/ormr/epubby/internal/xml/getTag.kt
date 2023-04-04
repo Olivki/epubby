@@ -49,6 +49,7 @@ internal fun getXmlTag(
     } ?: emptyList(),
     textValue = annotations.firstInstanceOrNull<XmlTextValue>(),
     isAttributeOverflowTarget = annotations.firstInstanceOrNull<XmlAttributeOverflow>() != null,
+    shouldInheritNamespace = annotations.firstInstanceOrNull<XmlInheritNamespace>() != null
 )
 
 private fun XmlNamespace.toNamespace(): Namespace = Namespace.getNamespace(prefix, uri)

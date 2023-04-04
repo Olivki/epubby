@@ -54,22 +54,24 @@ internal class XmlElementDecoder(
             val tag = descriptor.getTag(currentIndex++)
             val index = currentIndex - 1
             val name = tag.name
-            val namespace = tag.namespace ?: element.namespace
+            val namespace = getNamespace(tag)
             val isRequired = !descriptor.isElementOptional(index) && !tag.isAttributeOverflowTarget
             forceNull = false
             if (tag.isAttributeOverflowTarget) return index
             when (val kind = tag.descriptor.kind) {
-                is PrimitiveKind, SerialKind.ENUM -> when (tag.textValue) {
-                    null -> if (anyAttribute(name, namespace) || absenceIsNull(descriptor, index)) {
-                        return index
-                    } else if (isRequired) {
-                        // TODO: include namespace prefix if available
-                        throw SerializationException("Missing attribute '$name' on element '${element.name}'")
-                    }
-                    else -> if (getOwnText(element) != null || absenceIsNull(descriptor, index)) {
-                        return index
-                    } else if (isRequired) {
-                        throw SerializationException("Missing required text content on element '${element.name}'")
+                is PrimitiveKind, SerialKind.ENUM -> {
+                    when (tag.textValue) {
+                        null -> if (anyAttribute(name, namespace) || absenceIsNull(descriptor, index)) {
+                            return index
+                        } else if (isRequired) {
+                            // TODO: include namespace prefix if available
+                            throw SerializationException("Missing attribute '$name' on element '${element.name}'")
+                        }
+                        else -> if (getOwnText(element) != null || absenceIsNull(descriptor, index)) {
+                            return index
+                        } else if (isRequired) {
+                            throw SerializationException("Missing required text content on element '${element.name}'")
+                        }
                     }
                 }
                 is StructureKind -> when (kind) {
@@ -102,10 +104,8 @@ internal class XmlElementDecoder(
                             }
                             is StructureKind -> {
                                 val elementName = tag.elementsName ?: elementDescriptor.serialName
-                                if (element.anyChildWithName(elementName, namespace) || absenceIsNull(
-                                        descriptor,
-                                        index
-                                    )
+                                if (element.anyChildWithName(elementName, namespace) ||
+                                    absenceIsNull(descriptor, index)
                                 ) {
                                     return index
                                 } else if (isRequired) {
@@ -137,13 +137,13 @@ internal class XmlElementDecoder(
     override fun beginStructure(descriptor: SerialDescriptor): CompositeDecoder = when (descriptor.kind) {
         StructureKind.CLASS, StructureKind.OBJECT -> {
             val tag = currentTag
-            val namespace = tag.namespace ?: element.namespace
+            val namespace = getNamespace(tag)
             val child = getSingleChild(tag.name, namespace)
             XmlElementDecoder(child, serializersModule)
         }
         StructureKind.LIST -> {
             val tag = currentTag
-            val namespace = tag.namespace ?: element.namespace
+            val namespace = getNamespace(tag)
             // TODO: use elementsName
             when (val wrapperName = tag.listWrapperElementName) {
                 null -> {
@@ -211,11 +211,16 @@ internal class XmlElementDecoder(
 
     override fun decodeTaggedNotNullMark(tag: XmlTag): Boolean = !forceNull && when (val kind = tag.descriptor.kind) {
         is PrimitiveKind, SerialKind.ENUM -> when (tag.textValue) {
-            null -> anyAttribute(tag.name, tag.namespace ?: element.namespace)
+            null -> anyAttribute(tag.name, getNamespace(tag))
             else -> getOwnText(element) != null
         }
         is StructureKind -> TODO("Handle nullable structures")
         else -> throw SerializationException("Can't decode not null mark for kind $kind")
+    }
+
+    private fun getNamespace(tag: XmlTag): Namespace = when {
+        tag.shouldInheritNamespace -> tag.namespace ?: element.namespace
+        else -> tag.namespace ?: Namespace.NO_NAMESPACE
     }
 
     // numbers
@@ -256,7 +261,7 @@ internal class XmlElementDecoder(
 
     private fun getValue(tag: XmlTag): String = when (val textValue = tag.textValue) {
         null -> {
-            val namespace = tag.namespace ?: element.namespace
+            val namespace = getNamespace(tag)
             val qualifiedName = QName(namespace, tag.name)
             val value = elementAttributes.remove(qualifiedName)
             value ?: throw SerializationException("Missing attribute '${tag.name}' on element '${element.name}'")

@@ -31,7 +31,13 @@ internal class XmlDocumentDecoder(
     override val serializersModule: SerializersModule,
 ) : XmlDecoder() {
     override fun beginStructure(descriptor: SerialDescriptor): CompositeDecoder = when (descriptor.kind) {
-        StructureKind.CLASS -> XmlElementDecoder(document.rootElement, serializersModule)
+        StructureKind.CLASS -> {
+            val root = document.rootElement
+            if (descriptor.serialName != root.name) {
+                throw SerializationException("Root element name '${root.name}' does not match serial name '${descriptor.serialName}")
+            }
+            XmlElementDecoder(root, serializersModule)
+        }
         else -> throw SerializationException("Can't decode kind ${descriptor.kind} (${descriptor.serialName}) as root element for document")
     }
 }

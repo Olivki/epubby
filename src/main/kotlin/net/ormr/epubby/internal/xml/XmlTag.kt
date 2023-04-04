@@ -29,4 +29,5 @@ internal data class XmlTag(
     val additionalNamespaces: List<Namespace>,
     val textValue: XmlTextValue?,
     val isAttributeOverflowTarget: Boolean,
+    val shouldInheritNamespace: Boolean,
 )
