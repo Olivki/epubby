@@ -30,13 +30,16 @@ internal annotation class XmlListWrapperElement(val name: String)
 internal annotation class XmlElementsName(val name: String)
 
 @InheritableSerialInfo
-@Target(AnnotationTarget.CLASS, AnnotationTarget.PROPERTY, AnnotationTarget.VALUE_PARAMETER)
+@Target(AnnotationTarget.CLASS, AnnotationTarget.PROPERTY)
 internal annotation class XmlNamespace(val prefix: String, val uri: String)
 
 @SerialInfo
 @Target(AnnotationTarget.CLASS, AnnotationTarget.PROPERTY)
-@Repeatable
 internal annotation class XmlAdditionalNamespaces(val namespaces: Array<XmlNamespace>)
+
+@SerialInfo
+@Target(AnnotationTarget.PROPERTY)
+internal annotation class XmlAttributeOverflow
 
 @SerialInfo
 @Target(AnnotationTarget.PROPERTY)

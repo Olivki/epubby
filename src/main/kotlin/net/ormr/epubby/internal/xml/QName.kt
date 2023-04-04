@@ -14,25 +14,30 @@
  * limitations under the License.
  */
 
-package net.ormr.epubby.internal.models.dublincore
+package net.ormr.epubby.internal.xml
 
-import dev.epubby.Epub2Feature
-import dev.epubby.dublincore.CreativeRole
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import org.jdom2.Namespace
 
-@OptIn(Epub2Feature::class)
-internal object CreativeRoleSerializer : KSerializer<CreativeRole> {
+@Serializable(with = QNameSerializer::class)
+internal data class QName(val namespace: Namespace, val name: String) {
+    val prefix: String?
+        get() = namespace.prefix.ifEmpty { null }
+}
+
+internal object QNameSerializer : KSerializer<QName> {
     override val descriptor: SerialDescriptor =
-        PrimitiveSerialDescriptor("dev.epubby.dublincore.CreativeRole", PrimitiveKind.STRING)
+        PrimitiveSerialDescriptor("net.ormr.epubby.internal.xml.QName", PrimitiveKind.STRING)
 
-    override fun deserialize(decoder: Decoder): CreativeRole = CreativeRole.create(decoder.decodeString())
+    override fun deserialize(decoder: Decoder): QName = error("QName should never be serialized")
 
-    override fun serialize(encoder: Encoder, value: CreativeRole) {
-        encoder.encodeString(value.code)
+    override fun serialize(encoder: Encoder, value: QName) {
+        error("QName should never be serialized")
     }
 }

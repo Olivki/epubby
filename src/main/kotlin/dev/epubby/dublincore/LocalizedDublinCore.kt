@@ -37,6 +37,7 @@ public sealed class LocalizedDublinCore : DublinCore() {
      * Examples of a `Contributor` include a person, an organization, or a service. Typically, the name of a
      * `Contributor` should be used to indicate the entity.
      */
+    @OptIn(Epub2Feature::class)
     public data class Contributor(
         override var identifier: String? = null,
         override var direction: ReadingDirection? = null,
@@ -76,6 +77,7 @@ public sealed class LocalizedDublinCore : DublinCore() {
      * Examples of a `Creator` include a person, an organization, or a service. Typically, the name of a `Creator`
      * should be used to indicate the entity.
      */
+    @OptIn(Epub2Feature::class)
     public data class Creator(
         override var identifier: String? = null,
         override var direction: ReadingDirection? = null,

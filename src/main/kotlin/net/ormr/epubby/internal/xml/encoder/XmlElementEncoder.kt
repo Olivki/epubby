@@ -24,6 +24,7 @@ import kotlinx.serialization.descriptors.StructureKind
 import kotlinx.serialization.encoding.CompositeEncoder
 import kotlinx.serialization.modules.SerializersModule
 import net.ormr.epubby.internal.util.addAdditionalNamespaces
+import net.ormr.epubby.internal.xml.QName
 import net.ormr.epubby.internal.xml.XmlTag
 import org.jdom2.Element
 import org.jdom2.Namespace
@@ -61,8 +62,20 @@ internal class XmlElementEncoder(
         else -> throw SerializationException("Unsupported kind: ${descriptor.kind}")
     }
 
+    @Suppress("UNCHECKED_CAST")
     override fun <T> encodeSerializableValue(serializer: SerializationStrategy<T>, value: T) {
-        serializer.serialize(this, value)
+        when (val tag = currentTagOrNull) {
+            null -> super.encodeSerializableValue(serializer, value)
+            else -> when {
+                tag.isAttributeOverflowTarget -> {
+                    val attributes = value as Map<QName, String>
+                    for ((qualifiedName, text) in attributes) {
+                        element.setAttribute(qualifiedName.name, text, qualifiedName.namespace)
+                    }
+                }
+                else -> super.encodeSerializableValue(serializer, value)
+            }
+        }
     }
 
     // don't encode elements with default values
@@ -87,8 +100,8 @@ internal class XmlElementEncoder(
         element.setAttribute(tag.name, enumDescriptor.getElementName(ordinal), tag.namespace ?: element.namespace)
     }
 
-    private fun createChild(name: String, namespace: Namespace?): Element {
-        val element = Element(name)
+    private fun createChild(name: String, namespace: Namespace): Element {
+        val element = Element(name, namespace)
         this.element.addContent(element)
         return element
     }

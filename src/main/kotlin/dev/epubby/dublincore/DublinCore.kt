@@ -34,6 +34,7 @@ public sealed class DublinCore {
      *
      * `Date` may be used to express temporal information at any level of granularity.
      */
+    @OptIn(Epub2Feature::class)
     public data class Date(
         override var identifier: String? = null,
         @property:Epub2Feature

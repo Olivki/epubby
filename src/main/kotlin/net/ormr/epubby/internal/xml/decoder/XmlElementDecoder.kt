@@ -18,6 +18,7 @@
 
 package net.ormr.epubby.internal.xml.decoder
 
+import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.descriptors.PrimitiveKind
@@ -27,6 +28,7 @@ import kotlinx.serialization.descriptors.StructureKind
 import kotlinx.serialization.descriptors.elementDescriptors
 import kotlinx.serialization.encoding.CompositeDecoder
 import kotlinx.serialization.modules.SerializersModule
+import net.ormr.epubby.internal.xml.QName
 import net.ormr.epubby.internal.xml.XmlTag
 import org.jdom2.Element
 import org.jdom2.Namespace
@@ -39,6 +41,11 @@ internal class XmlElementDecoder(
 ) : XmlDecoder() {
     private var currentIndex = 0
     private var forceNull = false
+    private val elementAttributes: MutableMap<QName, String> = element.attributes.associateByTo(
+        hashMapOf(),
+        { QName(it.namespace, it.name) },
+        { it.value },
+    )
 
     // TODO: support contextual for normal element decode
     @OptIn(ExperimentalSerializationApi::class)
@@ -48,11 +55,12 @@ internal class XmlElementDecoder(
             val index = currentIndex - 1
             val name = tag.name
             val namespace = tag.namespace ?: element.namespace
-            val isRequired = !descriptor.isElementOptional(index)
+            val isRequired = !descriptor.isElementOptional(index) && !tag.isAttributeOverflowTarget
             forceNull = false
+            if (tag.isAttributeOverflowTarget) return index
             when (val kind = tag.descriptor.kind) {
                 is PrimitiveKind, SerialKind.ENUM -> when (tag.textValue) {
-                    null -> if (element.anyAttribute(name, namespace) || absenceIsNull(descriptor, index)) {
+                    null -> if (anyAttribute(name, namespace) || absenceIsNull(descriptor, index)) {
                         return index
                     } else if (isRequired) {
                         // TODO: include namespace prefix if available
@@ -84,14 +92,8 @@ internal class XmlElementDecoder(
                             SerialKind.CONTEXTUAL -> {
                                 // 'elementsName' is not applied for contextual
                                 if (elementDescriptor.elementDescriptors.any {
-                                        element.anyChildWithName(
-                                            it.serialName,
-                                            namespace
-                                        )
-                                    } || absenceIsNull(
-                                        descriptor,
-                                        index
-                                    )) {
+                                        element.anyChildWithName(it.serialName, namespace)
+                                    } || absenceIsNull(descriptor, index)) {
                                     return index
                                 } else if (isRequired) {
                                     val names = elementDescriptor.elementDescriptors.map { it.serialName }
@@ -136,7 +138,7 @@ internal class XmlElementDecoder(
         StructureKind.CLASS, StructureKind.OBJECT -> {
             val tag = currentTag
             val namespace = tag.namespace ?: element.namespace
-            val child = element.getSingleChild(tag.name, namespace)
+            val child = getSingleChild(tag.name, namespace)
             XmlElementDecoder(child, serializersModule)
         }
         StructureKind.LIST -> {
@@ -169,7 +171,7 @@ internal class XmlElementDecoder(
                     }
                 }
                 else -> {
-                    val child = element.getSingleChild(wrapperName, namespace)
+                    val child = getSingleChild(wrapperName, namespace)
                     XmlListDecoder(child.children, serializersModule)
                 }
             }
@@ -178,16 +180,16 @@ internal class XmlElementDecoder(
         else -> throw SerializationException("Unsupported kind: ${descriptor.kind}")
     }
 
-    private fun Element.anyAttribute(name: String, namespace: Namespace): Boolean =
-        getAttribute(name, namespace) != null
+    private fun anyAttribute(name: String, namespace: Namespace): Boolean {
+        val qualifiedName = QName(namespace, name)
+        return qualifiedName in elementAttributes
+    }
 
-    // TODO: use 'getChild' with namespace or some shit
     private fun Element.anyChildWithName(name: String, namespace: Namespace): Boolean =
         getChild(name, namespace) != null
 
-    // TODO: use 'getChild' instead? but that requires the use of namespace
-    private fun Element.getSingleChild(name: String, namespace: Namespace): Element {
-        val matchedElements = children.filter { it.name == name && it.namespace == namespace }
+    private fun getSingleChild(name: String, namespace: Namespace): Element {
+        val matchedElements = element.children.filter { it.name == name && it.namespace == namespace }
         if (matchedElements.isEmpty()) {
             throw SerializationException("Missing element '${name}'")
         }
@@ -197,9 +199,19 @@ internal class XmlElementDecoder(
         return matchedElements.first()
     }
 
+    @Suppress("UNCHECKED_CAST")
+    override fun <T> decodeSerializableValue(deserializer: DeserializationStrategy<T>): T =
+        when (val tag = currentTagOrNull) {
+            null -> super.decodeSerializableValue(deserializer)
+            else -> when {
+                tag.isAttributeOverflowTarget -> elementAttributes.toMap() as T
+                else -> super.decodeSerializableValue(deserializer)
+            }
+        }
+
     override fun decodeTaggedNotNullMark(tag: XmlTag): Boolean = !forceNull && when (val kind = tag.descriptor.kind) {
         is PrimitiveKind, SerialKind.ENUM -> when (tag.textValue) {
-            null -> element.getAttribute(tag.name, tag.namespace ?: element.namespace) != null
+            null -> anyAttribute(tag.name, tag.namespace ?: element.namespace)
             else -> getOwnText(element) != null
         }
         is StructureKind -> TODO("Handle nullable structures")
@@ -243,8 +255,12 @@ internal class XmlElementDecoder(
     }
 
     private fun getValue(tag: XmlTag): String = when (val textValue = tag.textValue) {
-        null -> element.getAttributeValue(tag.name, tag.namespace ?: element.namespace)
-            ?: throw SerializationException("Missing attribute '${tag.name}' on element '${element.name}'")
+        null -> {
+            val namespace = tag.namespace ?: element.namespace
+            val qualifiedName = QName(namespace, tag.name)
+            val value = elementAttributes.remove(qualifiedName)
+            value ?: throw SerializationException("Missing attribute '${tag.name}' on element '${element.name}'")
+        }
         else -> getOwnText(element, textValue.normalize)
             ?: throw SerializationException("No text content found on element '${element.name}' for field '${tag.name}'")
     }

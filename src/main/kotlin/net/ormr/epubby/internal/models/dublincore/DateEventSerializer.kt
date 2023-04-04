@@ -16,6 +16,7 @@
 
 package net.ormr.epubby.internal.models.dublincore
 
+import dev.epubby.Epub2Feature
 import dev.epubby.dublincore.DateEvent
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.descriptors.PrimitiveKind
@@ -24,6 +25,7 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
+@OptIn(Epub2Feature::class)
 internal object DateEventSerializer : KSerializer<DateEvent> {
     override val descriptor: SerialDescriptor =
         PrimitiveSerialDescriptor("dev.epubby.dublincore.DateEvent", PrimitiveKind.STRING)
