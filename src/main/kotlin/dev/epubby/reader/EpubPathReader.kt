@@ -66,7 +66,7 @@ internal class EpubPathReader(private val path: Path) : EpubReader {
         val mimeTypeContent = try {
             mimeType.readText(StandardCharsets.US_ASCII)
         } catch (_: IOException) {
-            shift<Nothing>(CorruptMimeType)
+            shift(CorruptMimeType)
         }
         ensure(mimeTypeContent == MIME_TYPE_CONTENT) { MimeTypeContentMismatch }
     }

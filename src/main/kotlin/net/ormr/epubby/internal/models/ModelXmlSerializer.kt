@@ -19,6 +19,7 @@ package net.ormr.epubby.internal.models
 import com.github.michaelbull.result.Result
 import com.github.michaelbull.result.map
 import com.github.michaelbull.result.toResultOr
+import net.ormr.epubby.internal.util.getOwnText
 import org.jdom2.Element
 import org.jdom2.Namespace
 import org.jdom2.xpath.XPathHelper
@@ -27,6 +28,8 @@ internal abstract class ModelXmlSerializer<E> {
     abstract fun missingAttribute(name: String, path: String): E
 
     abstract fun missingElement(name: String, path: String): E
+
+    abstract fun missingText(path: String): E
 
     private fun createMissingAttributeError(element: Element, name: String, namespace: Namespace): E {
         val path = XPathHelper.getAbsolutePath(element)
@@ -38,8 +41,18 @@ internal abstract class ModelXmlSerializer<E> {
         return missingAttribute(fixName(name, namespace), path)
     }
 
+    private fun createMissingTextError(element: Element): E {
+        val path = XPathHelper.getAbsolutePath(element)
+        return missingText(path)
+    }
+
     private fun fixName(name: String, namespace: Namespace): String =
         namespace.prefix?.ifEmpty { null }?.let { "$it:$name" } ?: name
+
+    fun Element.ownText(normalize: Boolean = false): Result<String, E> =
+        getOwnText(normalize).toResultOr { createMissingTextError(this) }
+
+    fun Element.optionalOwnText(normalize: Boolean = false): String? = getOwnText(normalize)
 
     fun Element.child(name: String, namespace: Namespace = Namespace.NO_NAMESPACE): Result<Element, E> =
         getChild(name, namespace).toResultOr { createMissingElementError(this, name, namespace) }

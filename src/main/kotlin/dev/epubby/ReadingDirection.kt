@@ -16,6 +16,8 @@
 
 package dev.epubby
 
+import com.github.michaelbull.result.Result
+import com.github.michaelbull.result.toResultOr
 import kotlinx.serialization.SerialName
 
 /**
@@ -30,6 +32,9 @@ public enum class ReadingDirection(public val value: String) {
     RIGHT_TO_LEFT("rtl");
 
     public companion object {
+        public fun fromValue(value: String): Result<ReadingDirection, String> =
+            fromValueOrNull(value).toResultOr { value }
+
         public fun fromValueOrNull(value: String): ReadingDirection? = when (value) {
             "ltr" -> LEFT_TO_RIGHT
             "rtl" -> RIGHT_TO_LEFT

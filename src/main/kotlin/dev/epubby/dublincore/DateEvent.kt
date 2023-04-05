@@ -17,11 +17,8 @@
 package dev.epubby.dublincore
 
 import dev.epubby.Epub2Feature
-import kotlinx.serialization.Serializable
-import net.ormr.epubby.internal.models.dublincore.DateEventSerializer
 
 @Epub2Feature
-@Serializable(with = DateEventSerializer::class)
 public class DateEvent private constructor(public val name: String) {
     override fun equals(other: Any?): Boolean = when {
         this === other -> true

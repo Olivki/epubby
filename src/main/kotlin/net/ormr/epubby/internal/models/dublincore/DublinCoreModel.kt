@@ -21,92 +21,65 @@ package net.ormr.epubby.internal.models.dublincore
 import dev.epubby.Epub2Feature
 import dev.epubby.dublincore.DateEvent
 import dev.epubby.dublincore.DublinCore
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
-import net.ormr.epubby.internal.Namespaces.OPF_PREFIX
-import net.ormr.epubby.internal.Namespaces.OPF_URI
-import net.ormr.epubby.internal.xml.XmlNamespace
-import net.ormr.epubby.internal.xml.XmlTextValue
-import net.ormr.epubby.internal.Namespaces.DUBLIN_CORE_PREFIX as PREFIX
-import net.ormr.epubby.internal.Namespaces.DUBLIN_CORE_URI as URI
+import net.ormr.epubby.internal.models.SerializedName
 
-@Serializable(with = DublinCoreModelSerializer::class)
-@XmlNamespace(PREFIX, URI)
-internal sealed interface DublinCoreModel {
-    val identifier: String?
-    val content: String?
+// https://www.dublincore.org/specifications/dublin-core/dces/
+internal sealed class DublinCoreModel(val name: String) {
+    @SerializedName("id")
+    abstract val identifier: String?
+    abstract val content: String?
 
-    fun toDublinCore(): DublinCore
+    abstract fun toDublinCore(): DublinCore
 
-    @Serializable
-    @SerialName("date")
+    @SerializedName("date")
     data class DateModel(
-        @SerialName("id")
         override val identifier: String?,
         @property:Epub2Feature
-        @XmlNamespace(OPF_PREFIX, OPF_URI)
         val event: DateEvent?,
-        @XmlTextValue
         override val content: String?,
-    ) : DublinCoreModel {
+    ) : DublinCoreModel("date") {
         override fun toDublinCore(): DublinCore.Date = DublinCore.Date(identifier, event, content)
     }
 
-    @Serializable
-    @SerialName("format")
+    @SerializedName("format")
     data class FormatModel(
-        @SerialName("id")
         override val identifier: String?,
-        @XmlTextValue
         override val content: String?,
-    ) : DublinCoreModel {
+    ) : DublinCoreModel("format") {
         override fun toDublinCore(): DublinCore.Format = DublinCore.Format(identifier, content)
     }
 
-    @Serializable
-    @SerialName("identifier")
+    @SerializedName("identifier")
     data class IdentifierModel(
-        @SerialName("id")
         override val identifier: String?,
         @property:Epub2Feature
-        @XmlNamespace(OPF_PREFIX, OPF_URI)
         val scheme: String?,
-        @XmlTextValue
         override val content: String?,
-    ) : DublinCoreModel {
+    ) : DublinCoreModel("identifier") {
         override fun toDublinCore(): DublinCore.Identifier = DublinCore.Identifier(identifier, scheme, content)
     }
 
-    @Serializable
-    @SerialName("language")
+    @SerializedName("language")
     data class LanguageModel(
-        @SerialName("id")
         override val identifier: String?,
-        @XmlTextValue
         override val content: String?,
-    ) : DublinCoreModel {
+    ) : DublinCoreModel("language") {
         override fun toDublinCore(): DublinCore.Language = DublinCore.Language(identifier, content)
     }
 
-    @Serializable
-    @SerialName("source")
+    @SerializedName("source")
     data class SourceModel(
-        @SerialName("id")
         override val identifier: String?,
-        @XmlTextValue
         override val content: String?,
-    ) : DublinCoreModel {
+    ) : DublinCoreModel("source") {
         override fun toDublinCore(): DublinCore.Source = DublinCore.Source(identifier, content)
     }
 
-    @Serializable
-    @SerialName("type")
+    @SerializedName("type")
     data class TypeModel(
-        @SerialName("id")
         override val identifier: String?,
-        @XmlTextValue
         override val content: String?,
-    ) : DublinCoreModel {
+    ) : DublinCoreModel("type") {
         override fun toDublinCore(): DublinCore.Type = DublinCore.Type(identifier, content)
     }
 }

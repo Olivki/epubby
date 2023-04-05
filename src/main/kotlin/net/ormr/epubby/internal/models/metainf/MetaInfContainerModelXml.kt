@@ -83,4 +83,6 @@ internal object MetaInfContainerModelXml : ModelXmlSerializer<MetaInfContainerRe
 
     override fun missingElement(name: String, path: String): MetaInfContainerReadError =
         MissingElement(name, path)
+
+    override fun missingText(path: String): MetaInfContainerReadError = error("'missingText' should never be used")
 }

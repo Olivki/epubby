@@ -74,4 +74,6 @@ internal object ManifestModelXml : ModelXmlSerializer<ContentReadError>() {
     override fun missingAttribute(name: String, path: String): ContentReadError = MissingAttribute(name, path)
 
     override fun missingElement(name: String, path: String): ContentReadError = MissingElement(name, path)
+
+    override fun missingText(path: String): ContentReadError = error("'missingText' should never be used")
 }

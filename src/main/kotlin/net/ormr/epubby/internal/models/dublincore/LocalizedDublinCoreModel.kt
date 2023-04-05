@@ -22,173 +22,121 @@ import dev.epubby.Epub2Feature
 import dev.epubby.ReadingDirection
 import dev.epubby.dublincore.CreativeRole
 import dev.epubby.dublincore.LocalizedDublinCore
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
-import net.ormr.epubby.internal.Namespaces.OPF_PREFIX
-import net.ormr.epubby.internal.Namespaces.OPF_URI
-import net.ormr.epubby.internal.xml.XmlNamespace
-import net.ormr.epubby.internal.xml.XmlTextValue
+import net.ormr.epubby.internal.models.SerializedName
 
-internal sealed interface LocalizedDublinCoreModel : DublinCoreModel {
-    val direction: ReadingDirection?
-    val language: String?
+// // https://www.dublincore.org/specifications/dublin-core/dces/
+internal sealed class LocalizedDublinCoreModel(name: String) : DublinCoreModel(name) {
+    @SerializedName("dir")
+    abstract val direction: ReadingDirection?
 
-    override fun toDublinCore(): LocalizedDublinCore
+    @SerializedName("xml:lang")
+    abstract val language: String?
 
-    @Serializable
-    @SerialName("contributor")
+    abstract override fun toDublinCore(): LocalizedDublinCore
+
+    @SerializedName("contributor")
     data class ContributorModel(
-        @SerialName("id")
         override val identifier: String?,
-        @SerialName("dir")
         override val direction: ReadingDirection?,
-        @SerialName("lang")
         override val language: String?,
         @property:Epub2Feature
-        @XmlNamespace(OPF_PREFIX, OPF_URI)
         val role: CreativeRole?,
-        @SerialName("file-as")
         @property:Epub2Feature
-        @XmlNamespace(OPF_PREFIX, OPF_URI)
         val fileAs: String?,
-        @XmlTextValue
         override val content: String?,
-    ) : LocalizedDublinCoreModel {
+    ) : LocalizedDublinCoreModel("contributor") {
         override fun toDublinCore(): LocalizedDublinCore.Contributor =
             LocalizedDublinCore.Contributor(identifier, direction, language, role, fileAs, content)
     }
 
-    @Serializable
-    @SerialName("coverage")
+    @SerializedName("coverage")
     data class CoverageModel(
-        @SerialName("id")
         override val identifier: String?,
-        @SerialName("dir")
         override val direction: ReadingDirection?,
-        @SerialName("lang")
         override val language: String?,
-        @XmlTextValue
         override val content: String?,
-    ) : LocalizedDublinCoreModel {
+    ) : LocalizedDublinCoreModel("coverage") {
         override fun toDublinCore(): LocalizedDublinCore.Coverage =
             LocalizedDublinCore.Coverage(identifier, direction, language, content)
     }
 
-    @Serializable
-    @SerialName("creator")
+    @SerializedName("creator")
     data class CreatorModel(
-        @SerialName("id")
         override val identifier: String?,
-        @SerialName("dir")
         override val direction: ReadingDirection?,
-        @SerialName("lang")
         override val language: String?,
         @property:Epub2Feature
-        @XmlNamespace(OPF_PREFIX, OPF_URI)
         val role: CreativeRole?,
-        @SerialName("file-as")
         @property:Epub2Feature
-        @XmlNamespace(OPF_PREFIX, OPF_URI)
         val fileAs: String?,
-        @XmlTextValue
         override val content: String?,
-    ) : LocalizedDublinCoreModel {
+    ) : LocalizedDublinCoreModel("creator") {
         override fun toDublinCore(): LocalizedDublinCore.Creator =
             LocalizedDublinCore.Creator(identifier, direction, language, role, fileAs, content)
     }
 
-    @Serializable
-    @SerialName("description")
+    @SerializedName("description")
     data class DescriptionModel(
-        @SerialName("id")
         override val identifier: String?,
-        @SerialName("dir")
         override val direction: ReadingDirection?,
-        @SerialName("lang")
         override val language: String?,
-        @XmlTextValue
         override val content: String?,
-    ) : LocalizedDublinCoreModel {
+    ) : LocalizedDublinCoreModel("description") {
         override fun toDublinCore(): LocalizedDublinCore.Description =
             LocalizedDublinCore.Description(identifier, direction, language, content)
     }
 
-    @Serializable
-    @SerialName("publisher")
+    @SerializedName("publisher")
     data class PublisherModel(
-        @SerialName("id")
         override val identifier: String?,
-        @SerialName("dir")
         override val direction: ReadingDirection?,
-        @SerialName("lang")
         override val language: String?,
-        @XmlTextValue
         override val content: String?,
-    ) : LocalizedDublinCoreModel {
+    ) : LocalizedDublinCoreModel("publisher") {
         override fun toDublinCore(): LocalizedDublinCore.Publisher =
             LocalizedDublinCore.Publisher(identifier, direction, language, content)
     }
 
-    @Serializable
-    @SerialName("relation")
+    @SerializedName("relation")
     data class RelationModel(
-        @SerialName("id")
         override val identifier: String?,
-        @SerialName("dir")
         override val direction: ReadingDirection?,
-        @SerialName("lang")
         override val language: String?,
-        @XmlTextValue
         override val content: String?,
-    ) : LocalizedDublinCoreModel {
+    ) : LocalizedDublinCoreModel("relation") {
         override fun toDublinCore(): LocalizedDublinCore.Relation =
             LocalizedDublinCore.Relation(identifier, direction, language, content)
     }
 
-    @Serializable
-    @SerialName("rights")
+    @SerializedName("rights")
     data class RightsModel(
-        @SerialName("id")
         override val identifier: String?,
-        @SerialName("dir")
         override val direction: ReadingDirection?,
-        @SerialName("lang")
         override val language: String?,
-        @XmlTextValue
         override val content: String?,
-    ) : LocalizedDublinCoreModel {
+    ) : LocalizedDublinCoreModel("rights") {
         override fun toDublinCore(): LocalizedDublinCore.Rights =
             LocalizedDublinCore.Rights(identifier, direction, language, content)
     }
 
-    @Serializable
-    @SerialName("subject")
+    @SerializedName("subject")
     data class SubjectModel(
-        @SerialName("id")
         override val identifier: String?,
-        @SerialName("dir")
         override val direction: ReadingDirection?,
-        @SerialName("lang")
         override val language: String?,
-        @XmlTextValue
         override val content: String?,
-    ) : LocalizedDublinCoreModel {
+    ) : LocalizedDublinCoreModel("subject") {
         override fun toDublinCore(): LocalizedDublinCore.Subject =
             LocalizedDublinCore.Subject(identifier, direction, language, content)
     }
 
-    @Serializable
-    @SerialName("title")
+    @SerializedName("title")
     data class TitleModel(
-        @SerialName("id")
         override val identifier: String?,
-        @SerialName("dir")
         override val direction: ReadingDirection?,
-        @SerialName("lang")
         override val language: String?,
-        @XmlTextValue
         override val content: String?,
-    ) : LocalizedDublinCoreModel {
+    ) : LocalizedDublinCoreModel("title") {
         override fun toDublinCore(): LocalizedDublinCore.Title =
             LocalizedDublinCore.Title(identifier, direction, language, content)
     }

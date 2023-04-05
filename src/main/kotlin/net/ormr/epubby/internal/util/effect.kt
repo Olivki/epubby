@@ -40,7 +40,7 @@ internal inline fun <V, E> effect(crossinline block: BindingScope<E>.() -> V): R
 }
 
 internal class BindingScope<E> {
-    fun <V> shift(error: E): V = shiftErr(Err(error))
+    fun shift(error: E): Nothing = shiftErr(Err(error))
 
     private fun <V> shiftErr(err: Err<E>): V = throw ShiftRequest(err)
 
@@ -59,7 +59,7 @@ internal class BindingScope<E> {
             callsInPlace(shift, InvocationKind.AT_MOST_ONCE)
         }
 
-        if (!condition) shift<Unit>(shift())
+        if (!condition) shift(shift())
     }
 }
 
