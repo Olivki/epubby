@@ -26,6 +26,7 @@ import net.ormr.epubby.internal.Namespaces.OPF_PREFIX
 import net.ormr.epubby.internal.Namespaces.OPF_URI
 import net.ormr.epubby.internal.Namespaces.XML_PREFIX
 import net.ormr.epubby.internal.Namespaces.XML_URI
+import net.ormr.epubby.internal.models.SerializedName
 import net.ormr.epubby.internal.xml.XmlAdditionalNamespaces
 import net.ormr.epubby.internal.xml.XmlInheritNamespace
 import net.ormr.epubby.internal.xml.XmlNamespace
@@ -35,6 +36,7 @@ import net.ormr.epubby.internal.xml.XmlNamespace
 @Serializable
 @SerialName("package")
 @XmlNamespace(prefix = "", OPF_URI)
+@SerializedName("package")
 internal data class PackageModel(
     val version: String,
     @SerialName("unique-identifier")

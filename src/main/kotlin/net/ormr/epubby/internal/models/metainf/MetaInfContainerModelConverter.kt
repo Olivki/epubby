@@ -14,23 +14,6 @@
  * limitations under the License.
  */
 
-package dev.epubby
+package net.ormr.epubby.internal.models.metainf
 
-@RequiresOptIn
-public annotation class Epub2Feature
-
-@RequiresOptIn
-@Target(
-    AnnotationTarget.CLASS,
-    AnnotationTarget.ANNOTATION_CLASS,
-    AnnotationTarget.FUNCTION,
-    AnnotationTarget.TYPEALIAS,
-    AnnotationTarget.PROPERTY,
-)
-public annotation class Epub3Feature
-
-@RequiresOptIn
-public annotation class Epub31Feature
-
-@RequiresOptIn
-public annotation class UnstableEpubFeature
+internal object MetaInfContainerModelConverter

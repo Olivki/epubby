@@ -14,23 +14,14 @@
  * limitations under the License.
  */
 
-package dev.epubby
+package net.ormr.epubby.internal.models
 
-@RequiresOptIn
-public annotation class Epub2Feature
+import dev.epubby.version.EpubVersion
 
-@RequiresOptIn
-@Target(
-    AnnotationTarget.CLASS,
-    AnnotationTarget.ANNOTATION_CLASS,
-    AnnotationTarget.FUNCTION,
-    AnnotationTarget.TYPEALIAS,
-    AnnotationTarget.PROPERTY,
-)
-public annotation class Epub3Feature
+internal data class WriterData(val version: EpubVersion)
 
-@RequiresOptIn
-public annotation class Epub31Feature
+// these are very naive, and will not always be true
 
-@RequiresOptIn
-public annotation class UnstableEpubFeature
+internal fun WriterData.supportsEpub2Features(): Boolean = version >= EpubVersion.EPUB_3_0
+
+internal fun WriterData.supportsEpub3Features(): Boolean = version >= EpubVersion.EPUB_3_0

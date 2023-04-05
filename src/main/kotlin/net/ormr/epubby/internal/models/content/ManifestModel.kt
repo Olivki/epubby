@@ -17,28 +17,28 @@
 package net.ormr.epubby.internal.models.content
 
 import dev.epubby.Epub3Feature
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import net.ormr.epubby.internal.models.SerializedName
 
 // https://idpf.org/epub/20/spec/OPF_2.0.1_draft.htm#Section2.3
 // https://www.w3.org/publishing/epub3/epub-packages.html#sec-pkg-manifest
 @Serializable
-@SerialName("manifest")
+@SerializedName("manifest")
 internal data class ManifestModel(
-    @SerialName("id")
+    @SerializedName("id")
     val identifier: String?,
     val items: List<ItemModel>,
 ) {
     @Serializable
-    @SerialName("item")
+    @SerializedName("item")
     data class ItemModel(
-        @SerialName("id")
+        @SerializedName("id")
         val identifier: String,
         val href: String,
-        @SerialName("media-type")
+        @SerializedName("media-type")
         val mediaType: String,
         val fallback: String?, // conditionally required
-        @SerialName("media-overlay")
+        @SerializedName("media-overlay")
         val mediaOverlay: String?,
         @property:Epub3Feature
         val properties: String?,

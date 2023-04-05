@@ -14,23 +14,9 @@
  * limitations under the License.
  */
 
-package dev.epubby
+package dev.epubby.property
 
-@RequiresOptIn
-public annotation class Epub2Feature
+import dev.epubby.Epub3Feature
 
-@RequiresOptIn
-@Target(
-    AnnotationTarget.CLASS,
-    AnnotationTarget.ANNOTATION_CLASS,
-    AnnotationTarget.FUNCTION,
-    AnnotationTarget.TYPEALIAS,
-    AnnotationTarget.PROPERTY,
-)
-public annotation class Epub3Feature
-
-@RequiresOptIn
-public annotation class Epub31Feature
-
-@RequiresOptIn
-public annotation class UnstableEpubFeature
+@Epub3Feature
+public typealias Relationship = Property

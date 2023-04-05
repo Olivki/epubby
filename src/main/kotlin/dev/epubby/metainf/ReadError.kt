@@ -14,23 +14,15 @@
  * limitations under the License.
  */
 
-package dev.epubby
+package dev.epubby.metainf
 
-@RequiresOptIn
-public annotation class Epub2Feature
+import kotlinx.serialization.SerializationException
 
-@RequiresOptIn
-@Target(
-    AnnotationTarget.CLASS,
-    AnnotationTarget.ANNOTATION_CLASS,
-    AnnotationTarget.FUNCTION,
-    AnnotationTarget.TYPEALIAS,
-    AnnotationTarget.PROPERTY,
-)
-public annotation class Epub3Feature
+public sealed interface MetaInfReadError
 
-@RequiresOptIn
-public annotation class Epub31Feature
-
-@RequiresOptIn
-public annotation class UnstableEpubFeature
+public sealed interface MetaInfContainerReadError : MetaInfReadError {
+    public data class InvalidModel(val cause: SerializationException) : MetaInfContainerReadError
+    public data class MissingAttribute(val name: String, val path: String) : MetaInfContainerReadError
+    public data class MissingElement(val name: String, val path: String) : MetaInfContainerReadError
+    public object EmptyRootFiles : MetaInfContainerReadError
+}

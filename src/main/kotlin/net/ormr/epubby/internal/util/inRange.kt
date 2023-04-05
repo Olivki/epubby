@@ -14,23 +14,11 @@
  * limitations under the License.
  */
 
-package dev.epubby
+package net.ormr.epubby.internal.util
 
-@RequiresOptIn
-public annotation class Epub2Feature
-
-@RequiresOptIn
-@Target(
-    AnnotationTarget.CLASS,
-    AnnotationTarget.ANNOTATION_CLASS,
-    AnnotationTarget.FUNCTION,
-    AnnotationTarget.TYPEALIAS,
-    AnnotationTarget.PROPERTY,
-)
-public annotation class Epub3Feature
-
-@RequiresOptIn
-public annotation class Epub31Feature
-
-@RequiresOptIn
-public annotation class UnstableEpubFeature
+// used to coerce the Kotlin compiler into doing cheap range cheap
+// because doing something like 'value in EPUB_3_0..EPUB_3_2' will cause Kotlin to complain
+// about type mismatches due the different types, but this function coerces it into accept the
+// lowest common type
+@Suppress("NOTHING_TO_INLINE")
+internal inline fun <T : Comparable<T>> inRange(value: T, start: T, end: T): Boolean = value in start..end

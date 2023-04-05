@@ -23,27 +23,56 @@ import net.ormr.epubby.internal.Namespaces.DUBLIN_CORE_PREFIX
 import net.ormr.epubby.internal.Namespaces.DUBLIN_CORE_URI
 import net.ormr.epubby.internal.Namespaces.OPF_PREFIX
 import net.ormr.epubby.internal.Namespaces.OPF_URI
+import net.ormr.epubby.internal.models.content.MetadataModel
+import net.ormr.epubby.internal.models.content.PackageModel
 import net.ormr.epubby.internal.models.dublincore.DublinCoreModel
 import net.ormr.epubby.internal.util.encodeToString
+import net.ormr.epubby.internal.xml.QName
 import net.ormr.epubby.internal.xml.Xml
 import net.ormr.epubby.internal.xml.XmlAdditionalNamespaces
+import net.ormr.epubby.internal.xml.XmlAttributeOverflow
+import net.ormr.epubby.internal.xml.XmlInheritNamespace
 import net.ormr.epubby.internal.xml.XmlNamespace
 import kotlin.OptIn
 import kotlin.String
+import kotlin.io.path.Path
 
 @OptIn(ExperimentalSerializationApi::class)
 public fun main() {
     //checkThing()
-    checkMetadata()
+    //checkMetadata()
+    checkMetadataModel()
+    //checkDab()
+}
+
+@Serializable
+@SerialName("package")
+@XmlNamespace(prefix = "", OPF_URI)
+private data class Package(
+    @XmlInheritNamespace
+    @XmlAdditionalNamespaces([XmlNamespace(DUBLIN_CORE_PREFIX, DUBLIN_CORE_URI), XmlNamespace(OPF_PREFIX, OPF_URI)])
+    val metadata: MetadataModel,
+)
+
+private fun checkMetadataModel() {
+    val file = Path("""H:\Programming\JVM\Kotlin\Data\epubby\reader\!EPUB3\test_3\OEBPS\content.opf""")
+    val pack = Xml.decodeFromFile(PackageModel.serializer(), file)
+    println(pack)
+    println("-".repeat(40))
+    val doc = Xml.encodeToDocument(PackageModel.serializer(), pack)
+    println(doc.encodeToString())
 }
 
 private fun checkThing() {
-    val thing = Thing(listOf(Child("gamer"), Child("steve")))
-    val document = Xml.encodeToDocument(Thing.serializer(), thing)
-    val xml = document.encodeToString()
-    println(xml)
-    println(Xml.decodeFromString(Thing.serializer(), xml))
+    val xml = """
+        <thing>
+            <child name="wow" overflow-1="dab" overflow-2="epic" />
+        </thing>
+    """.trimIndent()
+    val thing = Xml.decodeFromString(Thing.serializer(), xml)
+    println(thing)
     println("-".repeat(40))
+    println(Xml.encodeToString(Thing.serializer(), thing))
 }
 
 private fun checkMetadata() {
@@ -80,7 +109,11 @@ private data class Thing(val things: List<Child>)
 
 @Serializable
 @SerialName("child")
-private data class Child(val name: String)
+private data class Child(
+    val name: String,
+    @XmlAttributeOverflow
+    val overflow: Map<QName, String>,
+)
 
 @Serializable
 @SerialName("metadata")

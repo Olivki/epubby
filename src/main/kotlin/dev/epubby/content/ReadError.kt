@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package dev.epubby.metainf
+package dev.epubby.content
 
-import kotlinx.serialization.SerializationException
+public sealed interface ContentReadError {
+    public data class MissingAttribute(val name: String, val path: String) : ContentReadError
+    public data class MissingElement(val name: String, val path: String) : ContentReadError
+}
 
-public sealed interface MetaInfParseError
-
-public sealed interface MetaInfContainerParseError : MetaInfParseError {
-    public data class InvalidModel(val cause: SerializationException) : MetaInfContainerParseError
-    public object EmptyRootFiles : MetaInfContainerParseError
+public sealed interface ManifestReadError : ContentReadError {
+    public object NoItemElements : ManifestReadError
 }

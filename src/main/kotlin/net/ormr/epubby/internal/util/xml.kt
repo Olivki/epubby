@@ -105,11 +105,7 @@ internal inline fun buildElement(
     name: String,
     namespace: Namespace? = null,
     builder: Element.() -> Unit,
-): Element = (namespace?.let { Element(name, it) } ?: Element(name)).apply { builder(this) }
-
-internal operator fun Element.get(name: String): String = getAttributeValue(name) ?: throw IllegalArgumentException(
-    "Missing required attribute '$name' on: ${encodeToString(compactXmlOutputter)}"
-)
+): Element = (namespace?.let { Element(name, it) } ?: Element(name)).apply(builder)
 
 internal operator fun Element.set(name: String, value: String?) {
     if (value == null) {

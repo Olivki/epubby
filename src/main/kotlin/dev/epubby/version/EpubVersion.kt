@@ -19,6 +19,7 @@
 package dev.epubby.version
 
 import dev.epubby.Epub31Feature
+import net.ormr.epubby.internal.util.inRange
 
 /**
  * Represents a supported version of the epub specification.
@@ -50,6 +51,10 @@ public sealed class EpubVersion(public val major: Int, public val minor: Int) : 
      * The [EPUB 3.2](https://www.w3.org/publishing/epub3/epub-spec.html) format.
      */
     public object EPUB_3_2 : StableEpubVersion(3, 2)
+
+    public fun isEpub2(): Boolean = EPUB_2_0 == this
+
+    public fun isEpub3(): Boolean = inRange(this, EPUB_3_0, EPUB_3_2)
 
     final override fun compareTo(other: EpubVersion): Int = when {
         major > other.major -> 1

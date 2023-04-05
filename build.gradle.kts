@@ -21,6 +21,8 @@ dependencies {
     // XML
     implementation("org.jdom:jdom2:2.0.6.1")
 
+    implementation("org.xbib:net:3.0.1")
+
     // Apache
     implementation("commons-validator:commons-validator:1.7")
     implementation("org.apache.commons:commons-collections4:4.4")
