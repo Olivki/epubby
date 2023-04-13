@@ -16,11 +16,7 @@
 
 package net.ormr.epubby.internal.util
 
-import org.jdom2.Document
-import org.jdom2.Element
-import org.jdom2.Namespace
-import org.jdom2.SlimJDOMFactory
-import org.jdom2.Text
+import org.jdom2.*
 import org.jdom2.input.SAXBuilder
 import org.jdom2.input.sax.XMLReaders
 import org.jdom2.output.Format
@@ -133,5 +129,8 @@ internal fun Element.getOwnText(normalize: Boolean = false): String? = when (con
         val child = content.first() as? Text
         if (normalize) child?.textNormalize else child?.text
     }
+
     else -> null
 }
+
+internal fun Namespace.getOrNullIfNone(): Namespace? = if (this == Namespace.NO_NAMESPACE) null else this

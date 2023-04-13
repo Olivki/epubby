@@ -19,8 +19,16 @@ package dev.epubby.content
 public sealed interface ContentReadError {
     public data class MissingAttribute(val name: String, val path: String) : ContentReadError
     public data class MissingElement(val name: String, val path: String) : ContentReadError
+    public data class MissingText(val path: String) : ContentReadError
+    public data class UnknownReadingDirection(val direction: String) : ContentReadError
 }
 
 public sealed interface ManifestReadError : ContentReadError {
     public object NoItemElements : ManifestReadError
+}
+
+public sealed interface MetadataReadError : ContentReadError {
+    public object MissingIdentifier : MetadataReadError
+    public object MissingTitle : MetadataReadError
+    public object MissingLanguage : MetadataReadError
 }

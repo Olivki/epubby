@@ -21,21 +21,13 @@ import dev.epubby.ReadingDirection
 import dev.epubby.dublincore.CreativeRole
 import dev.epubby.dublincore.DateEvent
 import dev.epubby.dublincore.DublinCoreReadError
-import dev.epubby.dublincore.DublinCoreReadError.MissingAttribute
-import dev.epubby.dublincore.DublinCoreReadError.MissingElement
-import dev.epubby.dublincore.DublinCoreReadError.UnknownDublinCoreElement
-import dev.epubby.dublincore.DublinCoreReadError.UnknownReadingDirection
+import dev.epubby.dublincore.DublinCoreReadError.*
 import net.ormr.epubby.internal.Namespaces.DUBLIN_CORE
 import net.ormr.epubby.internal.Namespaces.OPF
 import net.ormr.epubby.internal.models.ModelXmlSerializer
 import net.ormr.epubby.internal.models.SerializedName
 import net.ormr.epubby.internal.models.WriterData
-import net.ormr.epubby.internal.models.dublincore.DublinCoreModel.DateModel
-import net.ormr.epubby.internal.models.dublincore.DublinCoreModel.FormatModel
-import net.ormr.epubby.internal.models.dublincore.DublinCoreModel.IdentifierModel
-import net.ormr.epubby.internal.models.dublincore.DublinCoreModel.LanguageModel
-import net.ormr.epubby.internal.models.dublincore.DublinCoreModel.SourceModel
-import net.ormr.epubby.internal.models.dublincore.DublinCoreModel.TypeModel
+import net.ormr.epubby.internal.models.dublincore.DublinCoreModel.*
 import net.ormr.epubby.internal.models.dublincore.LocalizedDublinCoreModel.*
 import net.ormr.epubby.internal.util.buildElement
 import net.ormr.epubby.internal.util.effect
@@ -123,5 +115,5 @@ internal object DublinCoreModelXml : ModelXmlSerializer<DublinCoreReadError>() {
         .sealedSubclasses
         .asSequence()
         .filterNot { it.java.isInterface }
-        .mapTo(hashSetOf()) { it.findAnnotation<SerializedName>()?.name ?: error("Missing @SerializedName on $it") }
+        .mapTo(hashSetOf()) { it.findAnnotation<SerializedName>()?.value ?: error("Missing @SerializedName on $it") }
 }

@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
-package net.ormr.epubby.internal.models
+package net.ormr.epubby.internal
 
-internal annotation class SerializedName(val value: String)
+import dev.epubby.xml.XmlAttribute
+import org.jdom2.Namespace
+
+internal data class XmlAttributeImpl(
+    override val name: String,
+    override val value: String,
+    override val namespace: Namespace?,
+) : XmlAttribute

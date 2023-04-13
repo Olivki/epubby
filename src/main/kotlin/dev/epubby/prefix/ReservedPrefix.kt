@@ -37,7 +37,7 @@ import net.ormr.epubby.internal.util.getChildObjects
 @UnstableEpubFeature
 public sealed class ReservedPrefix(override val name: String, override val uri: String) : Prefix {
     public object A11y : ReservedPrefix("a11y", "http://www.idpf.org/epub/vocab/package/a11y/#")
-    public object DcTerms : ReservedPrefix("dcterms", "http://purl.org/dc/terms/") // TODO: is the actual prefix 'dc'?
+    public object DcTerms : ReservedPrefix("dcterms", "http://purl.org/dc/terms/")
     public object Marc : ReservedPrefix("marc", "http://id.loc.gov/vocabulary/")
     public object Media : ReservedPrefix("media", "http://www.idpf.org/epub/vocab/overlays/#")
     public object Onix : ReservedPrefix("onix", "http://www.editeur.org/ONIX/epub/codelists/current.html#")

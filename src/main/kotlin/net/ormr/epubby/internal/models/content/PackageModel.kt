@@ -33,6 +33,9 @@ import net.ormr.epubby.internal.xml.XmlNamespace
 
 // https://idpf.org/epub/20/spec/OPF_2.0.1_draft.htm
 // https://www.w3.org/publishing/epub3/epub-packages.html
+// TODO: 'id' attributes must be unique within the document scope
+//       this means that all elements in a 'Package' when an 'id' is defined
+//       it needs to be fully unique
 @Serializable
 @SerialName("package")
 @XmlNamespace(prefix = "", OPF_URI)

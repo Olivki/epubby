@@ -16,76 +16,69 @@
 
 package net.ormr.epubby.internal.models.content
 
+import dev.epubby.Epub2Feature
 import dev.epubby.Epub3Feature
 import dev.epubby.ReadingDirection
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
-import net.ormr.epubby.internal.Namespaces.DUBLIN_CORE_PREFIX
-import net.ormr.epubby.internal.Namespaces.DUBLIN_CORE_URI
-import net.ormr.epubby.internal.Namespaces.OPF_PREFIX
-import net.ormr.epubby.internal.Namespaces.OPF_URI
+import dev.epubby.xml.XmlAttribute
+import net.ormr.epubby.internal.models.SerializedName
 import net.ormr.epubby.internal.models.dublincore.DublinCoreModel
-import net.ormr.epubby.internal.xml.QName
-import net.ormr.epubby.internal.xml.XmlAdditionalNamespaces
-import net.ormr.epubby.internal.xml.XmlElementsName
-import net.ormr.epubby.internal.xml.XmlNamespace
-
-// dc-metadata and x-metadata are NOT supported
+import net.ormr.epubby.internal.models.dublincore.DublinCoreModel.IdentifierModel
+import net.ormr.epubby.internal.models.dublincore.DublinCoreModel.LanguageModel
+import net.ormr.epubby.internal.models.dublincore.LocalizedDublinCoreModel.TitleModel
 
 // https://idpf.org/epub/20/spec/OPF_2.0.1_draft.htm#Section2.2
 // https://www.w3.org/publishing/epub3/epub-packages.html#sec-metadata-elem
-@Serializable
-@SerialName("metadata")
-@XmlAdditionalNamespaces([XmlNamespace(DUBLIN_CORE_PREFIX, DUBLIN_CORE_URI), XmlNamespace(OPF_PREFIX, OPF_URI)])
+@SerializedName("metadata")
+@OptIn(Epub3Feature::class)
 internal data class MetadataModel(
-    val links: List<LinkModel> = emptyList(),
-    @XmlNamespace(DUBLIN_CORE_PREFIX, DUBLIN_CORE_URI)
-    val dublinCoreElements: List<DublinCoreModel> = emptyList(),
-    @XmlElementsName("meta")
-    val metaElements: List<OpfMeta> = emptyList(),
+    val identifiers: List<IdentifierModel>, // +
+    val titles: List<TitleModel>, // +
+    val languages: List<LanguageModel>, // +
+    val dublinCoreElements: List<DublinCoreModel>,
+    val links: List<LinkModel>,
+    val metaElements: List<OpfMeta>,
 ) {
-    // identifiers, titles and languages are just contained in 'dublinCoreElements'
-
-    // TODO: Opf2Meta & Op3Meta
-    // TODO: make custom serializer that gives in an element so we can make a serializer for the opf elements
-
-    @Serializable(with = MetadataOpfMetaSerializer::class)
     sealed interface OpfMeta
 
     // https://www.w3.org/TR/2004/WD-xhtml2-20040722/mod-meta.html#edef_meta_meta
+    @Epub2Feature
+    @SerializedName("meta")
     data class Opf2MetaModel(
         val charset: String?,
         val content: String?,
         val httpEquiv: String?,
         val name: String?,
         val scheme: String?,
-        val attributes: Map<QName, String>,
+        val extraAttributes: List<XmlAttribute>,
     ) : OpfMeta
 
-    data class Op3MetaModel(
+    // https://www.w3.org/publishing/epub3/epub-packages.html#sec-meta-elem
+    @Epub3Feature
+    @SerializedName("meta")
+    data class Opf3MetaModel(
         val value: String,
         val property: String,
         val identifier: String?,
         val direction: ReadingDirection?,
+        // relative iri, we can only really handle direct id references
         val refines: String?,
         val scheme: String?,
         val language: String?,
     ) : OpfMeta
 
-    @Serializable
-    @SerialName("link")
+    // can't find any mention of this element in the epub2 spec, so treating this as epub3 exclusive
+    // https://www.w3.org/publishing/epub3/epub-packages.html#elemdef-opf-link
+    @Epub3Feature
+    @SerializedName("link")
     data class LinkModel(
         val href: String,
-        @SerialName("rel")
-        @property:Epub3Feature
-        val relation: String?,
-        @SerialName("media-type")
-        val mediaType: String?,
-        @SerialName("id")
+        @SerializedName("rel")
+        val relation: String?, // property
+        @SerializedName("media-type")
+        val mediaType: String?, // conditionally required
+        @SerializedName("id")
         val identifier: String?,
-        @property:Epub3Feature
         val properties: String?,
-        @property:Epub3Feature
         val refines: String?,
     )
 }

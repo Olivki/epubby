@@ -17,19 +17,16 @@
 package net.ormr.epubby.internal.models.content
 
 import dev.epubby.Epub3Feature
-import kotlinx.serialization.Serializable
 import net.ormr.epubby.internal.models.SerializedName
 
 // https://idpf.org/epub/20/spec/OPF_2.0.1_draft.htm#Section2.3
 // https://www.w3.org/publishing/epub3/epub-packages.html#sec-pkg-manifest
-@Serializable
 @SerializedName("manifest")
 internal data class ManifestModel(
     @SerializedName("id")
     val identifier: String?,
     val items: List<ItemModel>,
 ) {
-    @Serializable
     @SerializedName("item")
     data class ItemModel(
         @SerializedName("id")
