@@ -14,13 +14,6 @@
  * limitations under the License.
  */
 
-package dev.epubby.prefix
+package dev.epubby.resource
 
-import dev.epubby.Epub3Feature
-import org.xbib.net.IRI
-
-@Epub3Feature
-public data class UnknownPrefix(override val name: String) : Prefix {
-    override val iri: IRI
-        get() = ""
-}
+public sealed interface Resource

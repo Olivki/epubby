@@ -33,8 +33,8 @@ public sealed interface Property {
      * The entry that the property is referring to.
      */
     public val reference: String
-    
-    public fun process(): IRI = IRI.create(prefix.uri).resolve(reference)
+
+    public fun process(): IRI = prefix.iri.resolve(reference)
 
     public infix fun matches(other: Property): Boolean = when {
         prefix != other.prefix -> false

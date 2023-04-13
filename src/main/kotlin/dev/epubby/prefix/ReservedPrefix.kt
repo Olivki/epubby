@@ -21,6 +21,7 @@ import dev.epubby.Epub3Feature
 import dev.epubby.UnstableEpubFeature
 import dev.epubby.property.Property
 import net.ormr.epubby.internal.util.getChildObjects
+import org.xbib.net.IRI
 
 /**
  * Represents a [Prefix] that is reserved by the EPUB specification.
@@ -35,7 +36,9 @@ import net.ormr.epubby.internal.util.getChildObjects
  */
 @Epub3Feature
 @UnstableEpubFeature
-public sealed class ReservedPrefix(override val name: String, override val uri: String) : Prefix {
+public sealed class ReservedPrefix(override val name: String, iri: String) : Prefix {
+    override val iri: IRI = IRI.create(iri)
+
     public object A11y : ReservedPrefix("a11y", "http://www.idpf.org/epub/vocab/package/a11y/#")
     public object DcTerms : ReservedPrefix("dcterms", "http://purl.org/dc/terms/")
     public object Marc : ReservedPrefix("marc", "http://id.loc.gov/vocabulary/")

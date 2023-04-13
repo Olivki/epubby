@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-package dev.epubby.prefix
+package dev.epubby
 
-import dev.epubby.Epub3Feature
-import org.xbib.net.IRI
-
+// TODO: better name?
 @Epub3Feature
-public data class UnknownPrefix(override val name: String) : Prefix {
-    override val iri: IRI
-        get() = ""
+public enum class RefinesRelation {
+    MUST_BE_PRESENT,
+    MUST_NOT_BE_PRESENT,
+    INDIFFERENT,
 }

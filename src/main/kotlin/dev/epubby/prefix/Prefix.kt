@@ -17,16 +17,18 @@
 package dev.epubby.prefix
 
 import dev.epubby.Epub3Feature
+import org.xbib.net.IRI
 
+// TODO: `"_"` is not an allowed prefix name
 @Epub3Feature
 public sealed interface Prefix {
     /**
-     * The shorthand name used by properties when referring to the [uri] mapping that this prefix represents.
+     * The shorthand name used by properties when referring to the [iri] mapping that this prefix represents.
      */
     public val name: String
 
     /**
      * TODO
      */
-    public val uri: String
+    public val iri: IRI
 }
