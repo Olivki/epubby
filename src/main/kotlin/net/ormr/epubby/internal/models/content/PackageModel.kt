@@ -49,5 +49,7 @@ internal data class PackageModel(
     val guide: GuideModel?,
     @property:[Epub3Feature Epub3DeprecatedFeature]
     val bindings: BindingsModel?,
-    // TODO: collection and tours
+    @property:Epub3Feature
+    val collection: CollectionModel?,
+    // TODO: tours
 )
