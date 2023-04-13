@@ -24,6 +24,10 @@ public annotation class Epub2Feature
 
 @RequiresOptIn
 @Target(CLASS, ANNOTATION_CLASS, FUNCTION, TYPEALIAS, PROPERTY)
+public annotation class Epub2DeprecatedFeature
+
+@RequiresOptIn
+@Target(CLASS, ANNOTATION_CLASS, FUNCTION, TYPEALIAS, PROPERTY)
 public annotation class Epub3Feature
 
 @RequiresOptIn

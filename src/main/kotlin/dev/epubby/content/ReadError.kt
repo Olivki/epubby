@@ -41,3 +41,7 @@ public sealed interface SpineReadError : ContentReadError {
 public sealed interface BindingsReadError : ContentReadError {
     public object NoMediaTypeElements : ManifestReadError
 }
+
+public sealed interface ToursReadError : ContentReadError {
+    public object NoTourSiteElements : ManifestReadError
+}

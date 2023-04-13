@@ -16,10 +16,7 @@
 
 package net.ormr.epubby.internal.models.content
 
-import dev.epubby.Epub3DeprecatedFeature
-import dev.epubby.Epub3Feature
-import dev.epubby.Epub3LegacyFeature
-import dev.epubby.ReadingDirection
+import dev.epubby.*
 import net.ormr.epubby.internal.models.SerializedName
 
 // https://idpf.org/epub/20/spec/OPF_2.0.1_draft.htm
@@ -28,7 +25,13 @@ import net.ormr.epubby.internal.models.SerializedName
 //       this means that all elements in a 'Package' when an 'id' is defined
 //       it needs to be fully unique
 @SerializedName("package")
-@OptIn(Epub3Feature::class, Epub3LegacyFeature::class, Epub3DeprecatedFeature::class)
+@OptIn(
+    Epub2Feature::class,
+    Epub2DeprecatedFeature::class,
+    Epub3Feature::class,
+    Epub3LegacyFeature::class,
+    Epub3DeprecatedFeature::class,
+)
 internal data class PackageModel(
     val version: String,
     @SerializedName("unique-identifier")
@@ -51,5 +54,6 @@ internal data class PackageModel(
     val bindings: BindingsModel?,
     @property:Epub3Feature
     val collection: CollectionModel?,
-    // TODO: tours
+    @property:[Epub2Feature Epub2DeprecatedFeature]
+    val tours: ToursModel?,
 )
