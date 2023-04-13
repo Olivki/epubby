@@ -16,9 +16,8 @@
 
 package net.ormr.epubby.internal.models.content
 
-import dev.epubby.Epub2Feature
 import dev.epubby.Epub3Feature
-import dev.epubby.ReadingDirection
+import dev.epubby.Epub3LegacyFeature
 import dev.epubby.content.ContentReadError
 import dev.epubby.content.ContentReadError.*
 import dev.epubby.content.MetadataReadError.*
@@ -43,7 +42,7 @@ import org.jdom2.Namespace.NO_NAMESPACE
 import org.jdom2.Namespace.XML_NAMESPACE
 import net.ormr.epubby.internal.Namespaces.OPF_NO_PREFIX as NAMESPACE
 
-@OptIn(Epub2Feature::class, Epub3Feature::class)
+@OptIn(Epub3Feature::class, Epub3LegacyFeature::class)
 internal object MetadataModelXml : ModelXmlSerializer<ContentReadError>() {
     private val opf2Attributes: Set<String> = hashSetOf("charset", "content", "http-equiv", "name", "scheme")
     private val specialDcNames: Set<String> = hashSetOf("identifier", "title", "language")
@@ -113,7 +112,7 @@ internal object MetadataModelXml : ModelXmlSerializer<ContentReadError>() {
             identifier = meta.optionalAttr("id"),
             direction = meta
                 .optionalAttr("dir")
-                ?.let(ReadingDirection.Companion::fromValue)
+                ?.let(::parseReadingDirection)
                 ?.bind(::UnknownReadingDirection),
             refines = meta.optionalAttr("refines"),
             scheme = meta.optionalAttr("scheme"),

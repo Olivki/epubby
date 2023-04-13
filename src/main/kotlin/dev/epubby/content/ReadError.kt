@@ -23,12 +23,17 @@ public sealed interface ContentReadError {
     public data class UnknownReadingDirection(val direction: String) : ContentReadError
 }
 
-public sealed interface ManifestReadError : ContentReadError {
-    public object NoItemElements : ManifestReadError
-}
-
 public sealed interface MetadataReadError : ContentReadError {
     public object MissingIdentifier : MetadataReadError
     public object MissingTitle : MetadataReadError
     public object MissingLanguage : MetadataReadError
+}
+
+public sealed interface ManifestReadError : ContentReadError {
+    public object NoItemElements : ManifestReadError
+}
+
+public sealed interface SpineReadError : ContentReadError {
+    public object NoItemRefElements : ManifestReadError
+    public data class InvalidLinearValue(val value: String) : SpineReadError
 }

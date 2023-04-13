@@ -16,18 +16,19 @@
 
 package dev.epubby
 
+import kotlin.annotation.AnnotationTarget.*
+
 @RequiresOptIn
+@Target(CLASS, ANNOTATION_CLASS, FUNCTION, TYPEALIAS, PROPERTY)
 public annotation class Epub2Feature
 
 @RequiresOptIn
-@Target(
-    AnnotationTarget.CLASS,
-    AnnotationTarget.ANNOTATION_CLASS,
-    AnnotationTarget.FUNCTION,
-    AnnotationTarget.TYPEALIAS,
-    AnnotationTarget.PROPERTY,
-)
+@Target(CLASS, ANNOTATION_CLASS, FUNCTION, TYPEALIAS, PROPERTY)
 public annotation class Epub3Feature
+
+@RequiresOptIn
+@Target(CLASS, ANNOTATION_CLASS, FUNCTION, TYPEALIAS, PROPERTY)
+public annotation class Epub3LegacyFeature
 
 @RequiresOptIn
 public annotation class Epub31Feature

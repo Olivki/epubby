@@ -16,8 +16,8 @@
 
 package net.ormr.epubby.internal.models.content
 
-import dev.epubby.Epub2Feature
 import dev.epubby.Epub3Feature
+import dev.epubby.Epub3LegacyFeature
 import dev.epubby.ReadingDirection
 import dev.epubby.xml.XmlAttribute
 import net.ormr.epubby.internal.models.SerializedName
@@ -41,7 +41,7 @@ internal data class MetadataModel(
     sealed interface OpfMeta
 
     // https://www.w3.org/TR/2004/WD-xhtml2-20040722/mod-meta.html#edef_meta_meta
-    @Epub2Feature
+    @Epub3LegacyFeature
     @SerializedName("meta")
     data class Opf2MetaModel(
         val charset: String?,

@@ -19,17 +19,18 @@ package net.ormr.epubby.internal.models
 import com.github.michaelbull.result.Result
 import com.github.michaelbull.result.map
 import com.github.michaelbull.result.toResultOr
+import dev.epubby.ReadingDirection
 import net.ormr.epubby.internal.util.getOwnText
 import org.jdom2.Element
 import org.jdom2.Namespace
 import org.jdom2.xpath.XPathHelper
 
 internal abstract class ModelXmlSerializer<E> {
-    abstract fun missingAttribute(name: String, path: String): E
+    protected abstract fun missingAttribute(name: String, path: String): E
 
-    abstract fun missingElement(name: String, path: String): E
+    protected abstract fun missingElement(name: String, path: String): E
 
-    abstract fun missingText(path: String): E
+    protected abstract fun missingText(path: String): E
 
     private fun createMissingAttributeError(element: Element, name: String, namespace: Namespace): E {
         val path = XPathHelper.getAbsolutePath(element)
@@ -49,41 +50,44 @@ internal abstract class ModelXmlSerializer<E> {
     private fun fixName(name: String, namespace: Namespace): String =
         namespace.prefix?.ifEmpty { null }?.let { "$it:$name" } ?: name
 
-    fun Element.ownText(normalize: Boolean = false): Result<String, E> =
+    protected fun parseReadingDirection(value: String): Result<ReadingDirection, String> =
+        ReadingDirection.fromValue(value)
+
+    protected fun Element.ownText(normalize: Boolean = false): Result<String, E> =
         getOwnText(normalize).toResultOr { createMissingTextError(this) }
 
-    fun Element.optionalOwnText(normalize: Boolean = false): String? = getOwnText(normalize)
+    protected fun Element.optionalOwnText(normalize: Boolean = false): String? = getOwnText(normalize)
 
-    fun Element.child(name: String, namespace: Namespace = Namespace.NO_NAMESPACE): Result<Element, E> =
+    protected fun Element.child(name: String, namespace: Namespace = Namespace.NO_NAMESPACE): Result<Element, E> =
         getChild(name, namespace).toResultOr { createMissingElementError(this, name, namespace) }
 
-    fun Element.optionalChild(name: String, namespace: Namespace = Namespace.NO_NAMESPACE): Element? =
+    protected fun Element.optionalChild(name: String, namespace: Namespace = Namespace.NO_NAMESPACE): Element? =
         getChild(name, namespace)
 
-    fun Element.children(name: String, namespace: Namespace = Namespace.NO_NAMESPACE): List<Element> =
+    protected fun Element.children(name: String, namespace: Namespace = Namespace.NO_NAMESPACE): List<Element> =
         getChildren(name, namespace)
 
-    fun Element.childrenWrapper(
+    protected fun Element.childrenWrapper(
         wrapperName: String,
         childName: String,
         wrapperNamespace: Namespace = Namespace.NO_NAMESPACE,
         childNamespace: Namespace = wrapperNamespace,
     ): Result<List<Element>, E> = child(wrapperName, wrapperNamespace).map { it.children(childName, childNamespace) }
 
-    fun Element.optionalChildrenWrapper(
+    protected fun Element.optionalChildrenWrapper(
         wrapperName: String,
         childName: String,
         wrapperNamespace: Namespace = Namespace.NO_NAMESPACE,
         childNamespace: Namespace = wrapperNamespace,
     ): List<Element>? = optionalChild(wrapperName, wrapperNamespace)?.children(childName, childNamespace)
 
-    fun Element.attr(name: String, namespace: Namespace = Namespace.NO_NAMESPACE): Result<String, E> =
+    protected fun Element.attr(name: String, namespace: Namespace = Namespace.NO_NAMESPACE): Result<String, E> =
         getAttributeValue(name, namespace).toResultOr { createMissingAttributeError(this, name, namespace) }
 
-    fun Element.optionalAttr(name: String, namespace: Namespace = Namespace.NO_NAMESPACE): String? =
+    protected fun Element.optionalAttr(name: String, namespace: Namespace = Namespace.NO_NAMESPACE): String? =
         getAttributeValue(name, namespace)
 
-    inline fun <T> Element.addChildren(
+    protected inline fun <T> Element.addChildren(
         children: Iterable<T>,
         mapper: (T) -> Element,
     ) {
@@ -93,7 +97,7 @@ internal abstract class ModelXmlSerializer<E> {
         }
     }
 
-    inline fun <T> Element.addChildrenWithWrapper(
+    protected inline fun <T> Element.addChildrenWithWrapper(
         wrapperName: String,
         wrapperNamespace: Namespace = Namespace.NO_NAMESPACE,
         children: Iterable<T>,
@@ -107,7 +111,7 @@ internal abstract class ModelXmlSerializer<E> {
         }
     }
 
-    inline fun Element.addElement(
+    protected inline fun Element.addElement(
         name: String,
         namespace: Namespace? = null,
         builder: Element.() -> Unit,
@@ -116,7 +120,7 @@ internal abstract class ModelXmlSerializer<E> {
         addContent(element)
     }
 
-    operator fun Element.set(name: String, value: String?) {
+    protected operator fun Element.set(name: String, value: String?) {
         if (value == null) {
             removeAttribute(name)
         } else {
@@ -124,7 +128,7 @@ internal abstract class ModelXmlSerializer<E> {
         }
     }
 
-    operator fun Element.set(name: String, namespace: Namespace, value: String?) {
+    protected operator fun Element.set(name: String, namespace: Namespace, value: String?) {
         if (value == null) {
             removeAttribute(name, namespace)
         } else {
