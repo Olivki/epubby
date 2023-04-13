@@ -32,7 +32,7 @@ import net.ormr.epubby.internal.models.SerializedName
     Epub3LegacyFeature::class,
     Epub3DeprecatedFeature::class,
 )
-internal data class PackageModel(
+internal data class PackageDocumentModel(
     val version: String,
     @SerializedName("unique-identifier")
     val uniqueIdentifier: String,

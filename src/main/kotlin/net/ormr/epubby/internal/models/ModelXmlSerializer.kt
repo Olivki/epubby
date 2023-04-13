@@ -87,6 +87,12 @@ internal abstract class ModelXmlSerializer<E> {
     protected fun Element.optionalAttr(name: String, namespace: Namespace = Namespace.NO_NAMESPACE): String? =
         getAttributeValue(name, namespace)
 
+    protected fun Element.addChild(child: Element?) {
+        if (child != null) {
+            addContent(child)
+        }
+    }
+
     protected inline fun <T> Element.addChildren(
         children: Iterable<T>,
         mapper: (T) -> Element,

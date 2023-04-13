@@ -26,7 +26,7 @@ import org.jdom2.Element
 
 @OptIn(Epub3Feature::class)
 internal object CollectionModelXml : ModelXmlSerializer<ContentReadError>() {
-    fun read(collection: Element) = Ok(collection)
+    fun read(collection: Element) = Ok(CollectionModel(collection))
 
     fun write(collection: CollectionModel): Element = collection.element
 

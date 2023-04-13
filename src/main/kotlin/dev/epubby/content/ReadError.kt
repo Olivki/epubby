@@ -16,6 +16,8 @@
 
 package dev.epubby.content
 
+import dev.epubby.dublincore.DublinCoreReadError
+
 public sealed interface ContentReadError {
     public data class MissingAttribute(val name: String, val path: String) : ContentReadError
     public data class MissingElement(val name: String, val path: String) : ContentReadError
@@ -23,10 +25,13 @@ public sealed interface ContentReadError {
     public data class UnknownReadingDirection(val direction: String) : ContentReadError
 }
 
+public sealed interface PackageDocumentReadError : ContentReadError
+
 public sealed interface MetadataReadError : ContentReadError {
     public object MissingIdentifier : MetadataReadError
     public object MissingTitle : MetadataReadError
     public object MissingLanguage : MetadataReadError
+    public data class DublinCoreError(val error: DublinCoreReadError) : MetadataReadError
 }
 
 public sealed interface ManifestReadError : ContentReadError {
@@ -34,14 +39,14 @@ public sealed interface ManifestReadError : ContentReadError {
 }
 
 public sealed interface SpineReadError : ContentReadError {
-    public object NoItemRefElements : ManifestReadError
+    public object NoItemRefElements : SpineReadError
     public data class InvalidLinearValue(val value: String) : SpineReadError
 }
 
 public sealed interface BindingsReadError : ContentReadError {
-    public object NoMediaTypeElements : ManifestReadError
+    public object NoMediaTypeElements : BindingsReadError
 }
 
 public sealed interface ToursReadError : ContentReadError {
-    public object NoTourSiteElements : ManifestReadError
+    public object NoTourSiteElements : ToursReadError
 }

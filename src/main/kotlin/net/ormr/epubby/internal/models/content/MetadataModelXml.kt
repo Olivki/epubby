@@ -54,7 +54,7 @@ internal object MetadataModelXml : ModelXmlSerializer<ContentReadError>() {
             .children
             .asSequence()
             .filter { it.namespace == DUBLIN_CORE }
-            .map { DublinCoreModelXml.read(it).bind() }
+            .map { DublinCoreModelXml.read(it).bind(::DublinCoreError) }
             .toList()
         val normalDcElements = dcElements.filter { it.name !in specialDcNames }
         val identifiers = dcElements.filterIsInstance<IdentifierModel>()
