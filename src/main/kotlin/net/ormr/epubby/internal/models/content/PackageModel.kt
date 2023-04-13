@@ -17,6 +17,7 @@
 package net.ormr.epubby.internal.models.content
 
 import dev.epubby.Epub3Feature
+import dev.epubby.Epub3LegacyFeature
 import dev.epubby.ReadingDirection
 import net.ormr.epubby.internal.models.SerializedName
 
@@ -26,6 +27,7 @@ import net.ormr.epubby.internal.models.SerializedName
 //       this means that all elements in a 'Package' when an 'id' is defined
 //       it needs to be fully unique
 @SerializedName("package")
+@OptIn(Epub3LegacyFeature::class)
 internal data class PackageModel(
     val version: String,
     @SerializedName("unique-identifier")
@@ -42,5 +44,6 @@ internal data class PackageModel(
     val metadata: MetadataModel,
     val manifest: ManifestModel,
     val spine: SpineModel,
-    // TODO: guide, bindings, collection and tours
+    val guide: GuideModel?,
+    // TODO: bindings, collection and tours
 )
