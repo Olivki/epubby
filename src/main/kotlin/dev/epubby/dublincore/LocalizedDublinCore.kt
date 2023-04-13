@@ -20,16 +20,16 @@ import dev.epubby.Epub
 import dev.epubby.Epub2Feature
 import dev.epubby.ReadingDirection
 
-public sealed class LocalizedDublinCore : DublinCore() {
+public sealed interface LocalizedDublinCore : DublinCore {
     /**
      * The reading direction of the [content] of the dublin-core element.
      */
-    public abstract var direction: ReadingDirection?
+    public var direction: ReadingDirection?
 
     /**
      * The language that the [content] of the dublin-core element is written in.
      */
-    public abstract var language: String?
+    public var language: String?
 
     /**
      * A contributor is an entity that is responsible for making contributions to the [Epub].
@@ -47,7 +47,7 @@ public sealed class LocalizedDublinCore : DublinCore() {
         @property:Epub2Feature
         public var fileAs: String? = null,
         override var content: String?,
-    ) : LocalizedDublinCore()
+    ) : LocalizedDublinCore, NonRequiredDublinCore
 
     /**
      * The spatial or temporal topic of the resource, the spatial applicability of the resource, or the jurisdiction
@@ -66,7 +66,7 @@ public sealed class LocalizedDublinCore : DublinCore() {
         override var direction: ReadingDirection? = null,
         override var language: String? = null,
         override var content: String?,
-    ) : LocalizedDublinCore()
+    ) : LocalizedDublinCore, NonRequiredDublinCore
 
     /**
      * The entity primarily responsible for making the [Epub].
@@ -87,7 +87,7 @@ public sealed class LocalizedDublinCore : DublinCore() {
         @property:Epub2Feature
         public var fileAs: String? = null,
         override var content: String?,
-    ) : LocalizedDublinCore()
+    ) : LocalizedDublinCore, NonRequiredDublinCore
 
     /**
      * An account of the [Epub].
@@ -100,7 +100,7 @@ public sealed class LocalizedDublinCore : DublinCore() {
         override var direction: ReadingDirection? = null,
         override var language: String? = null,
         override var content: String?,
-    ) : LocalizedDublinCore()
+    ) : LocalizedDublinCore, NonRequiredDublinCore
 
     /**
      * An entity responsible for making the resource available.
@@ -113,7 +113,7 @@ public sealed class LocalizedDublinCore : DublinCore() {
         override var direction: ReadingDirection? = null,
         override var language: String? = null,
         override var content: String?,
-    ) : LocalizedDublinCore()
+    ) : LocalizedDublinCore, NonRequiredDublinCore
 
     /**
      * A related resource.
@@ -126,7 +126,7 @@ public sealed class LocalizedDublinCore : DublinCore() {
         override var direction: ReadingDirection? = null,
         override var language: String? = null,
         override var content: String?,
-    ) : LocalizedDublinCore()
+    ) : LocalizedDublinCore, NonRequiredDublinCore
 
     /**
      * Information about rights held in and over the resource.
@@ -139,7 +139,7 @@ public sealed class LocalizedDublinCore : DublinCore() {
         override var direction: ReadingDirection? = null,
         override var language: String? = null,
         override var content: String?,
-    ) : LocalizedDublinCore()
+    ) : LocalizedDublinCore, NonRequiredDublinCore
 
     /**
      * The topic of the resource.
@@ -152,7 +152,7 @@ public sealed class LocalizedDublinCore : DublinCore() {
         override var direction: ReadingDirection? = null,
         override var language: String? = null,
         override var content: String?,
-    ) : LocalizedDublinCore()
+    ) : LocalizedDublinCore, NonRequiredDublinCore
 
     /**
      * A name given to the resource.
@@ -162,5 +162,5 @@ public sealed class LocalizedDublinCore : DublinCore() {
         override var direction: ReadingDirection? = null,
         override var language: String? = null,
         override var content: String?,
-    ) : LocalizedDublinCore()
+    ) : LocalizedDublinCore
 }

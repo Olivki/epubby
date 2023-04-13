@@ -18,16 +18,16 @@ package dev.epubby.dublincore
 
 import dev.epubby.Epub2Feature
 
-public sealed class DublinCore {
+public sealed interface DublinCore {
     /**
      * The identifier of the dublin-core element, or `null` if no identifier has been defined.
      */
-    public abstract var identifier: String?
+    public var identifier: String?
 
     /**
      * The contents of the dublin-core element.
      */
-    public abstract var content: String?
+    public var content: String?
 
     /**
      * A point or period of time associated with an event in the lifecycle of the resource.
@@ -40,7 +40,7 @@ public sealed class DublinCore {
         @property:Epub2Feature
         public var event: DateEvent? = null,
         override var content: String?,
-    ) : DublinCore()
+    ) : DublinCore, NonRequiredDublinCore
 
     /**
      * The file format, physical medium, or dimensions of the resource.
@@ -51,7 +51,7 @@ public sealed class DublinCore {
     public data class Format(
         override var identifier: String? = null,
         override var content: String?,
-    ) : DublinCore()
+    ) : DublinCore, NonRequiredDublinCore
 
     /**
      * An unambiguous reference to the resource within a given context.
@@ -64,7 +64,7 @@ public sealed class DublinCore {
         @property:Epub2Feature
         public var scheme: String? = null,
         override var content: String?,
-    ) : DublinCore()
+    ) : DublinCore
 
     /**
      * A language of the resource.
@@ -75,7 +75,7 @@ public sealed class DublinCore {
     public data class Language(
         override var identifier: String? = null,
         override var content: String?,
-    ) : DublinCore()
+    ) : DublinCore
 
     /**
      * A related resource from which the described resource is derived.
@@ -86,7 +86,7 @@ public sealed class DublinCore {
     public data class Source(
         override var identifier: String? = null,
         override var content: String?,
-    ) : DublinCore()
+    ) : DublinCore, NonRequiredDublinCore
 
     /**
      * The nature or genre of the resource.
@@ -98,5 +98,5 @@ public sealed class DublinCore {
     public data class Type(
         override var identifier: String? = null,
         override var content: String?,
-    ) : DublinCore()
+    ) : DublinCore, NonRequiredDublinCore
 }
