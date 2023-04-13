@@ -41,5 +41,6 @@ internal data class PackageModel(
     val language: String?,
     val metadata: MetadataModel,
     val manifest: ManifestModel,
-    // TODO: spine, guide, bindings, collection and tours
+    val spine: SpineModel,
+    // TODO: guide, bindings, collection and tours
 )
