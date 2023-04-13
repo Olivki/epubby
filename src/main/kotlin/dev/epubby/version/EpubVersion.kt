@@ -35,6 +35,8 @@ public sealed class EpubVersion(public val major: Int, public val minor: Int) : 
 
     /**
      * The [EPUB 3.0](https://idpf.org/epub/30/) format.
+     *
+     * [OPF Spec](http://idpf.org/epub/301/spec/epub-publications-20140626.html).
      */
     public object EPUB_3_0 : StableEpubVersion(3, 0)
 

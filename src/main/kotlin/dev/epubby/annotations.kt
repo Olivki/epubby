@@ -31,6 +31,11 @@ public annotation class Epub3Feature
 public annotation class Epub3LegacyFeature
 
 @RequiresOptIn
+@Target(CLASS, ANNOTATION_CLASS, FUNCTION, TYPEALIAS, PROPERTY)
+public annotation class Epub3DeprecatedFeature
+
+
+@RequiresOptIn
 public annotation class Epub31Feature
 
 @RequiresOptIn

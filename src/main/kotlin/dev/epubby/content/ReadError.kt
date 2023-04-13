@@ -37,3 +37,7 @@ public sealed interface SpineReadError : ContentReadError {
     public object NoItemRefElements : ManifestReadError
     public data class InvalidLinearValue(val value: String) : SpineReadError
 }
+
+public sealed interface BindingsReadError : ContentReadError {
+    public object NoMediaTypeElements : ManifestReadError
+}
