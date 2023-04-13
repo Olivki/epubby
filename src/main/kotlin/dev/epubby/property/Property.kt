@@ -18,23 +18,23 @@ package dev.epubby.property
 
 import dev.epubby.Epub3Feature
 import dev.epubby.prefix.Prefix
+import org.xbib.net.IRI
 
 @Epub3Feature
 public sealed interface Property {
     /**
-     * The prefix of `this` property.
+     * The prefix of the property.
      *
      * Used when [processing][process] the property.
      */
     public val prefix: Prefix
 
     /**
-     * The entry that `this` property is referring to.
+     * The entry that the property is referring to.
      */
     public val reference: String
-
-    // TODO: this is incredibly naive
-    public fun process(): String = "${prefix.uri}$reference"
+    
+    public fun process(): IRI = IRI.create(prefix.uri).resolve(reference)
 
     public infix fun matches(other: Property): Boolean = when {
         prefix != other.prefix -> false
