@@ -14,17 +14,21 @@
  * limitations under the License.
  */
 
-package dev.epubby.reader
+package net.ormr.epubby.internal.models.metainf
 
 import com.github.michaelbull.result.Result
-import dev.epubby.Epub
-import net.ormr.epubby.internal.reader.EpubPathReader
+import dev.epubby.metainf.MetaInfReadError
+import net.ormr.epubby.internal.util.effect
+import net.ormr.epubby.internal.util.loadDocument
 import java.nio.file.Path
+import kotlin.io.path.div
 
-public interface EpubReader<E> {
-    public fun read(): Result<Epub, E>
-
-    public companion object {
-        public fun path(path: Path): EpubReader<EpubReaderError> = EpubPathReader(path)
+internal object MetaInfModelXml {
+    fun readFiles(directory: Path): Result<MetaInfModel, MetaInfReadError> = effect {
+        // TODO: handle potential failure of loading document
+        val containerDocument = loadDocument(directory / "container.xml")
+        val container = MetaInfContainerModelXml.read(containerDocument.rootElement).bind()
+        // TODO: the other files
+        MetaInfModel(container)
     }
 }

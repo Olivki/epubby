@@ -17,6 +17,7 @@
 package net.ormr.epubby.internal.models.content
 
 import dev.epubby.*
+import dev.epubby.version.EpubVersion
 import net.ormr.epubby.internal.models.SerializedName
 
 // https://idpf.org/epub/20/spec/OPF_2.0.1_draft.htm
@@ -33,7 +34,7 @@ import net.ormr.epubby.internal.models.SerializedName
     Epub3DeprecatedFeature::class,
 )
 internal data class PackageDocumentModel(
-    val version: String,
+    val version: EpubVersion,
     @SerializedName("unique-identifier")
     val uniqueIdentifier: String,
     @SerializedName("dir")

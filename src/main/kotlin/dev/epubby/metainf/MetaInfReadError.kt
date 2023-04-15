@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package dev.epubby
+package dev.epubby.metainf
 
-import dev.epubby.version.EpubVersion
-import java.io.Closeable
+public sealed interface MetaInfReadError
 
-public interface Epub : Closeable {
-    public val version: EpubVersion
-
-    public val files: EpubFiles
+public sealed interface MetaInfContainerReadError : MetaInfReadError {
+    public data class MissingAttribute(val name: String, val path: String) : MetaInfContainerReadError
+    public data class MissingElement(val name: String, val path: String) : MetaInfContainerReadError
+    public data class InvalidMediaType(val mediaType: String) : MetaInfContainerReadError
+    public object EmptyRootFiles : MetaInfContainerReadError
 }

@@ -19,6 +19,7 @@ package dev.epubby.prefix
 import dev.epubby.Epub
 import dev.epubby.Epub3Feature
 import dev.epubby.UnstableEpubFeature
+import dev.epubby.content.PackageDocument
 import dev.epubby.property.Property
 import net.ormr.epubby.internal.util.getChildObjects
 import org.xbib.net.IRI

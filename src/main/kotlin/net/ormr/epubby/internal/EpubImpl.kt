@@ -18,7 +18,12 @@ package net.ormr.epubby.internal
 
 import dev.epubby.Epub
 import dev.epubby.version.EpubVersion
+import net.ormr.epubby.internal.io.EpubFileSystemImpl
 
 // https://idpf.org/epub/20/spec/OCF_2.0.1_draft.doc
 // https://www.w3.org/publishing/epub3/epub-ocf.html
-internal class EpubImpl(override val version: EpubVersion) : Epub
+internal class EpubImpl(override val version: EpubVersion, override val files: EpubFileSystemImpl) : Epub {
+    override fun close() {
+        files.close()
+    }
+}

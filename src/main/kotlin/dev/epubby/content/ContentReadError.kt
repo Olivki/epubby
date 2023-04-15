@@ -17,6 +17,7 @@
 package dev.epubby.content
 
 import dev.epubby.dublincore.DublinCoreReadError
+import dev.epubby.version.EpubVersionParseError
 import org.xbib.net.IRISyntaxException
 
 public sealed interface ContentReadError {
@@ -25,9 +26,12 @@ public sealed interface ContentReadError {
     public data class MissingText(val path: String) : ContentReadError
     public data class UnknownReadingDirection(val direction: String) : ContentReadError
     public data class InvalidIri(val cause: IRISyntaxException) : ContentReadError
+    public data class InvalidMediaType(val mediaType: String) : ContentReadError
 }
 
-public sealed interface PackageDocumentReadError : ContentReadError
+public sealed interface PackageDocumentReadError : ContentReadError {
+    public data class InvalidVersion(val error: EpubVersionParseError) : PackageDocumentReadError
+}
 
 public sealed interface MetadataReadError : ContentReadError {
     public object MissingIdentifier : MetadataReadError

@@ -14,13 +14,17 @@
  * limitations under the License.
  */
 
-package dev.epubby
+package net.ormr.epubby.internal.util
 
-import dev.epubby.version.EpubVersion
-import java.io.Closeable
+import dev.epubby.UnexpectedImplementationException
+import kotlin.contracts.contract
 
-public interface Epub : Closeable {
-    public val version: EpubVersion
-
-    public val files: EpubFiles
+internal inline fun <reified Impl : Any> requireImpl(value: Any): Impl {
+    contract {
+        returns() implies (value is Impl)
+    }
+    if (value !is Impl) {
+        throw UnexpectedImplementationException("Expected implementation ${Impl::class}, but got ${value::class}")
+    }
+    return value
 }

@@ -14,13 +14,6 @@
  * limitations under the License.
  */
 
-package dev.epubby
+package dev.epubby.content
 
-import dev.epubby.version.EpubVersion
-import java.io.Closeable
-
-public interface Epub : Closeable {
-    public val version: EpubVersion
-
-    public val files: EpubFiles
-}
+public interface PackageDocument

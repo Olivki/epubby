@@ -17,9 +17,12 @@
 package net.ormr.epubby.internal.models.content
 
 import com.github.michaelbull.result.flatMap
+import com.github.michaelbull.result.mapError
 import dev.epubby.*
 import dev.epubby.content.ContentReadError
 import dev.epubby.content.ContentReadError.*
+import dev.epubby.content.PackageDocumentReadError.InvalidVersion
+import dev.epubby.version.parseEpubVersion
 import net.ormr.epubby.internal.models.ModelXmlSerializer
 import net.ormr.epubby.internal.models.WriterData
 import net.ormr.epubby.internal.models.supportsEpub3Features
@@ -39,7 +42,10 @@ import net.ormr.epubby.internal.Namespaces.OPF_NO_PREFIX as NAMESPACE
 internal object PackageDocumentModelXml : ModelXmlSerializer<ContentReadError>() {
     fun read(root: Element) = effect {
         PackageDocumentModel(
-            version = root.attr("version").bind(),
+            version = root
+                .attr("version")
+                .flatMap { parseEpubVersion(it).mapError(::InvalidVersion) }
+                .bind(),
             uniqueIdentifier = root.attr("unique-identifier").bind(),
             readingDirection = root
                 .optionalAttr("dir")
@@ -59,7 +65,7 @@ internal object PackageDocumentModelXml : ModelXmlSerializer<ContentReadError>()
     }
 
     fun write(content: PackageDocumentModel, data: WriterData): Element = buildElement("package", NAMESPACE) {
-        this["version"] = content.version
+        this["version"] = content.version.toString()
         this["unique-identifier"] = content.uniqueIdentifier
         this["dir"] = content.readingDirection?.value
         this["id"] = content.identifier

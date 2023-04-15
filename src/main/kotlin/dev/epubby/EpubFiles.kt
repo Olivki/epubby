@@ -16,11 +16,15 @@
 
 package dev.epubby
 
-import dev.epubby.version.EpubVersion
-import java.io.Closeable
+import java.nio.file.FileSystem
+import java.nio.file.Path
 
-public interface Epub : Closeable {
-    public val version: EpubVersion
+public interface EpubFiles {
+    public val fileSystem: FileSystem
 
-    public val files: EpubFiles
+    public val mimeTypeFile: Path
+
+    public val opfFile: Path
+
+    public val metaInfDirectory: Path
 }

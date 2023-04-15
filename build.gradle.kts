@@ -40,6 +40,7 @@ dependencies {
 
     // Google
     api("com.google.guava:guava:31.1-jre")
+    implementation("com.google.jimfs:jimfs:1.2")
 
     // misc
     implementation("net.pearx.kasechange:kasechange:1.3.0")

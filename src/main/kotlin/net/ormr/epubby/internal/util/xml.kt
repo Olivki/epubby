@@ -63,11 +63,9 @@ internal inline fun <T> Element.mapSingleChildWithName(
 
 internal fun toCompactString(element: Element): String = element.encodeToString(compactXmlOutputter)
 
-internal fun loadDocument(input: String): Document =
-    input.reader().use { createSax().build(it) }
+internal fun loadDocument(input: String): Document = input.reader().use { createSax().build(it) }
 
-internal fun loadDocument(input: Path): Document =
-    input.inputStream().use { createSax().build(it) }
+internal fun loadDocument(input: Path): Document = input.inputStream().use { createSax().build(it) }
 
 private fun createSax(): SAXBuilder = SAXBuilder(XMLReaders.NONVALIDATING).apply {
     jdomFactory = SlimJDOMFactory()

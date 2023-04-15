@@ -14,15 +14,10 @@
  * limitations under the License.
  */
 
-package dev.epubby.metainf
+package net.ormr.epubby.internal
 
-import kotlinx.serialization.SerializationException
+import com.google.common.net.MediaType
 
-public sealed interface MetaInfReadError
-
-public sealed interface MetaInfContainerReadError : MetaInfReadError {
-    public data class InvalidModel(val cause: SerializationException) : MetaInfContainerReadError
-    public data class MissingAttribute(val name: String, val path: String) : MetaInfContainerReadError
-    public data class MissingElement(val name: String, val path: String) : MetaInfContainerReadError
-    public object EmptyRootFiles : MetaInfContainerReadError
+internal object MediaTypes {
+    val OEBPS_PACKAGE: MediaType = MediaType.create("application", "oebps-package+xml")
 }

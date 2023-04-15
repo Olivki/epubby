@@ -14,13 +14,15 @@
  * limitations under the License.
  */
 
-package dev.epubby
+package net.ormr.epubby.internal.util
 
-import dev.epubby.version.EpubVersion
-import java.io.Closeable
+import com.github.michaelbull.result.Err
+import com.github.michaelbull.result.Ok
+import com.github.michaelbull.result.Result
+import com.google.common.net.MediaType
 
-public interface Epub : Closeable {
-    public val version: EpubVersion
-
-    public val files: EpubFiles
+internal fun parseMediaType(input: String): Result<MediaType, String> = try {
+    Ok(MediaType.parse(input))
+} catch (_: IllegalArgumentException) {
+    Err(input)
 }

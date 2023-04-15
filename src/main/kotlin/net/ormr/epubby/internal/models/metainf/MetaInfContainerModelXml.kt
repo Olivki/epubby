@@ -16,15 +16,16 @@
 
 package net.ormr.epubby.internal.models.metainf
 
+import com.github.michaelbull.result.flatMap
+import com.github.michaelbull.result.mapError
 import dev.epubby.metainf.MetaInfContainerReadError
-import dev.epubby.metainf.MetaInfContainerReadError.EmptyRootFiles
-import dev.epubby.metainf.MetaInfContainerReadError.MissingAttribute
-import dev.epubby.metainf.MetaInfContainerReadError.MissingElement
+import dev.epubby.metainf.MetaInfContainerReadError.*
 import net.ormr.epubby.internal.models.ModelXmlSerializer
 import net.ormr.epubby.internal.models.metainf.MetaInfContainerModel.LinkModel
 import net.ormr.epubby.internal.models.metainf.MetaInfContainerModel.RootFileModel
 import net.ormr.epubby.internal.util.buildElement
 import net.ormr.epubby.internal.util.effect
+import net.ormr.epubby.internal.util.parseMediaType
 import org.jdom2.Element
 import net.ormr.epubby.internal.Namespaces.META_INF_CONTAINER as NAMESPACE
 
@@ -49,7 +50,10 @@ internal object MetaInfContainerModelXml : ModelXmlSerializer<MetaInfContainerRe
     private fun readRootFile(rootFile: Element) = effect {
         RootFileModel(
             fullPath = rootFile.attr("full-path").bind(),
-            mediaType = rootFile.attr("media-type").bind(),
+            mediaType = rootFile
+                .attr("media-type")
+                .flatMap { parseMediaType(it).mapError(::InvalidMediaType) }
+                .bind(),
         )
     }
 
@@ -57,7 +61,10 @@ internal object MetaInfContainerModelXml : ModelXmlSerializer<MetaInfContainerRe
         LinkModel(
             href = link.attr("href").bind(),
             relation = link.optionalAttr("rel"),
-            mediaType = link.optionalAttr("mediaType"),
+            mediaType = link
+                .optionalAttr("mediaType")
+                ?.let(::parseMediaType)
+                ?.bind(::InvalidMediaType),
         )
     }
 
@@ -69,13 +76,13 @@ internal object MetaInfContainerModelXml : ModelXmlSerializer<MetaInfContainerRe
 
     private fun writeRootFile(rootFile: RootFileModel): Element = buildElement("rootfile", NAMESPACE) {
         this["full-path"] = rootFile.fullPath
-        this["media-type"] = rootFile.mediaType
+        this["media-type"] = rootFile.mediaType.toString()
     }
 
     private fun writeLink(link: LinkModel): Element = buildElement("link", NAMESPACE) {
         this["href"] = link.href
         this["rel"] = link.relation
-        this["mediaType"] = link.mediaType
+        this["mediaType"] = link.mediaType?.toString()
     }
 
     override fun missingAttribute(name: String, path: String): MetaInfContainerReadError =

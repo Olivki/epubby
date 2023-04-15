@@ -16,15 +16,23 @@
 
 package dev.epubby.reader
 
+import dev.epubby.metainf.MetaInfReadError
 import dev.epubby.version.EpubVersionParseError
+import java.io.IOException
 
 public sealed interface EpubReaderError {
     // TODO: better name
-    public data class FailedToReadAsZip(public val cause: Throwable) : EpubReaderError
+    public data class FailedToOpenFile(public val cause: Throwable) : EpubReaderError
     public data class InvalidVersion(public val error: EpubVersionParseError) : EpubReaderError
     public object MissingMetaInf : EpubReaderError
     public object MissingMetaInfContainer : EpubReaderError
     public object MissingMimeType : EpubReaderError
     public object CorruptMimeType : EpubReaderError
-    public object MimeTypeContentMismatch : EpubReaderError
+    public data class MimeTypeContentMismatch(val content: String) : EpubReaderError
+
+    // TODO: better name
+    public data class FailedToCreateFileSystem(val cause: IOException) : EpubReaderError
+    public data class MetaInfError(val cause: MetaInfReadError) : EpubReaderError
+    public object MissingOebpsRootFileElement : EpubReaderError
+    public data class MissingOpfFile(val path: String) : EpubReaderError
 }
