@@ -19,7 +19,7 @@ package dev.epubby.prefix
 import dev.epubby.Epub
 import dev.epubby.Epub3Feature
 import dev.epubby.UnstableEpubFeature
-import dev.epubby.content.PackageDocument
+import dev.epubby.opf.Opf
 import dev.epubby.property.Property
 import net.ormr.epubby.internal.util.getChildObjects
 import org.xbib.net.IRI
@@ -28,7 +28,7 @@ import org.xbib.net.IRI
  * Represents a [Prefix] that is reserved by the EPUB specification.
  *
  * This prefix can be used in any [Property] without needing to have it defined in the
- * [prefixes][PackageDocument.prefixes] property of the [PackageDocument] of the [Epub].
+ * [prefixes][Opf.prefixes] property of the [Opf] of the [Epub].
  *
  * Any entry defined here basically serves as an inbuilt prefix that all EPUB readers should be able to understand.
  *

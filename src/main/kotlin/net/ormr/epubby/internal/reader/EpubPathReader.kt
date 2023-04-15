@@ -27,9 +27,9 @@ import dev.epubby.reader.EpubReader
 import dev.epubby.reader.EpubReaderError
 import dev.epubby.reader.EpubReaderError.*
 import net.ormr.epubby.internal.MediaTypes
-import net.ormr.epubby.internal.models.content.PackageDocumentModelXml
 import net.ormr.epubby.internal.models.metainf.MetaInfModel
 import net.ormr.epubby.internal.models.metainf.MetaInfModelXml
+import net.ormr.epubby.internal.models.opf.OpfModelXml
 import net.ormr.epubby.internal.util.effect
 import net.ormr.epubby.internal.util.loadDocument
 import java.io.IOException
@@ -59,7 +59,7 @@ internal class EpubPathReader(private val path: Path) : EpubReader<EpubReaderErr
         ensure(opfFile.exists()) { MissingOpfFile(rootFile.fullPath) }
         // TODO: handle potential error from loadDocument
         val opfDocument = loadDocument(opfFile)
-        val opf = PackageDocumentModelXml.read(opfDocument.rootElement)
+        val opf = OpfModelXml.read(opfDocument.rootElement)
         println(opf)
         TODO()
     }
