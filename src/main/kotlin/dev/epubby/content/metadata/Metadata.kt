@@ -34,7 +34,7 @@ public interface Metadata {
 
     public val languages: NonEmptyMutableList<DublinCore.Language>
 
-    public val dublinCoreElements: NonEmptyMutableList<NonRequiredDublinCore>
+    public val dublinCoreElements: MutableList<NonRequiredDublinCore>
 
     @Epub3LegacyFeature
     public val opf2MetaEntries: MutableList<Opf2Meta>

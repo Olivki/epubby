@@ -17,12 +17,14 @@
 package dev.epubby.content
 
 import dev.epubby.dublincore.DublinCoreReadError
+import org.xbib.net.IRISyntaxException
 
 public sealed interface ContentReadError {
     public data class MissingAttribute(val name: String, val path: String) : ContentReadError
     public data class MissingElement(val name: String, val path: String) : ContentReadError
     public data class MissingText(val path: String) : ContentReadError
     public data class UnknownReadingDirection(val direction: String) : ContentReadError
+    public data class InvalidIri(val cause: IRISyntaxException) : ContentReadError
 }
 
 public sealed interface PackageDocumentReadError : ContentReadError
