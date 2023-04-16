@@ -39,7 +39,7 @@ internal abstract class ModelXmlSerializer<E> {
 
     private fun createMissingElementError(element: Element, name: String, namespace: Namespace): E {
         val path = XPathHelper.getAbsolutePath(element)
-        return missingAttribute(fixName(name, namespace), path)
+        return missingElement(fixName(name, namespace), path)
     }
 
     private fun createMissingTextError(element: Element): E {
