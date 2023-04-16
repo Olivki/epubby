@@ -14,11 +14,8 @@
  * limitations under the License.
  */
 
-package dev.epubby.opf.metadata
+package dev.epubby.opf
 
-import dev.epubby.Epub3Feature
-
-@Epub3Feature
-public interface Opf3MetaSubExpression : Opf3Meta {
-    public var refines: String
+public interface OpfElement {
+    public val identifier: String?
 }

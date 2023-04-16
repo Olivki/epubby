@@ -58,11 +58,11 @@ internal data class MetadataModel(
     data class Opf3MetaModel(
         val value: String,
         val property: String,
-        val identifier: String?,
-        val direction: ReadingDirection?,
+        val scheme: String?, // property
         // relative iri, we can only really handle direct id references
         val refines: String?,
-        val scheme: String?,
+        val identifier: String?,
+        val direction: ReadingDirection?,
         val language: String?,
     ) : OpfMeta
 

@@ -18,21 +18,21 @@ package dev.epubby.opf.metadata
 
 import dev.epubby.Epub3Feature
 import dev.epubby.ReadingDirection
-import dev.epubby.opf.OpfElement
 import dev.epubby.property.Property
 
-@Epub3Feature
-public interface Opf3Meta<T : Any> : OpfMeta, OpfElement {
-    /**
-     * The value of the `meta` element.
-     */
-    public var value: T
-    public var property: Property
-    public var scheme: Property?
-    public var refines: String?
-    override var identifier: String?
-    public var direction: ReadingDirection?
-    public var language: String?
+@OptIn(Epub3Feature::class)
+internal object Opf3MetaStringFactory : Opf3MetaFactory<String, Opf3MetaString> {
+    override fun decodeFromString(value: String): String = value
 
-    public fun getValueAsString(): String
+    override fun encodeToString(value: String): String = value
+
+    override fun create(
+        value: String,
+        property: Property,
+        scheme: Property,
+        refines: String?,
+        identifier: String?,
+        direction: ReadingDirection?,
+        language: String?
+    ): Opf3MetaString = Opf3MetaString(value, property, scheme, refines, identifier, direction, language)
 }

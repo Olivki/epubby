@@ -109,13 +109,13 @@ internal object MetadataModelXml : ModelXmlSerializer<ContentReadError>() {
             //        space normalization."
             value = meta.ownText().bind().trim(),
             property = meta.attr("property").bind(),
+            scheme = meta.optionalAttr("scheme"),
+            refines = meta.optionalAttr("refines"),
             identifier = meta.optionalAttr("id"),
             direction = meta
                 .optionalAttr("dir")
                 ?.let(::parseReadingDirection)
                 ?.bind(::UnknownReadingDirection),
-            refines = meta.optionalAttr("refines"),
-            scheme = meta.optionalAttr("scheme"),
             language = meta.optionalAttr("lang", XML_NAMESPACE),
         )
     }
@@ -190,10 +190,10 @@ internal object MetadataModelXml : ModelXmlSerializer<ContentReadError>() {
 
     private fun writeOpf3Meta(meta: Opf3MetaModel): Element = buildElement("meta", NAMESPACE) {
         this["property"] = meta.property
-        this["dir"] = meta.direction?.value
-        this["id"] = meta.identifier
-        this["refines"] = meta.refines
         this["scheme"] = meta.scheme
+        this["refines"] = meta.refines
+        this["id"] = meta.identifier
+        this["dir"] = meta.direction?.value
         this["lang", XML_NAMESPACE] = meta.language
         text = meta.value
     }

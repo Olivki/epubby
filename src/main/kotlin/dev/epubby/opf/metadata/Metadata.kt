@@ -16,16 +16,12 @@
 
 package dev.epubby.opf.metadata
 
-import com.google.common.net.MediaType
 import dev.epubby.Epub3Feature
 import dev.epubby.Epub3LegacyFeature
 import dev.epubby.NonEmptyMutableList
 import dev.epubby.dublincore.DublinCore
 import dev.epubby.dublincore.LocalizedDublinCore
 import dev.epubby.dublincore.NonRequiredDublinCore
-import dev.epubby.property.PropertySet
-import dev.epubby.property.Relationship
-import org.xbib.net.IRI
 
 public interface Metadata {
     public val identifiers: NonEmptyMutableList<DublinCore.Identifier>
@@ -43,27 +39,9 @@ public interface Metadata {
     public val opf3MetaEntries: MutableList<Opf3Meta>
 
     @Epub3Feature
-    public val links: MutableList<Link>
+    public val links: MutableList<MetadataLink>
 
     public var primaryIdentifier: DublinCore.Identifier
     public var primaryTitle: LocalizedDublinCore.Title
     public var primaryLanguage: DublinCore.Language
-
-    @Epub3Feature
-    public interface Link {
-        public var href: IRI
-
-        @Epub3Feature
-        public var relation: Relationship?
-
-        public var mediaType: MediaType?
-
-        public var identifier: String?
-
-        @Epub3Feature
-        public val properties: PropertySet
-
-        @Epub3Feature
-        public var refines: String?
-    }
 }

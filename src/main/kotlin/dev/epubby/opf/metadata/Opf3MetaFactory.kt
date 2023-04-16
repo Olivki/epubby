@@ -14,8 +14,25 @@
  * limitations under the License.
  */
 
-package dev.epubby.opf
+package dev.epubby.opf.metadata
 
-public interface Opf {
-    public fun findElement(identifier: String): OpfElement?
+import dev.epubby.Epub3Feature
+import dev.epubby.ReadingDirection
+import dev.epubby.property.Property
+
+@Epub3Feature
+public interface Opf3MetaFactory<T : Any, M : Opf3Meta<T>> {
+    public fun decodeFromString(value: String): T
+
+    public fun encodeToString(value: T): String
+
+    public fun create(
+        value: T,
+        property: Property,
+        scheme: Property,
+        refines: String?,
+        identifier: String?,
+        direction: ReadingDirection?,
+        language: String?,
+    ): M
 }

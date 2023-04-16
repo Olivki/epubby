@@ -14,8 +14,20 @@
  * limitations under the License.
  */
 
-package dev.epubby.opf
+package dev.epubby
 
-public interface Opf {
-    public fun findElement(identifier: String): OpfElement?
+import dev.epubby.opf.metadata.Opf3MetaCreativeRoleFactory
+import dev.epubby.opf.metadata.Opf3MetaFactory
+import dev.epubby.property.Property
+import net.ormr.epubby.internal.Properties.MARC_RELATORS
+
+@OptIn(Epub3Feature::class)
+public sealed class EpubConfig(
+    public val opf3MetaFactories: Map<Property, Opf3MetaFactory<*, *>>,
+) {
+    public companion object Default : EpubConfig(
+        opf3MetaFactories = mapOf(
+            MARC_RELATORS to Opf3MetaCreativeRoleFactory,
+        ),
+    )
 }

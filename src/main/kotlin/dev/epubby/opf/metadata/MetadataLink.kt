@@ -14,8 +14,28 @@
  * limitations under the License.
  */
 
-package dev.epubby.opf
+package dev.epubby.opf.metadata
 
-public interface Opf {
-    public fun findElement(identifier: String): OpfElement?
+import com.google.common.net.MediaType
+import dev.epubby.Epub3Feature
+import dev.epubby.property.PropertySet
+import dev.epubby.property.Relationship
+import org.xbib.net.IRI
+
+@Epub3Feature
+public interface MetadataLink {
+    public var href: IRI
+
+    @Epub3Feature
+    public var relation: Relationship?
+
+    public var mediaType: MediaType?
+
+    public var identifier: String?
+
+    @Epub3Feature
+    public val properties: PropertySet
+
+    @Epub3Feature
+    public var refines: String?
 }

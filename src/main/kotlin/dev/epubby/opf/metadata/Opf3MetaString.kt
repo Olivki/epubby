@@ -17,6 +17,18 @@
 package dev.epubby.opf.metadata
 
 import dev.epubby.Epub3Feature
+import dev.epubby.ReadingDirection
+import dev.epubby.property.Property
 
 @Epub3Feature
-public interface Opf3MetaPrimaryExpression : Opf3Meta
+public data class Opf3MetaString(
+    override var value: String,
+    override var property: Property,
+    override var scheme: Property? = null,
+    override var refines: String? = null,
+    override var identifier: String? = null,
+    override var direction: ReadingDirection? = null,
+    override var language: String? = null,
+) : Opf3Meta<String> {
+    override fun getValueAsString(): String = value
+}

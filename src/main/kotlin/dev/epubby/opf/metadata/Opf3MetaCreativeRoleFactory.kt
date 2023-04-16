@@ -16,23 +16,25 @@
 
 package dev.epubby.opf.metadata
 
+import dev.epubby.Epub2Feature
 import dev.epubby.Epub3Feature
 import dev.epubby.ReadingDirection
-import dev.epubby.opf.OpfElement
+import dev.epubby.dublincore.CreativeRole
 import dev.epubby.property.Property
 
-@Epub3Feature
-public interface Opf3Meta<T : Any> : OpfMeta, OpfElement {
-    /**
-     * The value of the `meta` element.
-     */
-    public var value: T
-    public var property: Property
-    public var scheme: Property?
-    public var refines: String?
-    override var identifier: String?
-    public var direction: ReadingDirection?
-    public var language: String?
+@OptIn(Epub3Feature::class, Epub2Feature::class)
+internal object Opf3MetaCreativeRoleFactory : Opf3MetaFactory<CreativeRole, Opf3MetaCreativeRole> {
+    override fun decodeFromString(value: String): CreativeRole = CreativeRole.create(value)
 
-    public fun getValueAsString(): String
+    override fun encodeToString(value: CreativeRole): String = value.code
+
+    override fun create(
+        value: CreativeRole,
+        property: Property,
+        scheme: Property,
+        refines: String?,
+        identifier: String?,
+        direction: ReadingDirection?,
+        language: String?
+    ): Opf3MetaCreativeRole = Opf3MetaCreativeRole(value, property, scheme, refines, identifier, direction, language)
 }
