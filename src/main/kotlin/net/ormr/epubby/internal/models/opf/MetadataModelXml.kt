@@ -18,9 +18,9 @@ package net.ormr.epubby.internal.models.opf
 
 import dev.epubby.Epub3Feature
 import dev.epubby.Epub3LegacyFeature
-import dev.epubby.opf.ContentReadError
-import dev.epubby.opf.ContentReadError.*
 import dev.epubby.opf.MetadataReadError.*
+import dev.epubby.opf.OpfReadError
+import dev.epubby.opf.OpfReadError.*
 import dev.epubby.xml.XmlAttribute
 import net.ormr.epubby.internal.Namespaces.DUBLIN_CORE
 import net.ormr.epubby.internal.Namespaces.OPF
@@ -43,7 +43,7 @@ import org.jdom2.Namespace.XML_NAMESPACE
 import net.ormr.epubby.internal.Namespaces.OPF_NO_PREFIX as NAMESPACE
 
 @OptIn(Epub3Feature::class, Epub3LegacyFeature::class)
-internal object MetadataModelXml : ModelXmlSerializer<ContentReadError>() {
+internal object MetadataModelXml : ModelXmlSerializer<OpfReadError>() {
     private val opf2Attributes: Set<String> = hashSetOf("charset", "content", "http-equiv", "name", "scheme")
     private val specialDcNames: Set<String> = hashSetOf("identifier", "title", "language")
 
@@ -81,7 +81,7 @@ internal object MetadataModelXml : ModelXmlSerializer<ContentReadError>() {
         )
     }
 
-    private fun readOpf2Meta(meta: Element) = effect<_, ContentReadError> {
+    private fun readOpf2Meta(meta: Element) = effect<_, OpfReadError> {
         Opf2MetaModel(
             charset = meta.optionalAttr("charset"),
             content = meta.optionalAttr("content"),
@@ -274,11 +274,11 @@ internal object MetadataModelXml : ModelXmlSerializer<ContentReadError>() {
         val rest: List<Opf3MetaModel>,
     )
 
-    override fun missingAttribute(name: String, path: String): ContentReadError = MissingAttribute(name, path)
+    override fun missingAttribute(name: String, path: String): OpfReadError = MissingAttribute(name, path)
 
-    override fun missingElement(name: String, path: String): ContentReadError = MissingElement(name, path)
+    override fun missingElement(name: String, path: String): OpfReadError = MissingElement(name, path)
 
-    override fun missingText(path: String): ContentReadError = MissingText(path)
+    override fun missingText(path: String): OpfReadError = MissingText(path)
 
     // because the geniuses decided to make the new meta element the same name as the old one, while STILL
     // supporting the use of the old meta element, we have to try and do our best to guess if a meta element is

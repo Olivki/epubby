@@ -17,10 +17,10 @@
 package net.ormr.epubby.internal.models.opf
 
 import dev.epubby.Epub3Feature
-import dev.epubby.opf.ContentReadError
-import dev.epubby.opf.ContentReadError.MissingAttribute
-import dev.epubby.opf.ContentReadError.MissingElement
 import dev.epubby.opf.ManifestReadError.NoItemElements
+import dev.epubby.opf.OpfReadError
+import dev.epubby.opf.OpfReadError.MissingAttribute
+import dev.epubby.opf.OpfReadError.MissingElement
 import net.ormr.epubby.internal.models.ModelXmlSerializer
 import net.ormr.epubby.internal.models.WriterData
 import net.ormr.epubby.internal.models.opf.ManifestModel.ItemModel
@@ -31,7 +31,7 @@ import org.jdom2.Element
 import java.net.URLEncoder
 import net.ormr.epubby.internal.Namespaces.OPF_NO_PREFIX as NAMESPACE
 
-internal object ManifestModelXml : ModelXmlSerializer<ContentReadError>() {
+internal object ManifestModelXml : ModelXmlSerializer<OpfReadError>() {
     fun read(manifest: Element) = effect {
         val items = manifest
             .children("item", NAMESPACE)
@@ -71,9 +71,9 @@ internal object ManifestModelXml : ModelXmlSerializer<ContentReadError>() {
         }
     }
 
-    override fun missingAttribute(name: String, path: String): ContentReadError = MissingAttribute(name, path)
+    override fun missingAttribute(name: String, path: String): OpfReadError = MissingAttribute(name, path)
 
-    override fun missingElement(name: String, path: String): ContentReadError = MissingElement(name, path)
+    override fun missingElement(name: String, path: String): OpfReadError = MissingElement(name, path)
 
-    override fun missingText(path: String): ContentReadError = error("'missingText' should never be used")
+    override fun missingText(path: String): OpfReadError = error("'missingText' should never be used")
 }

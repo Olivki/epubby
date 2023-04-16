@@ -21,8 +21,8 @@ import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.Result
 import dev.epubby.Epub3Feature
 import dev.epubby.Epub3LegacyFeature
-import dev.epubby.opf.ContentReadError
-import dev.epubby.opf.ContentReadError.*
+import dev.epubby.opf.OpfReadError
+import dev.epubby.opf.OpfReadError.*
 import dev.epubby.opf.SpineReadError.InvalidLinearValue
 import dev.epubby.opf.SpineReadError.NoItemRefElements
 import net.ormr.epubby.internal.models.ModelXmlSerializer
@@ -35,7 +35,7 @@ import org.jdom2.Element
 import net.ormr.epubby.internal.Namespaces.OPF_NO_PREFIX as NAMESPACE
 
 @OptIn(Epub3LegacyFeature::class, Epub3Feature::class)
-internal object SpineModelXml : ModelXmlSerializer<ContentReadError>() {
+internal object SpineModelXml : ModelXmlSerializer<OpfReadError>() {
     fun read(spine: Element) = effect {
         val refs = spine
             .children("itemref", NAMESPACE)
@@ -89,9 +89,9 @@ internal object SpineModelXml : ModelXmlSerializer<ContentReadError>() {
         }
     }
 
-    override fun missingAttribute(name: String, path: String): ContentReadError = MissingAttribute(name, path)
+    override fun missingAttribute(name: String, path: String): OpfReadError = MissingAttribute(name, path)
 
-    override fun missingElement(name: String, path: String): ContentReadError = MissingElement(name, path)
+    override fun missingElement(name: String, path: String): OpfReadError = MissingElement(name, path)
 
-    override fun missingText(path: String): ContentReadError = error("'missingText' should never be used")
+    override fun missingText(path: String): OpfReadError = error("'missingText' should never be used")
 }

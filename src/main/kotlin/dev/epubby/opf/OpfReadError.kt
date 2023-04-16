@@ -20,39 +20,39 @@ import dev.epubby.dublincore.DublinCoreReadError
 import dev.epubby.version.EpubVersionParseError
 import org.xbib.net.IRISyntaxException
 
-public sealed interface ContentReadError {
-    public data class MissingAttribute(val name: String, val path: String) : ContentReadError
-    public data class MissingElement(val name: String, val path: String) : ContentReadError
-    public data class MissingText(val path: String) : ContentReadError
-    public data class UnknownReadingDirection(val direction: String) : ContentReadError
-    public data class InvalidIri(val cause: IRISyntaxException) : ContentReadError
-    public data class InvalidMediaType(val mediaType: String) : ContentReadError
+public sealed interface OpfReadError {
+    public data class MissingAttribute(val name: String, val path: String) : OpfReadError
+    public data class MissingElement(val name: String, val path: String) : OpfReadError
+    public data class MissingText(val path: String) : OpfReadError
+    public data class UnknownReadingDirection(val direction: String) : OpfReadError
+    public data class InvalidIri(val cause: IRISyntaxException) : OpfReadError
+    public data class InvalidMediaType(val mediaType: String) : OpfReadError
 }
 
-public sealed interface PackageDocumentReadError : ContentReadError {
+public sealed interface PackageDocumentReadError : OpfReadError {
     public data class InvalidVersion(val error: EpubVersionParseError) : PackageDocumentReadError
 }
 
-public sealed interface MetadataReadError : ContentReadError {
+public sealed interface MetadataReadError : OpfReadError {
     public object MissingIdentifier : MetadataReadError
     public object MissingTitle : MetadataReadError
     public object MissingLanguage : MetadataReadError
     public data class DublinCoreError(val error: DublinCoreReadError) : MetadataReadError
 }
 
-public sealed interface ManifestReadError : ContentReadError {
+public sealed interface ManifestReadError : OpfReadError {
     public object NoItemElements : ManifestReadError
 }
 
-public sealed interface SpineReadError : ContentReadError {
+public sealed interface SpineReadError : OpfReadError {
     public object NoItemRefElements : SpineReadError
     public data class InvalidLinearValue(val value: String) : SpineReadError
 }
 
-public sealed interface BindingsReadError : ContentReadError {
+public sealed interface BindingsReadError : OpfReadError {
     public object NoMediaTypeElements : BindingsReadError
 }
 
-public sealed interface ToursReadError : ContentReadError {
+public sealed interface ToursReadError : OpfReadError {
     public object NoTourSiteElements : ToursReadError
 }

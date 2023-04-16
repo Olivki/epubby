@@ -19,8 +19,8 @@ package net.ormr.epubby.internal.models.opf
 import com.github.michaelbull.result.flatMap
 import com.github.michaelbull.result.mapError
 import dev.epubby.*
-import dev.epubby.opf.ContentReadError
-import dev.epubby.opf.ContentReadError.*
+import dev.epubby.opf.OpfReadError
+import dev.epubby.opf.OpfReadError.*
 import dev.epubby.opf.PackageDocumentReadError.InvalidVersion
 import dev.epubby.version.parseEpubVersion
 import net.ormr.epubby.internal.models.ModelXmlSerializer
@@ -39,7 +39,7 @@ import net.ormr.epubby.internal.Namespaces.OPF_NO_PREFIX as NAMESPACE
     Epub3LegacyFeature::class,
     Epub3DeprecatedFeature::class,
 )
-internal object OpfModelXml : ModelXmlSerializer<ContentReadError>() {
+internal object OpfModelXml : ModelXmlSerializer<OpfReadError>() {
     fun read(root: Element) = effect {
         OpfModel(
             version = root
@@ -86,9 +86,9 @@ internal object OpfModelXml : ModelXmlSerializer<ContentReadError>() {
         }
     }
 
-    override fun missingAttribute(name: String, path: String): ContentReadError = MissingAttribute(name, path)
+    override fun missingAttribute(name: String, path: String): OpfReadError = MissingAttribute(name, path)
 
-    override fun missingElement(name: String, path: String): ContentReadError = MissingElement(name, path)
+    override fun missingElement(name: String, path: String): OpfReadError = MissingElement(name, path)
 
-    override fun missingText(path: String): ContentReadError = error("'missingText' should never be used")
+    override fun missingText(path: String): OpfReadError = error("'missingText' should never be used")
 }

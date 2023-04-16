@@ -18,9 +18,9 @@ package net.ormr.epubby.internal.models.opf
 
 import dev.epubby.Epub2DeprecatedFeature
 import dev.epubby.Epub2Feature
-import dev.epubby.opf.ContentReadError
-import dev.epubby.opf.ContentReadError.MissingAttribute
-import dev.epubby.opf.ContentReadError.MissingElement
+import dev.epubby.opf.OpfReadError
+import dev.epubby.opf.OpfReadError.MissingAttribute
+import dev.epubby.opf.OpfReadError.MissingElement
 import dev.epubby.opf.ToursReadError.NoTourSiteElements
 import net.ormr.epubby.internal.models.ModelXmlSerializer
 import net.ormr.epubby.internal.models.opf.ToursModel.TourModel
@@ -31,7 +31,7 @@ import org.jdom2.Element
 import net.ormr.epubby.internal.Namespaces.OPF_NO_PREFIX as NAMESPACE
 
 @OptIn(Epub2Feature::class, Epub2DeprecatedFeature::class)
-internal object ToursModelXml : ModelXmlSerializer<ContentReadError>() {
+internal object ToursModelXml : ModelXmlSerializer<OpfReadError>() {
     fun read(tours: Element) = effect {
         val entries = tours
             .children("tour", NAMESPACE)
@@ -75,9 +75,9 @@ internal object ToursModelXml : ModelXmlSerializer<ContentReadError>() {
         this["title"] = site.title
     }
 
-    override fun missingAttribute(name: String, path: String): ContentReadError = MissingAttribute(name, path)
+    override fun missingAttribute(name: String, path: String): OpfReadError = MissingAttribute(name, path)
 
-    override fun missingElement(name: String, path: String): ContentReadError = MissingElement(name, path)
+    override fun missingElement(name: String, path: String): OpfReadError = MissingElement(name, path)
 
-    override fun missingText(path: String): ContentReadError = error("'missingText' should never be used")
+    override fun missingText(path: String): OpfReadError = error("'missingText' should never be used")
 }

@@ -18,21 +18,21 @@ package net.ormr.epubby.internal.models.opf
 
 import com.github.michaelbull.result.Ok
 import dev.epubby.Epub3Feature
-import dev.epubby.opf.ContentReadError
-import dev.epubby.opf.ContentReadError.MissingAttribute
-import dev.epubby.opf.ContentReadError.MissingElement
+import dev.epubby.opf.OpfReadError
+import dev.epubby.opf.OpfReadError.MissingAttribute
+import dev.epubby.opf.OpfReadError.MissingElement
 import net.ormr.epubby.internal.models.ModelXmlSerializer
 import org.jdom2.Element
 
 @OptIn(Epub3Feature::class)
-internal object CollectionModelXml : ModelXmlSerializer<ContentReadError>() {
+internal object CollectionModelXml : ModelXmlSerializer<OpfReadError>() {
     fun read(collection: Element) = Ok(CollectionModel(collection))
 
     fun write(collection: CollectionModel): Element = collection.element
 
-    override fun missingAttribute(name: String, path: String): ContentReadError = MissingAttribute(name, path)
+    override fun missingAttribute(name: String, path: String): OpfReadError = MissingAttribute(name, path)
 
-    override fun missingElement(name: String, path: String): ContentReadError = MissingElement(name, path)
+    override fun missingElement(name: String, path: String): OpfReadError = MissingElement(name, path)
 
-    override fun missingText(path: String): ContentReadError = error("'missingText' should never be used")
+    override fun missingText(path: String): OpfReadError = error("'missingText' should never be used")
 }
