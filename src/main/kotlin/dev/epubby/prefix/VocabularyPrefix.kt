@@ -21,15 +21,7 @@ import net.ormr.epubby.internal.util.getChildObjects
 import org.xbib.net.IRI
 
 @Epub3Feature
-public sealed class VocabularyPrefix(iri: String) : Prefix {
-    /**
-     * Returns an empty string, as vocabulary prefixes do not have a `name`.
-     */
-    override val name: String
-        get() = ""
-
-    override val iri: IRI = IRI.create(iri)
-
+public sealed class VocabularyPrefix(iri: String) : ResolvedPrefix {
     public object Manifest : VocabularyPrefix("http://idpf.org/epub/vocab/package/item/#")
 
     public object MetadataLink : VocabularyPrefix("http://idpf.org/epub/vocab/package/link/#")
@@ -37,6 +29,14 @@ public sealed class VocabularyPrefix(iri: String) : Prefix {
     public object MetadataMeta : VocabularyPrefix("http://idpf.org/epub/vocab/package/meta/#")
 
     public object Spine : VocabularyPrefix("http://idpf.org/epub/vocab/package/itemref/#")
+
+    /**
+     * Returns an empty string, as vocabulary prefixes do not have a `name`.
+     */
+    override val name: String?
+        get() = null
+
+    override val iri: IRI = IRI.create(iri)
 
     public companion object {
         private val prefixes by lazy { getChildObjects<VocabularyPrefix>().toList() }

@@ -17,10 +17,15 @@
 package dev.epubby.prefix
 
 import dev.epubby.Epub3Feature
-import org.xbib.net.IRI
+import dev.epubby.property.UnknownProperty
 
+/**
+ * A `prefix` where only the [name] is known.
+ *
+ * @see [UnknownProperty]
+ */
 @Epub3Feature
 public data class UnknownPrefix(override val name: String) : Prefix {
-    override val iri: IRI
-        get() = ""
+    override val iri: Nothing?
+        get() = null
 }

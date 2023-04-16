@@ -14,12 +14,18 @@
  * limitations under the License.
  */
 
-package dev.epubby.property
+package dev.epubby.prefix
 
 import dev.epubby.Epub3Feature
-import dev.epubby.prefix.UnknownPrefix
+import org.xbib.net.IRI
 
+// TODO: better name
+/**
+ * Represents a [Prefix] that has a guaranteed `iri` mapping.
+ *
+ * @see [UnknownPrefix]
+ */
 @Epub3Feature
-public data class UnknownProperty(override val prefix: UnknownPrefix, override val reference: String) : Property {
-    override fun process(): Nothing? = null
+public sealed interface ResolvedPrefix : Prefix {
+    override val iri: IRI
 }

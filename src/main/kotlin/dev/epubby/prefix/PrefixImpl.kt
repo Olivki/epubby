@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-package dev.epubby.property
+package dev.epubby.prefix
 
 import dev.epubby.Epub3Feature
-import dev.epubby.prefix.UnknownPrefix
+import org.xbib.net.IRI
 
 @Epub3Feature
-public data class UnknownProperty(override val prefix: UnknownPrefix, override val reference: String) : Property {
-    override fun process(): Nothing? = null
-}
+internal data class PrefixImpl(override val name: String, override val iri: IRI) : ResolvedPrefix

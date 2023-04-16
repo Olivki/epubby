@@ -14,12 +14,14 @@
  * limitations under the License.
  */
 
-package dev.epubby.property
+package net.ormr.epubby.internal
 
 import dev.epubby.Epub3Feature
-import dev.epubby.prefix.UnknownPrefix
+import dev.epubby.UnstableEpubFeature
+import dev.epubby.prefix.ReservedPrefix
+import dev.epubby.property.Property
 
-@Epub3Feature
-public data class UnknownProperty(override val prefix: UnknownPrefix, override val reference: String) : Property {
-    override fun process(): Nothing? = null
+@OptIn(Epub3Feature::class, UnstableEpubFeature::class)
+internal object Properties {
+    val MARC_RELATORS: Property = Property(ReservedPrefix.Marc, "relators")
 }

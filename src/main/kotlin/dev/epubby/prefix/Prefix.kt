@@ -14,21 +14,54 @@
  * limitations under the License.
  */
 
+@file:Suppress("FunctionName", "UnnecessaryOptInAnnotation")
+
 package dev.epubby.prefix
 
 import dev.epubby.Epub3Feature
+import dev.epubby.UnstableEpubFeature
+import net.ormr.epubby.internal.util.requireValidElementName
 import org.xbib.net.IRI
 
 // TODO: `"_"` is not an allowed prefix name
+// https://www.w3.org/publishing/epub3/epub-packages.html#sec-prefix-attr
 @Epub3Feature
 public sealed interface Prefix {
     /**
      * The shorthand name used by properties when referring to the [iri] mapping that this prefix represents.
+     *
+     * May be `null` if the prefix is from the [default vocabulary][VocabularyPrefix].
      */
-    public val name: String
+    public val name: String?
 
     /**
-     * TODO
+     * The iri used for resolving property references.
+     *
+     * May be `null` if the prefix is [unknown][UnknownPrefix].
      */
-    public val iri: IRI
+    public val iri: IRI?
+
+    /**
+     * Returns `true` if the [name] and [iri] of [other] matches that of `this` prefix, otherwise `false`.
+     */
+    public infix fun matches(other: Prefix): Boolean = when {
+        name != other.name -> false
+        iri != other.iri -> false
+        else -> true
+    }
+}
+
+/**
+ * TODO
+ *
+ * @throws [IllegalArgumentException] if [name] is not a valid `NCName` or if it is a
+ * [reserved name][ReservedPrefix.isReservedName] or equal to `_`
+ */
+@Epub3Feature
+@OptIn(UnstableEpubFeature::class)
+public fun Prefix(name: String, iri: IRI): ResolvedPrefix {
+    requireValidElementName(name)
+    require(!ReservedPrefix.isReservedName(name)) { "'name' should not be a reserved name" }
+    require(name != "_") { "'name' should not be '_'" }
+    return PrefixImpl(name, iri)
 }

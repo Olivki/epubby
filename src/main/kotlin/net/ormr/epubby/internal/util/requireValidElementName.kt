@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-package dev.epubby.property
+package net.ormr.epubby.internal.util
 
-import dev.epubby.Epub3Feature
-import dev.epubby.prefix.UnknownPrefix
+import org.jdom2.Verifier
 
-@Epub3Feature
-public data class UnknownProperty(override val prefix: UnknownPrefix, override val reference: String) : Property {
-    override fun process(): Nothing? = null
+internal fun requireValidElementName(name: String) {
+    val result = Verifier.checkElementName(name)
+    if (result != null) {
+        throw IllegalArgumentException("Invalid name: $result")
+    }
 }

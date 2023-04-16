@@ -21,6 +21,6 @@ import dev.epubby.prefix.VocabularyPrefix
 
 // TODO: better name?
 @Epub3Feature
-public sealed interface VocabularyProperty : Property {
+public sealed interface VocabularyProperty : ResolvedProperty {
     override val prefix: VocabularyPrefix
 }

@@ -17,9 +17,12 @@
 package dev.epubby.property
 
 import dev.epubby.Epub3Feature
-import dev.epubby.prefix.UnknownPrefix
+import dev.epubby.prefix.ResolvedPrefix
+import org.xbib.net.IRI
 
 @Epub3Feature
-public data class UnknownProperty(override val prefix: UnknownPrefix, override val reference: String) : Property {
-    override fun process(): Nothing? = null
+public sealed interface ResolvedProperty : Property {
+    override val prefix: ResolvedPrefix
+
+    override fun process(): IRI = prefix.iri.resolve(reference)
 }

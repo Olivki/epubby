@@ -17,7 +17,7 @@
 package dev.epubby.property
 
 import dev.epubby.Epub3Feature
-import dev.epubby.prefix.Prefix
+import dev.epubby.prefix.ResolvedPrefix
 
 @Epub3Feature
-internal data class PropertyImpl(override val prefix: Prefix, override val reference: String) : Property
+internal data class PropertyImpl(override val prefix: ResolvedPrefix, override val reference: String) : ResolvedProperty
