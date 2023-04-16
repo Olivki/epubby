@@ -16,7 +16,7 @@
 
 @file:Suppress("NAME_SHADOWING")
 
-package dev.epubby.dublincore
+package dev.epubby.marc
 
 import net.ormr.epubby.internal.util.isLowerCase
 

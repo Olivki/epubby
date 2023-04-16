@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package dev.epubby.dublincore
+package dev.epubby.marc
 
 /**
  * Represents a default creative role that helped in some manner with the creation of some part of an epub.

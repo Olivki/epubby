@@ -18,10 +18,10 @@ package net.ormr.epubby.internal.models.dublincore
 
 import dev.epubby.Epub2Feature
 import dev.epubby.ReadingDirection
-import dev.epubby.dublincore.CreativeRole
 import dev.epubby.dublincore.DateEvent
 import dev.epubby.dublincore.DublinCoreReadError
 import dev.epubby.dublincore.DublinCoreReadError.*
+import dev.epubby.marc.CreativeRole
 import net.ormr.epubby.internal.Namespaces.DUBLIN_CORE
 import net.ormr.epubby.internal.Namespaces.OPF
 import net.ormr.epubby.internal.models.ModelXmlSerializer

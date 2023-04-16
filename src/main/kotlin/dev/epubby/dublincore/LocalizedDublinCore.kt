@@ -19,6 +19,7 @@ package dev.epubby.dublincore
 import dev.epubby.Epub
 import dev.epubby.Epub2Feature
 import dev.epubby.ReadingDirection
+import dev.epubby.marc.CreativeRole
 
 public sealed interface LocalizedDublinCore : DublinCore {
     /**

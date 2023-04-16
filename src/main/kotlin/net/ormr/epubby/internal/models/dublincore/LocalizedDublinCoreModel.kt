@@ -20,8 +20,8 @@ package net.ormr.epubby.internal.models.dublincore
 
 import dev.epubby.Epub2Feature
 import dev.epubby.ReadingDirection
-import dev.epubby.dublincore.CreativeRole
 import dev.epubby.dublincore.LocalizedDublinCore
+import dev.epubby.marc.CreativeRole
 import net.ormr.epubby.internal.models.SerializedName
 
 // // https://www.dublincore.org/specifications/dublin-core/dces/

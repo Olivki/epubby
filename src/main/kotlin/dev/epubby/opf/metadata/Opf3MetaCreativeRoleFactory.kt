@@ -19,7 +19,7 @@ package dev.epubby.opf.metadata
 import dev.epubby.Epub2Feature
 import dev.epubby.Epub3Feature
 import dev.epubby.ReadingDirection
-import dev.epubby.dublincore.CreativeRole
+import dev.epubby.marc.CreativeRole
 import dev.epubby.property.Property
 
 @OptIn(Epub3Feature::class, Epub2Feature::class)
