@@ -36,7 +36,7 @@ public interface Metadata {
     public val opf2MetaEntries: MutableList<Opf2Meta>
 
     @Epub3Feature
-    public val opf3MetaEntries: MutableList<Opf3Meta>
+    public val opf3MetaEntries: MutableList<Opf3Meta<*>>
 
     @Epub3Feature
     public val links: MutableList<MetadataLink>

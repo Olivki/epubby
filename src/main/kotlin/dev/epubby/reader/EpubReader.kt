@@ -25,6 +25,7 @@ public interface EpubReader<E> {
     public fun read(): Result<Epub, E>
 
     public companion object {
-        public fun path(path: Path): EpubReader<EpubReaderError> = EpubPathReader(path)
+        // TODO: better name
+        public fun fromFile(path: Path): EpubReader<EpubReaderError> = EpubPathReader(path)
     }
 }
