@@ -21,7 +21,7 @@ import dev.epubby.ReadingDirection
 import dev.epubby.dublincore.DateEvent
 import dev.epubby.dublincore.DublinCoreReadError
 import dev.epubby.dublincore.DublinCoreReadError.*
-import dev.epubby.marc.CreativeRole
+import dev.epubby.marc.getOrCreateCreativeRole
 import net.ormr.epubby.internal.Namespaces.DUBLIN_CORE
 import net.ormr.epubby.internal.Namespaces.OPF
 import net.ormr.epubby.internal.models.ModelXmlSerializer
@@ -57,7 +57,7 @@ internal object DublinCoreModelXml : ModelXmlSerializer<DublinCoreReadError>() {
                     ?.let(ReadingDirection.Companion::fromValue)
                     ?.bind(::UnknownReadingDirection)
                 val language = element.optionalAttr("lang", XML_NAMESPACE)
-                val role = element.optionalAttr("role")?.let(CreativeRole.Companion::create)
+                val role = element.optionalAttr("role")?.let(::getOrCreateCreativeRole)
                 val fileAs = element.optionalAttr("file-as")
                 when (name) {
                     "title" -> TitleModel(identifier, direction, language, content)
