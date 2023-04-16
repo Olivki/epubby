@@ -55,7 +55,7 @@ internal class EpubPathReader(private val path: Path) : EpubReader<EpubReaderErr
             .container
             .rootFiles
             .find { it.mediaType == MediaTypes.OEBPS_PACKAGE } ?: shift(MissingOebpsRootFileElement)
-        val opfFile = fs.getPath(rootFile.fullPath)
+        val opfFile = root.resolve(rootFile.fullPath)
         ensure(opfFile.exists()) { MissingOpfFile(rootFile.fullPath) }
         // TODO: handle potential error from loadDocument
         val opfDocument = loadDocument(opfFile)
