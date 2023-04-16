@@ -37,9 +37,8 @@ internal object MetaInfContainerModelXml : ModelXmlSerializer<MetaInfContainerRe
             .map { readRootFile(it).bind() }
         ensure(rootFiles.isNotEmpty()) { EmptyRootFiles }
         val links = container
-            .childrenWrapper("links", "link", NAMESPACE)
-            .bind()
-            .map { readLink(it).bind() }
+            .optionalChildrenWrapper("links", "link", NAMESPACE)
+            ?.map { readLink(it).bind() } ?: emptyList()
         MetaInfContainerModel(
             version = container.attr("version").bind(),
             rootFiles = rootFiles,
