@@ -16,8 +16,6 @@
 
 package dev.epubby.dublincore
 
-import dev.epubby.Epub2Feature
-
 /**
  * Represents a default creative role that helped in some manner with the creation of some part of an epub.
  *
@@ -25,7 +23,6 @@ import dev.epubby.Epub2Feature
  *
  * The code of a default role can only be max `3` characters long.
  */
-@Epub2Feature
 public sealed class DefaultCreativeRole(override val code: String, override val name: String) : CreativeRole {
     final override fun toString(): String = "DefaultCreativeRole(code='$code', name='$name')"
 

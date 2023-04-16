@@ -18,7 +18,6 @@
 
 package dev.epubby.dublincore
 
-import dev.epubby.Epub2Feature
 import net.ormr.epubby.internal.util.isLowerCase
 
 // http://idpf.org/epub/20/spec/OPF_2.0.1_draft.htm#Section2.2.6
@@ -29,7 +28,6 @@ import net.ormr.epubby.internal.util.isLowerCase
  * @see [DefaultCreativeRole]
  * @see [CustomCreativeRole]
  */
-@Epub2Feature
 public sealed interface CreativeRole {
     /**
      * The [marc-relator code](https://www.loc.gov/marc/relators/) representing the role.
@@ -74,7 +72,7 @@ public sealed interface CreativeRole {
          * [customCode][CustomCreativeRole.customCode] property.
          *
          * Note that `name` is only used in case `code` does *not* match a `DefaultCreativeRole`. For example, say you
-         * invoke this with `of("art", "The Artist")` the returned instance will *not* be
+         * invoke this with `("art", "The Artist")` the returned instance will *not* be
          * `CustomCreativeRole("art", "The Artist")` but rather `DefaultCreativeRole.Artist` as the code `art` is
          * associated with the default role [Artist][DefaultCreativeRole.Artist].
          *
