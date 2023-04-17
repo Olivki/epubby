@@ -50,15 +50,17 @@ import kotlin.io.path.exists
 import kotlin.io.path.outputStream
 
 // https://www.w3.org/publishing/epub3/epub-ocf.html#sec-zip-container-zipreqs
-internal class EpubZipReader(private val path: Path, private val config: EpubConfig) : EpubReader<EpubReaderError> {
-    override fun read(): Result<Epub, EpubReaderError> = effect {
-        val fs = Zip(path).use { zip ->
+internal object EpubZipReader : EpubReader<EpubReaderError> {
+    private const val MIME_TYPE_CONTENT = "application/epub+zip"
+    
+    override fun read(file: Path, config: EpubConfig): Result<Epub, EpubReaderError> = effect {
+        val fs = Zip(file).use { zip ->
             checkFiles(zip).bind()
             createFileSystem(zip, zip.fileHeaders)
         }.bind()
         val root = fs.getPath("/")
         val metaInfModel = parseMetaInfModel(root).bind(::MetaInfError)
-        val rootFile = findRootFile(metaInfModel).bind()
+        val rootFile = findRootFile(metaInfModel, config).bind()
         val opfFile = root.resolve(rootFile.fullPath)
         ensure(opfFile.exists()) { MissingOpfFile(rootFile.fullPath) }
         // TODO: handle potential error from loadDocument
@@ -68,7 +70,10 @@ internal class EpubZipReader(private val path: Path, private val config: EpubCon
         TODO()
     }
 
-    private fun findRootFile(metaInf: MetaInfModel): Result<RootFileModel, MissingOebpsRootFileElement> {
+    private fun findRootFile(
+        metaInf: MetaInfModel,
+        config: EpubConfig,
+    ): Result<RootFileModel, MissingOebpsRootFileElement> {
         val rootFiles = metaInf
             .container
             .rootFiles
@@ -122,9 +127,5 @@ internal class EpubZipReader(private val path: Path, private val config: EpubCon
             shift(CorruptMimeType(e))
         }
         ensure(mimeTypeContent == MIME_TYPE_CONTENT) { MimeTypeContentMismatch(mimeTypeContent) }
-    }
-
-    private companion object {
-        private const val MIME_TYPE_CONTENT = "application/epub+zip"
     }
 }

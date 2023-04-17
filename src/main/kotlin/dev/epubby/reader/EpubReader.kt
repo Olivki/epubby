@@ -23,12 +23,7 @@ import net.ormr.epubby.internal.reader.EpubZipReader
 import java.nio.file.Path
 
 public interface EpubReader<E> {
-    public fun read(): Result<Epub, E>
+    public fun read(file: Path, config: EpubConfig = EpubConfig.Default): Result<Epub, E>
 
-    public companion object {
-        public fun usingZip(
-            path: Path,
-            config: EpubConfig = EpubConfig.Default
-        ): EpubReader<EpubReaderError> = EpubZipReader(path, config)
-    }
+    public companion object Default : EpubReader<EpubReaderError> by EpubZipReader
 }
