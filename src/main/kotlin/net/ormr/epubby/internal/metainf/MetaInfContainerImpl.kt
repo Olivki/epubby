@@ -22,12 +22,11 @@ import dev.epubby.NonEmptyMutableList
 import dev.epubby.metainf.MetaInfContainer
 import dev.epubby.property.Relationship
 
-internal class MetaInfContainerImpl(override val version: String) : MetaInfContainer {
-    override val rootFiles: NonEmptyMutableList<MetaInfContainer.RootFile>
-        get() = TODO("Not yet implemented")
-    override val links: MutableList<MetaInfContainer.Link>
-        get() = TODO("Not yet implemented")
-
+internal class MetaInfContainerImpl(
+    override val version: String,
+    override val rootFiles: NonEmptyMutableList<MetaInfContainer.RootFile>,
+    override val links: MutableList<MetaInfContainer.Link>,
+) : MetaInfContainer {
     data class RootFileImpl(
         override val fullPath: String,
         override val mediaType: MediaType

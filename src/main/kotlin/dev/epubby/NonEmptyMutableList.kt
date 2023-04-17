@@ -51,6 +51,5 @@ public fun <E> NonEmptyMutableList(head: E, tail: Iterable<E>): NonEmptyMutableL
  */
 public fun <T> List<T>.toNonEmptyMutableList(): NonEmptyMutableList<T> {
     require(isNotEmpty()) { "Can't create NonEmptyMutableList from empty list" }
-    // TODO: is this safe
-    return NonEmptyMutableList(first(), subList(1, lastIndex))
+    return NonEmptyMutableList(first(), subList(1, lastIndex).toMutableList())
 }

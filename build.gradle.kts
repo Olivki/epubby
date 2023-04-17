@@ -27,6 +27,9 @@ dependencies {
     // Zip
     api("net.lingala.zip4j:zip4j:2.11.5")
 
+    // better-parse
+    implementation("com.github.h0tk3y.betterParse:better-parse:0.4.4")
+
     // Apache
     implementation("commons-validator:commons-validator:1.7")
     implementation("org.apache.commons:commons-collections4:4.4")
