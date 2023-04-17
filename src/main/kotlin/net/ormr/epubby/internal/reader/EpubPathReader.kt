@@ -22,11 +22,14 @@ import com.github.michaelbull.result.Result
 import com.google.common.jimfs.Configuration
 import com.google.common.jimfs.Jimfs
 import dev.epubby.Epub
+import dev.epubby.EpubConfig
 import dev.epubby.metainf.MetaInfReadError
 import dev.epubby.reader.EpubReader
 import dev.epubby.reader.EpubReaderError
 import dev.epubby.reader.EpubReaderError.*
 import net.ormr.epubby.internal.MediaTypes
+import net.ormr.epubby.internal.models.metainf.MetaInfContainerModelConverter.toRootFile
+import net.ormr.epubby.internal.models.metainf.MetaInfContainerModelConverter.toRootFileModel
 import net.ormr.epubby.internal.models.metainf.MetaInfModel
 import net.ormr.epubby.internal.models.metainf.MetaInfModelXml
 import net.ormr.epubby.internal.models.opf.OpfModelXml
@@ -41,7 +44,7 @@ import java.nio.file.Path
 import java.nio.file.ProviderNotFoundException
 import kotlin.io.path.*
 
-internal class EpubPathReader(private val path: Path) : EpubReader<EpubReaderError> {
+internal class EpubPathReader(private val path: Path, private val config: EpubConfig) : EpubReader<EpubReaderError> {
     override fun read(): Result<Epub, EpubReaderError> = effect {
         val fs = openFileSystem().bind().use { fs ->
             checkFiles(fs).bind()
@@ -51,10 +54,15 @@ internal class EpubPathReader(private val path: Path) : EpubReader<EpubReaderErr
         val metaInfModel = parseMetaInfModel(root).bind(::MetaInfError)
         // TODO: implement some strategy that a user can define for resolving issues where there are multiple
         //       'OEBPS_PACKAGE' package files available
-        val rootFile = metaInfModel
+        val rootFiles = metaInfModel
             .container
             .rootFiles
-            .find { it.mediaType == MediaTypes.OEBPS_PACKAGE } ?: shift(MissingOebpsRootFileElement)
+            .filter { it.mediaType == MediaTypes.OEBPS_PACKAGE }
+        ensure(rootFiles.isNotEmpty()) { MissingOebpsRootFileElement }
+        val rootFile = when (rootFiles.size) {
+            1 -> rootFiles.first()
+            else -> config.multipleOebpsFileResolver(rootFiles.map { it.toRootFile() }).toRootFileModel()
+        }
         val opfFile = root.resolve(rootFile.fullPath)
         ensure(opfFile.exists()) { MissingOpfFile(rootFile.fullPath) }
         // TODO: handle potential error from loadDocument

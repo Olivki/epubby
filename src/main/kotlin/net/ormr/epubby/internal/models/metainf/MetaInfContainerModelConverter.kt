@@ -16,4 +16,18 @@
 
 package net.ormr.epubby.internal.models.metainf
 
-internal object MetaInfContainerModelConverter
+import dev.epubby.metainf.MetaInfContainer.RootFile
+import net.ormr.epubby.internal.metainf.MetaInfContainerImpl.RootFileImpl
+import net.ormr.epubby.internal.models.metainf.MetaInfContainerModel.RootFileModel
+
+internal object MetaInfContainerModelConverter {
+    fun RootFileModel.toRootFile(): RootFileImpl = RootFileImpl(
+        fullPath = fullPath,
+        mediaType = mediaType,
+    )
+
+    fun RootFile.toRootFileModel(): RootFileModel = RootFileModel(
+        fullPath = fullPath,
+        mediaType = mediaType,
+    )
+}

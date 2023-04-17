@@ -16,6 +16,7 @@
 
 package dev.epubby
 
+import dev.epubby.metainf.MetaInfContainer
 import dev.epubby.opf.metadata.Opf3MetaCreativeRoleFactory
 import dev.epubby.opf.metadata.Opf3MetaFactory
 import dev.epubby.property.Property
@@ -24,10 +25,12 @@ import net.ormr.epubby.internal.Properties.MARC_RELATORS
 @OptIn(Epub3Feature::class)
 public sealed class EpubConfig(
     public val opf3MetaFactories: Map<Property, Opf3MetaFactory<*, *>>,
+    public val multipleOebpsFileResolver: (List<MetaInfContainer.RootFile>) -> MetaInfContainer.RootFile,
 ) {
     public companion object Default : EpubConfig(
         opf3MetaFactories = mapOf(
             MARC_RELATORS to Opf3MetaCreativeRoleFactory,
         ),
+        multipleOebpsFileResolver = { it.first() },
     )
 }

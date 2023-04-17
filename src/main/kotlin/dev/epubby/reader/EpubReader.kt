@@ -18,6 +18,7 @@ package dev.epubby.reader
 
 import com.github.michaelbull.result.Result
 import dev.epubby.Epub
+import dev.epubby.EpubConfig
 import net.ormr.epubby.internal.reader.EpubPathReader
 import java.nio.file.Path
 
@@ -26,6 +27,9 @@ public interface EpubReader<E> {
 
     public companion object {
         // TODO: better name
-        public fun fromFile(path: Path): EpubReader<EpubReaderError> = EpubPathReader(path)
+        public fun fromFile(
+            path: Path,
+            config: EpubConfig = EpubConfig.Default
+        ): EpubReader<EpubReaderError> = EpubPathReader(path, config)
     }
 }

@@ -14,30 +14,29 @@
  * limitations under the License.
  */
 
-package dev.epubby.metainf
+package net.ormr.epubby.internal.metainf
 
 import com.google.common.net.MediaType
 import dev.epubby.Epub3Feature
 import dev.epubby.NonEmptyMutableList
+import dev.epubby.metainf.MetaInfContainer
 import dev.epubby.property.Relationship
 
-public interface MetaInfContainer {
-    public val version: String
-    public val rootFiles: NonEmptyMutableList<RootFile>
-    public val links: MutableList<Link>
+internal class MetaInfContainerImpl(override val version: String) : MetaInfContainer {
+    override val rootFiles: NonEmptyMutableList<MetaInfContainer.RootFile>
+        get() = TODO("Not yet implemented")
+    override val links: MutableList<MetaInfContainer.Link>
+        get() = TODO("Not yet implemented")
 
-    public interface RootFile {
-        public val fullPath: String
+    data class RootFileImpl(
+        override val fullPath: String,
+        override val mediaType: MediaType
+    ) : MetaInfContainer.RootFile
 
-        public val mediaType: MediaType
-    }
-
-    public interface Link {
-        public val href: String
-
-        @Epub3Feature
-        public val relation: Relationship?
-
-        public val mediaType: MediaType?
-    }
+    @OptIn(Epub3Feature::class)
+    data class LinkImpl(
+        override val href: String,
+        override val relation: Relationship?,
+        override val mediaType: MediaType?
+    ) : MetaInfContainer.Link
 }
