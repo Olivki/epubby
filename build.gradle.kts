@@ -21,7 +21,11 @@ dependencies {
     // XML
     implementation("org.jdom:jdom2:2.0.6.1")
 
+    // IRI/URI
     implementation("org.xbib:net:3.0.1")
+
+    // Zip
+    api("net.lingala.zip4j:zip4j:2.11.5")
 
     // Apache
     implementation("commons-validator:commons-validator:1.7")
