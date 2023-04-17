@@ -21,6 +21,7 @@ import net.lingala.zip4j.io.inputstream.ZipInputStream
 import net.lingala.zip4j.model.FileHeader
 import net.lingala.zip4j.progress.ProgressMonitor
 import java.io.InputStream
+import java.io.InputStreamReader
 import java.nio.charset.Charset
 import java.nio.file.Path
 import kotlin.contracts.InvocationKind
@@ -90,12 +91,12 @@ public value class Zip internal constructor(internal val zipFile: ZipFile) {
     }
 
     public fun extractFile(
-        header: FileHeader,
+        file: FileHeader,
         target: Path,
         newFileName: String? = null,
         parameters: ZipExtractParameters = DEFAULT_EXTRACT_PARAMETERS,
     ) {
-        extractFile(header.fileName, target, newFileName, parameters)
+        extractFile(file.fileName, target, newFileName, parameters)
     }
 
     public fun extractFile(
@@ -107,8 +108,8 @@ public value class Zip internal constructor(internal val zipFile: ZipFile) {
         zipFile.extractFile(fileName, target.absolutePathString(), newFileName, parameters.asUnzipParameters())
     }
 
-    public fun deleteFile(header: FileHeader) {
-        zipFile.removeFile(header)
+    public fun deleteFile(file: FileHeader) {
+        zipFile.removeFile(file)
     }
 
     public fun deleteFile(fileName: String) {
@@ -119,8 +120,8 @@ public value class Zip internal constructor(internal val zipFile: ZipFile) {
         zipFile.removeFiles(files)
     }
 
-    public fun renameFile(header: FileHeader, newName: String) {
-        zipFile.renameFile(header, newName)
+    public fun renameFile(file: FileHeader, newName: String) {
+        zipFile.renameFile(file, newName)
     }
 
     public fun renameFile(fileName: String, newFileName: String) {
@@ -135,12 +136,18 @@ public value class Zip internal constructor(internal val zipFile: ZipFile) {
         zipFile.mergeSplitFiles(targetZip.toFile())
     }
 
-    public fun inputStream(header: FileHeader): ZipInputStream = zipFile.getInputStream(header)
+    public fun newInputStream(file: FileHeader): ZipInputStream = zipFile.getInputStream(file)
 
     public fun close() {
         zipFile.close()
     }
 }
+
+public fun Zip.newReader(file: FileHeader, charset: Charset = Charsets.UTF_8): InputStreamReader =
+    InputStreamReader(newInputStream(file), charset)
+
+public fun Zip.readText(file: FileHeader, charset: Charset = Charsets.UTF_8): String =
+    newReader(file, charset).use { it.readText() }
 
 private val DEFAULT_PARAMETERS = ZipParameters()
 private val DEFAULT_EXTRACT_PARAMETERS = ZipExtractParameters()
@@ -165,23 +172,11 @@ public inline fun Zip(
     password: String? = null,
     charset: Charset = Charsets.UTF_8,
     runInThread: Boolean = false,
-    builder: Zip.() -> Unit,
+    builder: (Zip) -> Unit,
 ): Zip {
     val zip = Zip(file, password, charset, runInThread)
     zip.use(builder)
     return zip
-}
-
-public fun Path.copyTo(target: Zip, parameters: ZipParameters = DEFAULT_PARAMETERS) {
-    target.importFile(this, parameters)
-}
-
-public fun Path.copyDirectoryTo(target: Zip, parameters: ZipParameters = DEFAULT_PARAMETERS) {
-    target.importDirectory(this, parameters)
-}
-
-public fun InputStream.copyTo(target: Zip, parameters: ZipParameters) {
-    target.importStream(this, parameters)
 }
 
 // TODO: copyToSplitZip which act like factory functions that create a new Zip instance
@@ -218,7 +213,7 @@ fun Path.copyDirectoryTo(
 }*/
 
 // 'Zip' does not implement 'Closeable' as to avoid unnecessary boxing
-public inline fun <R> Zip.use(block: Zip.() -> R): R {
+public inline fun <R> Zip.use(block: (Zip) -> R): R {
     contract {
         callsInPlace(block, InvocationKind.EXACTLY_ONCE)
     }

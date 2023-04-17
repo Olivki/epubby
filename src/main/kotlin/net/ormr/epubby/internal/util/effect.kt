@@ -57,9 +57,21 @@ internal class BindingScope<E> {
     inline fun ensure(condition: Boolean, shift: () -> E) {
         contract {
             callsInPlace(shift, InvocationKind.AT_MOST_ONCE)
+            returns() implies condition
         }
 
         if (!condition) shift(shift())
+    }
+
+    inline fun <T> ensureNotNull(value: T?, shift: () -> E): T {
+        contract {
+            callsInPlace(shift, InvocationKind.AT_MOST_ONCE)
+            returns() implies (value != null)
+        }
+
+        if (value == null) shift(shift())
+        
+        return value
     }
 }
 

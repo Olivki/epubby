@@ -14,21 +14,17 @@
  * limitations under the License.
  */
 
-package dev.epubby.reader
+package net.ormr.epubby.internal
 
-import com.github.michaelbull.result.Result
-import dev.epubby.Epub
-import dev.epubby.EpubConfig
-import net.ormr.epubby.internal.reader.EpubZipReader
+import dev.epubby.EpubFiles
+import java.nio.file.FileSystem
 import java.nio.file.Path
 
-public interface EpubReader<E> {
-    public fun read(): Result<Epub, E>
-
-    public companion object {
-        public fun usingZip(
-            path: Path,
-            config: EpubConfig = EpubConfig.Default
-        ): EpubReader<EpubReaderError> = EpubZipReader(path, config)
-    }
+internal class EpubFilesImpl(override val fileSystem: FileSystem) : EpubFiles {
+    override val mimeTypeFile: Path
+        get() = TODO("Not yet implemented")
+    override val opfFile: Path
+        get() = TODO("Not yet implemented")
+    override val metaInfDirectory: Path
+        get() = TODO("Not yet implemented")
 }

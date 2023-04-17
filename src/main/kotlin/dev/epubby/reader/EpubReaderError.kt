@@ -24,10 +24,9 @@ public sealed interface EpubReaderError {
     // TODO: better name
     public data class FailedToOpenFile(public val cause: Throwable) : EpubReaderError
     public data class InvalidVersion(public val error: EpubVersionParseError) : EpubReaderError
-    public object MissingMetaInf : EpubReaderError
     public object MissingMetaInfContainer : EpubReaderError
     public object MissingMimeType : EpubReaderError
-    public object CorruptMimeType : EpubReaderError
+    public data class CorruptMimeType(val cause: IOException) : EpubReaderError
     public data class MimeTypeContentMismatch(val content: String) : EpubReaderError
 
     // TODO: better name
