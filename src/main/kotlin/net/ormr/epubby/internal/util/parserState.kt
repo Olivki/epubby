@@ -16,12 +16,15 @@
 
 package net.ormr.epubby.internal.util
 
-import com.github.h0tk3y.betterParse.lexer.token
+import cc.ekblad.konbini.ParserState
 
-// https://www.w3.org/TR/xmlschema11-2/#NCName
-internal fun ncNameToken() = token { input, i ->
-    when {
-        input.isEmpty() -> 0
-        else -> input.substring(i).firstNCName()?.length ?: 0
+internal fun ParserState.ncName(): String {
+    if (position >= input.length) {
+        fail("Expected NCName, but got EOF.")
     }
+    val name = input
+        .substring(position)
+        .firstNCName() ?: fail("Expected NCName, but got '${input.substring(position)}'.")
+    position += name.length
+    return name
 }
