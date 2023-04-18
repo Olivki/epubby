@@ -59,13 +59,14 @@ internal fun CharSequence.isNCName(): Boolean {
 }
 
 internal fun CharSequence.firstNCName(): String? {
+    val input = this
     val ncName = buildString {
-        val firstCodePoint = Character.codePointAt(this@firstNCName, 0)
+        val firstCodePoint = Character.codePointAt(input, 0)
         if (!firstCodePoint.isNCNameStartChar()) return null
         appendCodePoint(firstCodePoint)
         var i = Character.charCount(firstCodePoint)
-        while (i < length) {
-            val codePoint = Character.codePointAt(this@firstNCName, i)
+        while (i < input.length) {
+            val codePoint = Character.codePointAt(input, i)
             if (!codePoint.isNCNameChar()) break
             appendCodePoint(codePoint)
             i += Character.charCount(codePoint)
