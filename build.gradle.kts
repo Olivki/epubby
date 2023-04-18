@@ -5,6 +5,7 @@ plugins {
 
 repositories {
     mavenCentral()
+    maven(url = "https://jitpack.io")
 }
 
 group = "dev.epubby"
@@ -28,7 +29,7 @@ dependencies {
     api("net.lingala.zip4j:zip4j:2.11.5")
 
     // better-parse
-    implementation("com.github.h0tk3y.betterParse:better-parse:0.4.4")
+    implementation("cc.ekblad.konbini:konbini:0.1.2")
 
     // Apache
     implementation("commons-validator:commons-validator:1.7")
