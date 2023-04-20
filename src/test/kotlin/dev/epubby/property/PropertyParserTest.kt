@@ -28,7 +28,6 @@ import net.ormr.epubby.internal.property.ParsedProperty
 import net.ormr.epubby.internal.property.propertyParser
 
 class PropertyParserTest : FunSpec({
-    // TODO: better context name
     context("Valid property data types") {
         withData(
             PropertyResult("marc:relators", ParsedProperty(prefix = "marc", reference = "relators")),
