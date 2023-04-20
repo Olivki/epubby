@@ -26,6 +26,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldBeEmpty
 import net.ormr.epubby.internal.prefix.ParsedMapping
 import net.ormr.epubby.internal.prefix.prefixesParser
+import org.xbib.net.IRI
 
 class PrefixParserTest : FunSpec({
     context("Valid prefix data type") {
@@ -72,6 +73,8 @@ class PrefixParserTest : FunSpec({
         }
     }
 })
+
+private fun ParsedMapping(name: String, iri: String): ParsedMapping = ParsedMapping(name, IRI.create(iri))
 
 private data class PrefixResult(
     val input: String,

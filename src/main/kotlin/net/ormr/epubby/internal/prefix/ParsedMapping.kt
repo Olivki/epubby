@@ -16,4 +16,6 @@
 
 package net.ormr.epubby.internal.prefix
 
-internal data class ParsedMapping(val name: String, val iri: String)
+import org.xbib.net.IRI
+
+internal data class ParsedMapping(val name: String, val iri: IRI)
