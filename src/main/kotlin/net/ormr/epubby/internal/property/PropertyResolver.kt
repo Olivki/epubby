@@ -59,6 +59,7 @@ internal object PropertyResolver {
     private fun fromVocab(entries: Map<String, Property>, ref: String): Property =
         entries[ref] ?: UnknownProperty(prefix = null, ref)
 
+    // TODO: don't allow prefixes that map to a default vocabulary
     private fun toProperty(prefix: String, reference: String, prefixes: PrefixMap): Property {
         // if the 'prefix' attribute defines a mapping to a reserved prefix, we must allow it to overwrite
         // that mapping, so we check the 'prefixes' before checking 'ReservedPrefix'.

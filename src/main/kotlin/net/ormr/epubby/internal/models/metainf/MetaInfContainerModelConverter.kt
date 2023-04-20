@@ -21,23 +21,23 @@ import dev.epubby.metainf.MetaInfContainer
 import dev.epubby.metainf.MetaInfContainer.Link
 import dev.epubby.metainf.MetaInfContainer.RootFile
 import dev.epubby.toNonEmptyMutableList
-import net.ormr.epubby.internal.ModelConversionData
 import net.ormr.epubby.internal.metainf.MetaInfContainerImpl
 import net.ormr.epubby.internal.metainf.MetaInfContainerImpl.LinkImpl
 import net.ormr.epubby.internal.metainf.MetaInfContainerImpl.RootFileImpl
 import net.ormr.epubby.internal.models.metainf.MetaInfContainerModel.LinkModel
 import net.ormr.epubby.internal.models.metainf.MetaInfContainerModel.RootFileModel
+import net.ormr.epubby.internal.prefix.EmptyPrefixMap
 import net.ormr.epubby.internal.property.PropertyResolver
 import net.ormr.epubby.internal.property.toPropertyModel
 
 @OptIn(Epub3Feature::class)
 internal object MetaInfContainerModelConverter {
     // model -> instance
-    fun MetaInfContainerModel.toMetaInfContainer(data: ModelConversionData): MetaInfContainerImpl =
+    fun MetaInfContainerModel.toMetaInfContainer(): MetaInfContainerImpl =
         MetaInfContainerImpl(
             version = version,
             rootFiles = rootFiles.map { it.toRootFile() }.toNonEmptyMutableList(),
-            links = links.map { it.toLink(data) }.toMutableList(),
+            links = links.map { it.toLink() }.toMutableList(),
         )
 
     fun RootFileModel.toRootFile(): RootFileImpl = RootFileImpl(
@@ -45,10 +45,9 @@ internal object MetaInfContainerModelConverter {
         mediaType = mediaType,
     )
 
-    private fun LinkModel.toLink(data: ModelConversionData): LinkImpl = LinkImpl(
+    private fun LinkModel.toLink(): LinkImpl = LinkImpl(
         href = href,
-        // TODO: pass in an empty prefixes here
-        relation = relation?.let { PropertyResolver.resolveLinkRel(it, data.prefixes) },
+        relation = relation?.let { PropertyResolver.resolveLinkRel(it, EmptyPrefixMap) },
         mediaType = mediaType,
     )
 
