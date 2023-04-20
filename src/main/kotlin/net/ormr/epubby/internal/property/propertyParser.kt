@@ -19,24 +19,20 @@ package net.ormr.epubby.internal.property
 import cc.ekblad.konbini.char
 import cc.ekblad.konbini.oneOf
 import cc.ekblad.konbini.parser
-import cc.ekblad.konbini.regex
+import net.ormr.epubby.internal.iri.iRelativeRef
 import net.ormr.epubby.internal.util.ncName
 
 // https://www.w3.org/publishing/epub3/epub-packages.html#sec-property-syntax
 
-// it's actually a irelative-ref but that's a non-trivial regex to create, so until this comes back and bites us in the
-// ass in the future, it's staying like this
-private val reference = regex(".*")
-
 private val fullProperty = parser {
     val prefix = ncName()
     char(':')
-    val ref = reference()
+    val ref = iRelativeRef()
     ParsedProperty(prefix, ref)
 }
 
 private val onlyReference = parser {
-    val ref = reference()
+    val ref = iRelativeRef()
     ParsedProperty(prefix = null, ref)
 }
 
