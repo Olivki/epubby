@@ -16,4 +16,9 @@
 
 package net.ormr.epubby.internal.property
 
-internal data class ParsedProperty(val prefix: String?, val reference: String)
+internal data class PropertyModel(val prefix: String?, val reference: String) {
+    fun asString(): String = when (prefix) {
+        null -> reference
+        else -> "$prefix:$reference"
+    }
+}

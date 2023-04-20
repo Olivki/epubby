@@ -28,12 +28,12 @@ private val fullProperty = parser {
     val prefix = ncName()
     char(':')
     val ref = iRelativeRef()
-    ParsedProperty(prefix, ref)
+    PropertyModel(prefix, ref)
 }
 
 private val onlyReference = parser {
     val ref = iRelativeRef()
-    ParsedProperty(prefix = null, ref)
+    PropertyModel(prefix = null, ref)
 }
 
 internal val propertyParser = oneOf(fullProperty, onlyReference)

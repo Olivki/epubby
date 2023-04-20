@@ -31,7 +31,7 @@ public sealed interface Property {
      *
      * Used when [processing][process] the property.
      */
-    public val prefix: Prefix
+    public val prefix: Prefix?
 
     /**
      * The name of the entry that the property is referring to.
@@ -46,18 +46,24 @@ public sealed interface Property {
      *
      * @see [IRI.resolve]
      */
-    public fun process(): IRI? = prefix.iri?.resolve(reference)
+    public fun process(): IRI?
 
     /**
      * Returns `true` if the [prefix] and [reference] of [other] matches that of `this` property, otherwise `false`.
      */
-    public infix fun matches(other: Property): Boolean = when {
-        !(prefix matches other.prefix) -> false
-        reference != other.reference -> false
-        else -> true
+    public infix fun matches(other: Property): Boolean = when (this) {
+        is ResolvedProperty -> when {
+            !(prefix matches other.prefix) -> false
+            reference != other.reference -> false
+            else -> true
+        }
+        else -> when {
+            reference != other.reference -> false
+            else -> true
+        }
     }
 
-    public fun asString(): String = when (val name = prefix.name) {
+    public fun asString(): String = when (val name = prefix?.name) {
         null -> reference
         else -> "$name:$reference"
     }

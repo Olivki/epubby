@@ -16,11 +16,14 @@
 
 package dev.epubby.metainf
 
+import cc.ekblad.konbini.ParserResult
+
 public sealed interface MetaInfReadError
 
 public sealed interface MetaInfContainerReadError : MetaInfReadError {
     public data class MissingAttribute(val name: String, val path: String) : MetaInfContainerReadError
     public data class MissingElement(val name: String, val path: String) : MetaInfContainerReadError
     public data class InvalidMediaType(val mediaType: String) : MetaInfContainerReadError
+    public data class InvalidProperty(val value: String, val cause: ParserResult.Error) : MetaInfContainerReadError
     public object EmptyRootFiles : MetaInfContainerReadError
 }

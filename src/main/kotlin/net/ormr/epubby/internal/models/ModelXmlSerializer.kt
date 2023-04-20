@@ -16,21 +16,27 @@
 
 package net.ormr.epubby.internal.models
 
-import com.github.michaelbull.result.Result
-import com.github.michaelbull.result.map
-import com.github.michaelbull.result.toResultOr
+import cc.ekblad.konbini.ParserResult
+import cc.ekblad.konbini.parseToEnd
+import com.github.michaelbull.result.*
 import dev.epubby.ReadingDirection
+import net.ormr.epubby.internal.property.PropertyModel
+import net.ormr.epubby.internal.property.propertyParser
 import net.ormr.epubby.internal.util.getOwnText
 import org.jdom2.Element
 import org.jdom2.Namespace
 import org.jdom2.xpath.XPathHelper
 
 internal abstract class ModelXmlSerializer<E> {
-    protected abstract fun missingAttribute(name: String, path: String): E
+    protected open fun missingAttribute(name: String, path: String): E =
+        error("'missingAttribute' should never be used")
 
-    protected abstract fun missingElement(name: String, path: String): E
+    protected open fun missingElement(name: String, path: String): E = error("'missingElement' should never be used")
 
-    protected abstract fun missingText(path: String): E
+    protected open fun missingText(path: String): E = error("'missingText' should never be used")
+
+    protected open fun invalidProperty(value: String, cause: ParserResult.Error): E =
+        error("'invalidProperty' should never be used")
 
     private fun createMissingAttributeError(element: Element, name: String, namespace: Namespace): E {
         val path = XPathHelper.getAbsolutePath(element)
@@ -52,6 +58,12 @@ internal abstract class ModelXmlSerializer<E> {
 
     protected fun parseReadingDirection(value: String): Result<ReadingDirection, String> =
         ReadingDirection.fromValue(value)
+
+    protected fun parseProperty(value: String): Result<PropertyModel, E> =
+        when (val result = propertyParser.parseToEnd(value)) {
+            is ParserResult.Ok -> Ok(result.result)
+            is ParserResult.Error -> Err(invalidProperty(value, result))
+        }
 
     protected fun Element.ownText(normalize: Boolean = false): Result<String, E> =
         getOwnText(normalize).toResultOr { createMissingTextError(this) }

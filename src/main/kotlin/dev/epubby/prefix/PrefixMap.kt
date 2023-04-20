@@ -19,4 +19,4 @@ package dev.epubby.prefix
 import dev.epubby.Epub3Feature
 
 @Epub3Feature
-public interface PrefixMap : MutableMap<String, Prefix>
+public interface PrefixMap : MutableMap<String, ResolvedPrefix>

@@ -22,6 +22,11 @@ import org.xbib.net.IRI
 
 @Epub3Feature
 public sealed interface ResolvedProperty : Property {
+    /**
+     * The prefix of the property.
+     *
+     * Used when [processing][process] the property.
+     */
     override val prefix: ResolvedPrefix
 
     override fun process(): IRI = prefix.iri.resolve(reference)

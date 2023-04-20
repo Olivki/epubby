@@ -20,6 +20,6 @@ import dev.epubby.Epub3Feature
 import dev.epubby.prefix.UnknownPrefix
 
 @Epub3Feature
-public data class UnknownProperty(override val prefix: UnknownPrefix, override val reference: String) : Property {
+public data class UnknownProperty(override val prefix: UnknownPrefix?, override val reference: String) : Property {
     override fun process(): Nothing? = null
 }

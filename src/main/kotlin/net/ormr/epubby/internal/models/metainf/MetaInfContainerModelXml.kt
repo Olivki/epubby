@@ -16,6 +16,7 @@
 
 package net.ormr.epubby.internal.models.metainf
 
+import cc.ekblad.konbini.ParserResult
 import com.github.michaelbull.result.flatMap
 import com.github.michaelbull.result.mapError
 import dev.epubby.metainf.MetaInfContainerReadError
@@ -59,7 +60,10 @@ internal object MetaInfContainerModelXml : ModelXmlSerializer<MetaInfContainerRe
     private fun readLink(link: Element) = effect {
         LinkModel(
             href = link.attr("href").bind(),
-            relation = link.optionalAttr("rel"),
+            relation = link
+                .optionalAttr("rel")
+                ?.let(::parseProperty)
+                ?.bind(),
             mediaType = link
                 .optionalAttr("mediaType")
                 ?.let(::parseMediaType)
@@ -80,7 +84,7 @@ internal object MetaInfContainerModelXml : ModelXmlSerializer<MetaInfContainerRe
 
     private fun writeLink(link: LinkModel): Element = buildElement("link", NAMESPACE) {
         this["href"] = link.href
-        this["rel"] = link.relation
+        this["rel"] = link.relation?.asString()
         this["mediaType"] = link.mediaType?.toString()
     }
 
@@ -90,5 +94,6 @@ internal object MetaInfContainerModelXml : ModelXmlSerializer<MetaInfContainerRe
     override fun missingElement(name: String, path: String): MetaInfContainerReadError =
         MissingElement(name, path)
 
-    override fun missingText(path: String): MetaInfContainerReadError = error("'missingText' should never be used")
+    override fun invalidProperty(value: String, cause: ParserResult.Error): MetaInfContainerReadError =
+        InvalidProperty(value, cause)
 }

@@ -18,6 +18,7 @@ package net.ormr.epubby.internal.models.metainf
 
 import com.google.common.net.MediaType
 import net.ormr.epubby.internal.models.SerializedName
+import net.ormr.epubby.internal.property.PropertyModel
 
 // the spec for epub 2 was only provided as a downloadable document so no hotlink to it
 // https://www.w3.org/publishing/epub3/epub-ocf.html#sec-container-metainf-container.xml
@@ -37,11 +38,12 @@ internal data class MetaInfContainerModel(
         val mediaType: MediaType,
     )
 
+    // TODO: is this only available in epub 3 and onwards?
     @SerializedName("link")
     data class LinkModel(
         val href: String,
         @SerializedName("rel")
-        val relation: String?,
+        val relation: PropertyModel?,
         val mediaType: MediaType?,
     )
 }

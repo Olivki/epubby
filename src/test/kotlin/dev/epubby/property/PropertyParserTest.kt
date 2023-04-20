@@ -24,17 +24,17 @@ import io.kotest.datatest.WithDataTestName
 import io.kotest.datatest.withData
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldBeEmpty
-import net.ormr.epubby.internal.property.ParsedProperty
+import net.ormr.epubby.internal.property.PropertyModel
 import net.ormr.epubby.internal.property.propertyParser
 
 class PropertyParserTest : FunSpec({
     context("Valid property data types") {
         withData(
-            PropertyResult("marc:relators", ParsedProperty(prefix = "marc", reference = "relators")),
-            PropertyResult("onix:codelist5", ParsedProperty(prefix = "onix", reference = "codelist5")),
-            PropertyResult("role", ParsedProperty(prefix = null, reference = "role")),
-            PropertyResult("file-as", ParsedProperty(prefix = null, reference = "file-as")),
-            PropertyResult("display-seq", ParsedProperty(prefix = null, reference = "display-seq")),
+            PropertyResult("marc:relators", PropertyModel(prefix = "marc", reference = "relators")),
+            PropertyResult("onix:codelist5", PropertyModel(prefix = "onix", reference = "codelist5")),
+            PropertyResult("role", PropertyModel(prefix = null, reference = "role")),
+            PropertyResult("file-as", PropertyModel(prefix = null, reference = "file-as")),
+            PropertyResult("display-seq", PropertyModel(prefix = null, reference = "display-seq")),
         ) { (input, expected) ->
             propertyParser.parseToEnd(input).shouldBeOk { (property, remainingInput) ->
                 remainingInput.shouldBeEmpty()
@@ -54,6 +54,6 @@ class PropertyParserTest : FunSpec({
     }
 })
 
-private data class PropertyResult(val input: String, val expected: ParsedProperty) : WithDataTestName {
+private data class PropertyResult(val input: String, val expected: PropertyModel) : WithDataTestName {
     override fun dataTestName(): String = input
 }

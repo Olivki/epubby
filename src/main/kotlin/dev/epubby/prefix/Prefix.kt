@@ -44,7 +44,8 @@ public sealed interface Prefix {
     /**
      * Returns `true` if the [name] and [iri] of [other] matches that of `this` prefix, otherwise `false`.
      */
-    public infix fun matches(other: Prefix): Boolean = when {
+    public infix fun matches(other: Prefix?): Boolean = when {
+        other == null -> false
         name != other.name -> false
         iri != other.iri -> false
         else -> true
