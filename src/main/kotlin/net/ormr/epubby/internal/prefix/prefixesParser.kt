@@ -18,7 +18,6 @@ package net.ormr.epubby.internal.prefix
 
 import cc.ekblad.konbini.*
 import net.ormr.epubby.internal.util.ncName
-import org.xbib.net.IRI
 
 /*
  *  https://www.w3.org/publishing/epub3/epub-packages.html#sec-prefix-attr
@@ -44,7 +43,7 @@ private val mapping = parser {
     char(':')
     many1(space)
     val iri = anyUri()
-    ParsedMapping(name, IRI.create(iri))
+    ParsedMapping(name, iri)
 }
 
 private val anyUriRegex =
