@@ -16,18 +16,57 @@
 
 package net.ormr.epubby.internal.models.metainf
 
+import dev.epubby.Epub3Feature
+import dev.epubby.metainf.MetaInfContainer
+import dev.epubby.metainf.MetaInfContainer.Link
 import dev.epubby.metainf.MetaInfContainer.RootFile
+import dev.epubby.toNonEmptyMutableList
+import net.ormr.epubby.internal.ModelConversionData
+import net.ormr.epubby.internal.metainf.MetaInfContainerImpl
+import net.ormr.epubby.internal.metainf.MetaInfContainerImpl.LinkImpl
 import net.ormr.epubby.internal.metainf.MetaInfContainerImpl.RootFileImpl
+import net.ormr.epubby.internal.models.metainf.MetaInfContainerModel.LinkModel
 import net.ormr.epubby.internal.models.metainf.MetaInfContainerModel.RootFileModel
+import net.ormr.epubby.internal.property.PropertyResolver
+import net.ormr.epubby.internal.property.toPropertyModel
 
+@OptIn(Epub3Feature::class)
 internal object MetaInfContainerModelConverter {
+    // model -> instance
+    fun MetaInfContainerModel.toMetaInfContainer(data: ModelConversionData): MetaInfContainerImpl =
+        MetaInfContainerImpl(
+            version = version,
+            rootFiles = rootFiles.map { it.toRootFile() }.toNonEmptyMutableList(),
+            links = links.map { it.toLink(data) }.toMutableList(),
+        )
+
     fun RootFileModel.toRootFile(): RootFileImpl = RootFileImpl(
         fullPath = fullPath,
         mediaType = mediaType,
     )
 
-    fun RootFile.toRootFileModel(): RootFileModel = RootFileModel(
+    private fun LinkModel.toLink(data: ModelConversionData): LinkImpl = LinkImpl(
+        href = href,
+        // TODO: pass in an empty prefixes here
+        relation = relation?.let { PropertyResolver.resolveLinkRel(it, data.prefixes) },
+        mediaType = mediaType,
+    )
+
+    // instance -> model
+    fun MetaInfContainer.toMetaInfContainerModel(): MetaInfContainerModel = MetaInfContainerModel(
+        version = version,
+        rootFiles = rootFiles.map { it.toRootFileModel() },
+        links = links.map { it.toLinkModel() },
+    )
+
+    private fun RootFile.toRootFileModel(): RootFileModel = RootFileModel(
         fullPath = fullPath,
+        mediaType = mediaType,
+    )
+
+    private fun Link.toLinkModel(): LinkModel = LinkModel(
+        href = href,
+        relation = relation?.toPropertyModel(),
         mediaType = mediaType,
     )
 }

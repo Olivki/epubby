@@ -17,11 +17,13 @@
 package net.ormr.epubby.internal.property
 
 import dev.epubby.Epub3Feature
+import dev.epubby.UnstableEpubFeature
 import dev.epubby.prefix.PrefixMap
+import dev.epubby.prefix.ReservedPrefix
 import dev.epubby.prefix.UnknownPrefix
 import dev.epubby.property.*
 
-@OptIn(Epub3Feature::class)
+@OptIn(Epub3Feature::class, UnstableEpubFeature::class)
 internal object PropertyResolver {
     private val manifest = buildMap<ManifestVocabulary>()
     private val metadataMeta = buildMap<MetadataMetaVocabulary>()
@@ -58,8 +60,10 @@ internal object PropertyResolver {
         entries[ref] ?: UnknownProperty(prefix = null, ref)
 
     private fun toProperty(prefix: String, reference: String, prefixes: PrefixMap): Property {
-        val foundPrefix = prefixes[prefix] ?: return UnknownProperty(UnknownPrefix(prefix), reference)
-        return Property(foundPrefix, reference)
+        // if the 'prefix' attribute defines a mapping to a reserved prefix, we must allow it to overwrite
+        // that mapping, so we check the 'prefixes' before checking 'ReservedPrefix'.
+        val foundPrefix = prefixes[prefix] ?: ReservedPrefix.fromNameOrNull(prefix)
+        return foundPrefix?.let { Property(it, reference) } ?: UnknownProperty(UnknownPrefix(prefix), reference)
     }
 
     private inline fun <reified T> buildMap(): Map<String, T>

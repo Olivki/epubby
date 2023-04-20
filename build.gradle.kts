@@ -28,7 +28,7 @@ dependencies {
     // Zip
     api("net.lingala.zip4j:zip4j:2.11.5")
 
-    // better-parse
+    // parser
     implementation("cc.ekblad.konbini:konbini:0.1.2")
 
     // Apache
@@ -57,6 +57,7 @@ dependencies {
     testImplementation("io.kotest:kotest-framework-engine:$kotestVersion")
     testImplementation("io.kotest:kotest-assertions-core:$kotestVersion")
     testImplementation("io.kotest:kotest-property:$kotestVersion")
+    testImplementation("io.kotest:kotest-framework-datatest:$kotestVersion")
     testImplementation("io.kotest:kotest-runner-junit5:$kotestVersion")
 }
 

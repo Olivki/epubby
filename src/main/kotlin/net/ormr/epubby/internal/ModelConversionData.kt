@@ -14,17 +14,11 @@
  * limitations under the License.
  */
 
-package net.ormr.epubby.internal.property
+package net.ormr.epubby.internal
 
 import dev.epubby.Epub3Feature
-import dev.epubby.property.Property
-
-internal data class PropertyModel(val prefix: String?, val reference: String) {
-    fun asString(): String = when (prefix) {
-        null -> reference
-        else -> "$prefix:$reference"
-    }
-}
+import dev.epubby.prefix.PrefixMap
+import dev.epubby.version.EpubVersion
 
 @OptIn(Epub3Feature::class)
-internal fun Property.toPropertyModel(): PropertyModel = PropertyModel(prefix?.name, reference)
+internal data class ModelConversionData(val version: EpubVersion, val prefixes: PrefixMap)

@@ -28,7 +28,7 @@ internal data class MetaInfContainerModel(
     @SerializedName("rootfiles")
     val rootFiles: List<RootFileModel>,
     @SerializedName("links")
-    val links: List<LinkModel> = emptyList(),
+    val links: List<LinkModel>,
 ) {
     @SerializedName("rootfile")
     data class RootFileModel(
