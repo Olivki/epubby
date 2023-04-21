@@ -21,3 +21,5 @@ public open class EpubException(message: String?, cause: Throwable? = null) : Ru
 public class UnexpectedImplementationException(message: String) : EpubException(message)
 
 public class NonUniqueIdentifierException(message: String) : EpubException(message)
+
+public class KnownOpfMeta3SchemeException(message: String) : EpubException(message)

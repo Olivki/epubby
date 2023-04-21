@@ -14,21 +14,37 @@
  * limitations under the License.
  */
 
+@file:JvmMultifileClass
+@file:JvmName("Opf3Metas")
+
 package dev.epubby.opf.metadata
 
 import dev.epubby.Epub3Feature
 import dev.epubby.ReadingDirection
 import dev.epubby.property.Property
+import net.ormr.epubby.internal.opf.metadata.Opf3MetaStringImpl
 
 @Epub3Feature
-public data class Opf3MetaString(
-    override var value: String,
-    override var property: Property,
-    override var scheme: Property? = null,
-    override var refines: String? = null,
-    override var identifier: String? = null,
-    override var direction: ReadingDirection? = null,
-    override var language: String? = null,
-) : Opf3Meta<String> {
-    override fun getValueAsString(): String = value
-}
+public interface Opf3MetaString : Opf3Meta<String>
+
+// TODO: document that this throws if 'scheme' is a known scheme we have proper type mappings for
+//       this is to prevent users from trying to escape restrictions and write faulty data
+@Epub3Feature
+@JvmName("newString")
+public fun Opf3MetaString(
+    value: String,
+    property: Property,
+    scheme: Property? = null,
+    refines: String? = null,
+    identifier: String? = null,
+    direction: ReadingDirection? = null,
+    language: String? = null,
+): Opf3MetaString = Opf3MetaStringImpl(
+    value = value,
+    property = property,
+    scheme = scheme,
+    refines = refines,
+    identifier = identifier,
+    direction = direction,
+    language = language,
+)

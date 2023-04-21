@@ -23,5 +23,5 @@ import dev.epubby.property.Property
 
 @OptIn(Epub3Feature::class, UnstableEpubFeature::class)
 internal object Properties {
-    val MARC_RELATORS: Property = Property(ReservedPrefix.Marc, "relators")
+    val MARC_RELATORS = Property(ReservedPrefix.Marc, "relators")
 }

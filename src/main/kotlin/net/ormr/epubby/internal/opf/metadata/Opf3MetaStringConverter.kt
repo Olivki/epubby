@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2023 Oliver Berg
+ * Copyright 2023 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,14 +14,17 @@
  * limitations under the License.
  */
 
-package dev.epubby.opf.metadata
+package net.ormr.epubby.internal.opf.metadata
 
 import dev.epubby.Epub3Feature
 import dev.epubby.ReadingDirection
+import dev.epubby.opf.metadata.Opf3MetaString
 import dev.epubby.property.Property
+import kotlin.reflect.KType
+import kotlin.reflect.typeOf
 
 @OptIn(Epub3Feature::class)
-internal object Opf3MetaStringFactory : Opf3MetaFactory<String, Opf3MetaString> {
+internal object Opf3MetaStringConverter : Opf3MetaConverter<String> {
     override fun decodeFromString(value: String): String = value
 
     override fun encodeToString(value: String): String = value
@@ -29,10 +32,20 @@ internal object Opf3MetaStringFactory : Opf3MetaFactory<String, Opf3MetaString> 
     override fun create(
         value: String,
         property: Property,
-        scheme: Property,
+        scheme: Property?,
         refines: String?,
         identifier: String?,
         direction: ReadingDirection?,
         language: String?
-    ): Opf3MetaString = Opf3MetaString(value, property, scheme, refines, identifier, direction, language)
+    ): Opf3MetaStringImpl = Opf3MetaStringImpl(
+        value = value,
+        property = property,
+        scheme = scheme,
+        refines = refines,
+        identifier = identifier,
+        direction = direction,
+        language = language,
+    )
+
+    override fun getType(): KType = typeOf<Opf3MetaString>()
 }

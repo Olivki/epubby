@@ -21,15 +21,14 @@ import dev.epubby.ReadingDirection
 import dev.epubby.opf.OpfElement
 import dev.epubby.property.Property
 
-// TODO: make this sealed
 @Epub3Feature
-public interface Opf3Meta<T : Any> : OpfMeta, OpfElement {
+public sealed interface Opf3Meta<T : Any> : OpfMeta, OpfElement {
     /**
      * The value of the `meta` element.
      */
     public var value: T
-    public var property: Property
-    public var scheme: Property?
+    public var property: Property // TODO: do checks when assigning this that the property is a known one
+    public val scheme: Property?
     public var refines: String?
     override var identifier: String?
     public var direction: ReadingDirection?

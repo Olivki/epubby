@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2023 Oliver Berg
+ * Copyright 2023 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,27 +14,29 @@
  * limitations under the License.
  */
 
-package dev.epubby.opf.metadata
+package net.ormr.epubby.internal.opf.metadata
 
 import dev.epubby.Epub3Feature
 import dev.epubby.ReadingDirection
-import dev.epubby.marc.CreativeRole
-import dev.epubby.marc.getOrCreateCreativeRole
+import dev.epubby.opf.metadata.Opf3Meta
 import dev.epubby.property.Property
+import kotlin.reflect.KType
 
-@OptIn(Epub3Feature::class)
-internal object Opf3MetaCreativeRoleFactory : Opf3MetaFactory<CreativeRole, Opf3MetaCreativeRole> {
-    override fun decodeFromString(value: String): CreativeRole = getOrCreateCreativeRole(value)
+@Epub3Feature
+internal sealed interface Opf3MetaConverter<out T : Any> {
+    fun decodeFromString(value: String): T
 
-    override fun encodeToString(value: CreativeRole): String = value.code
+    fun encodeToString(value: @UnsafeVariance T): String
 
-    override fun create(
-        value: CreativeRole,
+    fun create(
+        value: @UnsafeVariance T,
         property: Property,
-        scheme: Property,
+        scheme: Property?,
         refines: String?,
         identifier: String?,
         direction: ReadingDirection?,
-        language: String?
-    ): Opf3MetaCreativeRole = Opf3MetaCreativeRole(value, property, scheme, refines, identifier, direction, language)
+        language: String?,
+    ): Opf3Meta<@UnsafeVariance T>
+
+    fun getType(): KType
 }

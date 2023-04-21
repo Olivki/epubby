@@ -14,24 +14,37 @@
  * limitations under the License.
  */
 
+@file:JvmMultifileClass
+@file:JvmName("Opf3Metas")
+
 package dev.epubby.opf.metadata
 
-import dev.epubby.Epub2Feature
 import dev.epubby.Epub3Feature
 import dev.epubby.ReadingDirection
 import dev.epubby.marc.CreativeRole
 import dev.epubby.property.Property
+import dev.epubby.property.ResolvedProperty
+import net.ormr.epubby.internal.opf.metadata.Opf3MetaCreativeRoleImpl
 
 @Epub3Feature
-@OptIn(Epub2Feature::class)
-public data class Opf3MetaCreativeRole(
-    override var value: CreativeRole,
-    override var property: Property,
-    override var scheme: Property? = null,
-    override var refines: String? = null,
-    override var identifier: String? = null,
-    override var direction: ReadingDirection? = null,
-    override var language: String? = null,
-) : Opf3Meta<CreativeRole> {
-    override fun getValueAsString(): String = value.code
+public interface Opf3MetaCreativeRole : Opf3Meta<CreativeRole> {
+    override val scheme: ResolvedProperty
 }
+
+@Epub3Feature
+@JvmName("newCreativeRole")
+public fun Opf3MetaCreativeRole(
+    value: CreativeRole,
+    property: Property,
+    refines: String? = null,
+    identifier: String? = null,
+    direction: ReadingDirection? = null,
+    language: String? = null,
+): Opf3MetaCreativeRole = Opf3MetaCreativeRoleImpl(
+    value = value,
+    property = property,
+    refines = refines,
+    identifier = identifier,
+    direction = direction,
+    language = language,
+)
