@@ -30,4 +30,26 @@ internal class DublinCoreRightsImpl(
     override var identifier: String? by identifierDelegate(identifier)
 
     override var opf: OpfImpl? = null
+
+    override fun equals(other: Any?): Boolean = when {
+        this === other -> true
+        other !is DublinCoreRightsImpl -> false
+        direction != other.direction -> false
+        language != other.language -> false
+        content != other.content -> false
+        identifier != other.identifier -> false
+        else -> opf == other.opf
+    }
+
+    override fun hashCode(): Int {
+        var result = direction?.hashCode() ?: 0
+        result = 31 * result + (language?.hashCode() ?: 0)
+        result = 31 * result + (content?.hashCode() ?: 0)
+        result = 31 * result + (identifier?.hashCode() ?: 0)
+        result = 31 * result + (opf?.hashCode() ?: 0)
+        return result
+    }
+
+    override fun toString(): String =
+        "DublinCoreRightsImpl(direction=$direction, language=$language, content=$content, identifier=$identifier, opf=$opf)"
 }

@@ -27,4 +27,21 @@ internal class DublinCoreLanguageImpl(
     override var identifier: String? by identifierDelegate(identifier)
 
     override var opf: OpfImpl? = null
+
+    override fun equals(other: Any?): Boolean = when {
+        this === other -> true
+        other !is DublinCoreLanguageImpl -> false
+        content != other.content -> false
+        identifier != other.identifier -> false
+        else -> opf == other.opf
+    }
+
+    override fun hashCode(): Int {
+        var result = content?.hashCode() ?: 0
+        result = 31 * result + (identifier?.hashCode() ?: 0)
+        result = 31 * result + (opf?.hashCode() ?: 0)
+        return result
+    }
+
+    override fun toString(): String = "DublinCoreLanguageImpl(content=$content, identifier=$identifier, opf=$opf)"
 }

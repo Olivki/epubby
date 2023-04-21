@@ -35,4 +35,29 @@ internal class DublinCoreCreatorImpl(
     override var identifier: String? by identifierDelegate(identifier)
 
     override var opf: OpfImpl? = null
+    override fun equals(other: Any?): Boolean = when {
+        this === other -> true
+        other !is DublinCoreCreatorImpl -> false
+        direction != other.direction -> false
+        language != other.language -> false
+        role != other.role -> false
+        fileAs != other.fileAs -> false
+        content != other.content -> false
+        identifier != other.identifier -> false
+        else -> opf == other.opf
+    }
+
+    override fun hashCode(): Int {
+        var result = direction?.hashCode() ?: 0
+        result = 31 * result + (language?.hashCode() ?: 0)
+        result = 31 * result + (role?.hashCode() ?: 0)
+        result = 31 * result + (fileAs?.hashCode() ?: 0)
+        result = 31 * result + (content?.hashCode() ?: 0)
+        result = 31 * result + (identifier?.hashCode() ?: 0)
+        result = 31 * result + (opf?.hashCode() ?: 0)
+        return result
+    }
+
+    override fun toString(): String =
+        "DublinCoreCreatorImpl(direction=$direction, language=$language, role=$role, fileAs=$fileAs, content=$content, identifier=$identifier, opf=$opf)"
 }
