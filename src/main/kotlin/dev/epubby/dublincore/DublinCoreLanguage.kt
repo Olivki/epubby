@@ -22,7 +22,4 @@ package dev.epubby.dublincore
  * Recommended best practice is to use a controlled vocabulary such as
  * [RFC 4646](http://www.ietf.org/rfc/rfc4646.txt).
  */
-public data class DublinCoreLanguage(
-    override var identifier: String? = null,
-    override var content: String?,
-) : DublinCore
+public interface DublinCoreLanguage : DublinCore

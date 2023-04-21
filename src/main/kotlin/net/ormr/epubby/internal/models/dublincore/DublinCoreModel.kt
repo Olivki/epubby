@@ -19,16 +19,18 @@
 package net.ormr.epubby.internal.models.dublincore
 
 import dev.epubby.Epub2Feature
-import dev.epubby.dublincore.*
+import dev.epubby.dublincore.DateEvent
+import net.ormr.epubby.internal.dublincore.*
 import net.ormr.epubby.internal.models.SerializedName
 
 // https://www.dublincore.org/specifications/dublin-core/dces/
+@OptIn(Epub2Feature::class)
 internal sealed class DublinCoreModel(val name: String) {
     @SerializedName("id")
     abstract val identifier: String?
     abstract val content: String?
 
-    abstract fun toDublinCore(): DublinCore
+    abstract fun toDublinCore(): DublinCoreImpl
 
     @SerializedName("date")
     data class DateModel(
@@ -37,7 +39,7 @@ internal sealed class DublinCoreModel(val name: String) {
         val event: DateEvent?,
         override val content: String?,
     ) : DublinCoreModel("date") {
-        override fun toDublinCore(): DublinCoreDate = DublinCoreDate(identifier, event, content)
+        override fun toDublinCore(): DublinCoreDateImpl = DublinCoreDateImpl(identifier, event, content)
     }
 
     @SerializedName("format")
@@ -45,7 +47,7 @@ internal sealed class DublinCoreModel(val name: String) {
         override val identifier: String?,
         override val content: String?,
     ) : DublinCoreModel("format") {
-        override fun toDublinCore(): DublinCoreFormat = DublinCoreFormat(identifier, content)
+        override fun toDublinCore(): DublinCoreFormatImpl = DublinCoreFormatImpl(identifier, content)
     }
 
     @SerializedName("identifier")
@@ -55,7 +57,7 @@ internal sealed class DublinCoreModel(val name: String) {
         val scheme: String?,
         override val content: String?,
     ) : DublinCoreModel("identifier") {
-        override fun toDublinCore(): DublinCoreIdentifier = DublinCoreIdentifier(identifier, scheme, content)
+        override fun toDublinCore(): DublinCoreIdentifierImpl = DublinCoreIdentifierImpl(identifier, scheme, content)
     }
 
     @SerializedName("language")
@@ -63,7 +65,7 @@ internal sealed class DublinCoreModel(val name: String) {
         override val identifier: String?,
         override val content: String?,
     ) : DublinCoreModel("language") {
-        override fun toDublinCore(): DublinCoreLanguage = DublinCoreLanguage(identifier, content)
+        override fun toDublinCore(): DublinCoreLanguageImpl = DublinCoreLanguageImpl(identifier, content)
     }
 
     @SerializedName("source")
@@ -71,7 +73,7 @@ internal sealed class DublinCoreModel(val name: String) {
         override val identifier: String?,
         override val content: String?,
     ) : DublinCoreModel("source") {
-        override fun toDublinCore(): DublinCoreSource = DublinCoreSource(identifier, content)
+        override fun toDublinCore(): DublinCoreSourceImpl = DublinCoreSourceImpl(identifier, content)
     }
 
     @SerializedName("type")
@@ -79,6 +81,6 @@ internal sealed class DublinCoreModel(val name: String) {
         override val identifier: String?,
         override val content: String?,
     ) : DublinCoreModel("type") {
-        override fun toDublinCore(): DublinCoreType = DublinCoreType(identifier, content)
+        override fun toDublinCore(): DublinCoreTypeImpl = DublinCoreTypeImpl(identifier, content)
     }
 }

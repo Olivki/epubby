@@ -14,9 +14,6 @@
  * limitations under the License.
  */
 
-package dev.epubby.dublincore
+package net.ormr.epubby.internal.dublincore
 
-/**
- * A name given to the resource.
- */
-public interface DublinCoreTitle : LocalizedDublinCore
+internal sealed interface DublinCoreImpl

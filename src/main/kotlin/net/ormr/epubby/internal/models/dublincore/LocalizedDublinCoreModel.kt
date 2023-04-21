@@ -20,19 +20,18 @@ package net.ormr.epubby.internal.models.dublincore
 
 import dev.epubby.Epub2Feature
 import dev.epubby.ReadingDirection
-import dev.epubby.dublincore.*
 import dev.epubby.marc.CreativeRole
+import net.ormr.epubby.internal.dublincore.*
 import net.ormr.epubby.internal.models.SerializedName
 
 // // https://www.dublincore.org/specifications/dublin-core/dces/
+@OptIn(Epub2Feature::class)
 internal sealed class LocalizedDublinCoreModel(name: String) : DublinCoreModel(name) {
     @SerializedName("dir")
     abstract val direction: ReadingDirection?
 
     @SerializedName("xml:lang")
     abstract val language: String?
-
-    abstract override fun toDublinCore(): LocalizedDublinCore
 
     @SerializedName("contributor")
     data class ContributorModel(
@@ -45,8 +44,8 @@ internal sealed class LocalizedDublinCoreModel(name: String) : DublinCoreModel(n
         val fileAs: String?,
         override val content: String?,
     ) : LocalizedDublinCoreModel("contributor") {
-        override fun toDublinCore(): DublinCoreContributor =
-            DublinCoreContributor(identifier, direction, language, role, fileAs, content)
+        override fun toDublinCore(): DublinCoreContributorImpl =
+            DublinCoreContributorImpl(identifier, direction, language, role, fileAs, content)
     }
 
     @SerializedName("coverage")
@@ -56,8 +55,8 @@ internal sealed class LocalizedDublinCoreModel(name: String) : DublinCoreModel(n
         override val language: String?,
         override val content: String?,
     ) : LocalizedDublinCoreModel("coverage") {
-        override fun toDublinCore(): DublinCoreCoverage =
-            DublinCoreCoverage(identifier, direction, language, content)
+        override fun toDublinCore(): DublinCoreCoverageImpl =
+            DublinCoreCoverageImpl(identifier, direction, language, content)
     }
 
     @SerializedName("creator")
@@ -71,8 +70,8 @@ internal sealed class LocalizedDublinCoreModel(name: String) : DublinCoreModel(n
         val fileAs: String?,
         override val content: String?,
     ) : LocalizedDublinCoreModel("creator") {
-        override fun toDublinCore(): DublinCoreCreator =
-            DublinCoreCreator(identifier, direction, language, role, fileAs, content)
+        override fun toDublinCore(): DublinCoreCreatorImpl =
+            DublinCoreCreatorImpl(identifier, direction, language, role, fileAs, content)
     }
 
     @SerializedName("description")
@@ -82,8 +81,8 @@ internal sealed class LocalizedDublinCoreModel(name: String) : DublinCoreModel(n
         override val language: String?,
         override val content: String?,
     ) : LocalizedDublinCoreModel("description") {
-        override fun toDublinCore(): DublinCoreDescription =
-            DublinCoreDescription(identifier, direction, language, content)
+        override fun toDublinCore(): DublinCoreDescriptionImpl =
+            DublinCoreDescriptionImpl(identifier, direction, language, content)
     }
 
     @SerializedName("publisher")
@@ -93,8 +92,8 @@ internal sealed class LocalizedDublinCoreModel(name: String) : DublinCoreModel(n
         override val language: String?,
         override val content: String?,
     ) : LocalizedDublinCoreModel("publisher") {
-        override fun toDublinCore(): DublinCorePublisher =
-            DublinCorePublisher(identifier, direction, language, content)
+        override fun toDublinCore(): DublinCorePublisherImpl =
+            DublinCorePublisherImpl(identifier, direction, language, content)
     }
 
     @SerializedName("relation")
@@ -104,8 +103,8 @@ internal sealed class LocalizedDublinCoreModel(name: String) : DublinCoreModel(n
         override val language: String?,
         override val content: String?,
     ) : LocalizedDublinCoreModel("relation") {
-        override fun toDublinCore(): DublinCoreRelation =
-            DublinCoreRelation(identifier, direction, language, content)
+        override fun toDublinCore(): DublinCoreRelationImpl =
+            DublinCoreRelationImpl(identifier, direction, language, content)
     }
 
     @SerializedName("rights")
@@ -115,8 +114,8 @@ internal sealed class LocalizedDublinCoreModel(name: String) : DublinCoreModel(n
         override val language: String?,
         override val content: String?,
     ) : LocalizedDublinCoreModel("rights") {
-        override fun toDublinCore(): DublinCoreRights =
-            DublinCoreRights(identifier, direction, language, content)
+        override fun toDublinCore(): DublinCoreRightsImpl =
+            DublinCoreRightsImpl(identifier, direction, language, content)
     }
 
     @SerializedName("subject")
@@ -126,8 +125,8 @@ internal sealed class LocalizedDublinCoreModel(name: String) : DublinCoreModel(n
         override val language: String?,
         override val content: String?,
     ) : LocalizedDublinCoreModel("subject") {
-        override fun toDublinCore(): DublinCoreSubject =
-            DublinCoreSubject(identifier, direction, language, content)
+        override fun toDublinCore(): DublinCoreSubjectImpl =
+            DublinCoreSubjectImpl(identifier, direction, language, content)
     }
 
     @SerializedName("title")
@@ -137,7 +136,7 @@ internal sealed class LocalizedDublinCoreModel(name: String) : DublinCoreModel(n
         override val language: String?,
         override val content: String?,
     ) : LocalizedDublinCoreModel("title") {
-        override fun toDublinCore(): DublinCoreTitle =
-            DublinCoreTitle(identifier, direction, language, content)
+        override fun toDublinCore(): DublinCoreTitleImpl =
+            DublinCoreTitleImpl(identifier, direction, language, content)
     }
 }

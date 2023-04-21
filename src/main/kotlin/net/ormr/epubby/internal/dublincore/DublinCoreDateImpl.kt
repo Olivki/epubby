@@ -14,9 +14,15 @@
  * limitations under the License.
  */
 
-package dev.epubby.dublincore
+package net.ormr.epubby.internal.dublincore
 
-/**
- * A name given to the resource.
- */
-public interface DublinCoreTitle : LocalizedDublinCore
+import dev.epubby.Epub2Feature
+import dev.epubby.dublincore.DateEvent
+import dev.epubby.dublincore.DublinCoreDate
+
+@OptIn(Epub2Feature::class)
+public data class DublinCoreDateImpl(
+    override var identifier: String? = null,
+    override var event: DateEvent? = null,
+    override var content: String?,
+) : DublinCoreDate, DublinCoreImpl

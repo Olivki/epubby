@@ -17,7 +17,6 @@
 package dev.epubby.dublincore
 
 import dev.epubby.Epub
-import dev.epubby.ReadingDirection
 
 /**
  * The spatial or temporal topic of the resource, the spatial applicability of the resource, or the jurisdiction
@@ -31,9 +30,4 @@ import dev.epubby.ReadingDirection
  * appropriate, named places or time periods can be used in preference to numeric identifiers such as sets of
  * coordinates or date ranges.
  */
-public data class DublinCoreCoverage(
-    override var identifier: String? = null,
-    override var direction: ReadingDirection? = null,
-    override var language: String? = null,
-    override var content: String?,
-) : LocalizedDublinCore, NonRequiredDublinCore
+public interface DublinCoreCoverage : LocalizedDublinCore, NonRequiredDublinCore

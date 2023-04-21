@@ -23,10 +23,7 @@ import dev.epubby.Epub2Feature
  *
  * `Date` may be used to express temporal information at any level of granularity.
  */
-@OptIn(Epub2Feature::class)
-public data class DublinCoreDate(
-    override var identifier: String? = null,
-    @property:Epub2Feature
-    public var event: DateEvent? = null,
-    override var content: String?,
-) : DublinCore, NonRequiredDublinCore
+public interface DublinCoreDate : DublinCore, NonRequiredDublinCore {
+    @Epub2Feature
+    public var event: DateEvent?
+}

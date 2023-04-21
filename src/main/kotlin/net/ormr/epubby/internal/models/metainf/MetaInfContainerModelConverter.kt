@@ -58,7 +58,7 @@ internal object MetaInfContainerModelConverter {
         links = links.map { it.toLinkModel() },
     )
 
-    private fun RootFile.toRootFileModel(): RootFileModel = RootFileModel(
+    fun RootFile.toRootFileModel(): RootFileModel = RootFileModel(
         fullPath = fullPath,
         mediaType = mediaType,
     )

@@ -24,9 +24,7 @@ import dev.epubby.Epub2Feature
  * Recommended best practice is to identify the resource by means of a string conforming to a formal identification
  * system.
  */
-public data class DublinCoreIdentifier(
-    override var identifier: String? = null,
-    @property:Epub2Feature
-    public var scheme: String? = null,
-    override var content: String?,
-) : DublinCore
+public interface DublinCoreIdentifier : DublinCore {
+    @Epub2Feature
+    public var scheme: String?
+}

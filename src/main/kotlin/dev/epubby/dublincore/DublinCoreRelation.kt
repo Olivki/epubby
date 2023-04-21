@@ -16,17 +16,10 @@
 
 package dev.epubby.dublincore
 
-import dev.epubby.ReadingDirection
-
 /**
  * A related resource.
  *
  * Recommended best practice is to identify the related resource by means of a string conforming to a formal
  * identification system.
  */
-public data class DublinCoreRelation(
-    override var identifier: String? = null,
-    override var direction: ReadingDirection? = null,
-    override var language: String? = null,
-    override var content: String?,
-) : LocalizedDublinCore, NonRequiredDublinCore
+public interface DublinCoreRelation : LocalizedDublinCore, NonRequiredDublinCore

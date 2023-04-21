@@ -14,25 +14,19 @@
  * limitations under the License.
  */
 
-package dev.epubby.dublincore
+package net.ormr.epubby.internal.dublincore
 
-import dev.epubby.Epub
 import dev.epubby.Epub2Feature
+import dev.epubby.ReadingDirection
+import dev.epubby.dublincore.DublinCoreCreator
 import dev.epubby.marc.CreativeRole
 
-/**
- * The entity primarily responsible for making the [Epub].
- *
- * Do note that by "primarily responsible" it means the one who *originally* wrote the *contents* of the `Epub`,
- * not the person who made the epub.
- *
- * Examples of a `Creator` include a person, an organization, or a service. Typically, the name of a `Creator`
- * should be used to indicate the entity.
- */
-public interface DublinCoreCreator : LocalizedDublinCore, NonRequiredDublinCore {
-    @Epub2Feature
-    public var role: CreativeRole?
-
-    @Epub2Feature
-    public var fileAs: String?
-}
+@OptIn(Epub2Feature::class)
+public data class DublinCoreCreatorImpl(
+    override var identifier: String? = null,
+    override var direction: ReadingDirection? = null,
+    override var language: String? = null,
+    override var role: CreativeRole? = null,
+    override var fileAs: String? = null,
+    override var content: String?,
+) : DublinCoreCreator, DublinCoreImpl

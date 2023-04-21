@@ -14,9 +14,11 @@
  * limitations under the License.
  */
 
-package dev.epubby.dublincore
+package net.ormr.epubby.internal.dublincore
 
-/**
- * A name given to the resource.
- */
-public interface DublinCoreTitle : LocalizedDublinCore
+import dev.epubby.dublincore.DublinCoreType
+
+public data class DublinCoreTypeImpl(
+    override var identifier: String? = null,
+    override var content: String?,
+) : DublinCoreType, DublinCoreImpl

@@ -18,7 +18,6 @@ package dev.epubby.dublincore
 
 import dev.epubby.Epub
 import dev.epubby.Epub2Feature
-import dev.epubby.ReadingDirection
 import dev.epubby.marc.CreativeRole
 
 /**
@@ -27,13 +26,10 @@ import dev.epubby.marc.CreativeRole
  * Examples of a `Contributor` include a person, an organization, or a service. Typically, the name of a
  * `Contributor` should be used to indicate the entity.
  */
-public data class DublinCoreContributor(
-    override var identifier: String? = null,
-    override var direction: ReadingDirection? = null,
-    override var language: String? = null,
-    @property:Epub2Feature
-    public var role: CreativeRole? = null,
-    @property:Epub2Feature
-    public var fileAs: String? = null,
-    override var content: String?,
-) : LocalizedDublinCore, NonRequiredDublinCore
+public interface DublinCoreContributor : LocalizedDublinCore, NonRequiredDublinCore {
+    @Epub2Feature
+    public var role: CreativeRole?
+
+    @Epub2Feature
+    public var fileAs: String?
+}

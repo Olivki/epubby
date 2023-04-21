@@ -16,17 +16,10 @@
 
 package dev.epubby.dublincore
 
-import dev.epubby.ReadingDirection
-
 /**
  * Information about rights held in and over the resource.
  *
  * Typically, rights information includes a statement about various property rights associated with the resource,
  * including intellectual property rights.
  */
-public data class DublinCoreRights(
-    override var identifier: String? = null,
-    override var direction: ReadingDirection? = null,
-    override var language: String? = null,
-    override var content: String?,
-) : LocalizedDublinCore, NonRequiredDublinCore
+public interface DublinCoreRights : LocalizedDublinCore, NonRequiredDublinCore

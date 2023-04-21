@@ -23,7 +23,4 @@ package dev.epubby.dublincore
  * [DCMI Type Vocabulary](http://dublincore.org/specifications/dublin-core/dcmi-type-vocabulary/#H7). To describe
  * the file format, physical medium, or dimensions of the resource, use the [Format] element.
  */
-public data class DublinCoreType(
-    override var identifier: String? = null,
-    override var content: String?,
-) : DublinCore, NonRequiredDublinCore
+public interface DublinCoreType : DublinCore, NonRequiredDublinCore

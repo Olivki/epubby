@@ -22,7 +22,4 @@ package dev.epubby.dublincore
  * Examples of dimensions include size and duration. Recommended best practice is to use a controlled vocabulary
  * such as the list of [Internet Media Types](http://www.iana.org/assignments/media-types/).
  */
-public data class DublinCoreFormat(
-    override var identifier: String? = null,
-    override var content: String?,
-) : DublinCore, NonRequiredDublinCore
+public interface DublinCoreFormat : DublinCore, NonRequiredDublinCore

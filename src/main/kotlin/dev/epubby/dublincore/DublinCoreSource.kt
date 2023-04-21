@@ -22,7 +22,4 @@ package dev.epubby.dublincore
  * The described resource may be derived from the related resource in whole or in part. Recommended best practice
  * is to identify the related resource by means of a string conforming to a formal identification system.
  */
-public data class DublinCoreSource(
-    override var identifier: String? = null,
-    override var content: String?,
-) : DublinCore, NonRequiredDublinCore
+public interface DublinCoreSource : DublinCore, NonRequiredDublinCore

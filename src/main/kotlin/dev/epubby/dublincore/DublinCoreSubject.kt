@@ -16,17 +16,10 @@
 
 package dev.epubby.dublincore
 
-import dev.epubby.ReadingDirection
-
 /**
  * The topic of the resource.
  *
  * Typically, the subject will be represented using keywords, key phrases, or classification codes. Recommended
  * best practice is to use a controlled vocabulary.
  */
-public data class DublinCoreSubject(
-    override var identifier: String? = null,
-    override var direction: ReadingDirection? = null,
-    override var language: String? = null,
-    override var content: String?,
-) : LocalizedDublinCore, NonRequiredDublinCore
+public interface DublinCoreSubject : LocalizedDublinCore, NonRequiredDublinCore

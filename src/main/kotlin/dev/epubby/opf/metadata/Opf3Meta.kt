@@ -21,6 +21,7 @@ import dev.epubby.ReadingDirection
 import dev.epubby.opf.OpfElement
 import dev.epubby.property.Property
 
+// TODO: make this sealed
 @Epub3Feature
 public interface Opf3Meta<T : Any> : OpfMeta, OpfElement {
     /**

@@ -16,17 +16,10 @@
 
 package dev.epubby.dublincore
 
-import dev.epubby.ReadingDirection
-
 /**
  * An entity responsible for making the resource available.
  *
  * Examples of a `Publisher` include a person, an organization, or a service. Typically, the name of a `Publisher`
  * should be used to indicate the entity.
  */
-public data class DublinCorePublisher(
-    override var identifier: String? = null,
-    override var direction: ReadingDirection? = null,
-    override var language: String? = null,
-    override var content: String?,
-) : LocalizedDublinCore, NonRequiredDublinCore
+public interface DublinCorePublisher : LocalizedDublinCore, NonRequiredDublinCore
