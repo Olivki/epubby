@@ -14,9 +14,14 @@
  * limitations under the License.
  */
 
+@file:JvmMultifileClass
+@file:JvmName("DublinCores")
+
 package dev.epubby.dublincore
 
 import dev.epubby.Epub
+import dev.epubby.ReadingDirection
+import net.ormr.epubby.internal.dublincore.DublinCoreDescriptionImpl
 
 /**
  * An account of the [Epub].
@@ -25,3 +30,16 @@ import dev.epubby.Epub
  * or a free-text account of the resource.
  */
 public interface DublinCoreDescription : LocalizedDublinCore, NonRequiredDublinCore
+
+@JvmName("newDescription")
+public fun DublinCoreDescription(
+    identifier: String? = null,
+    direction: ReadingDirection? = null,
+    language: String? = null,
+    content: String?,
+): DublinCoreDescription = DublinCoreDescriptionImpl(
+    identifier = identifier,
+    direction = direction,
+    language = language,
+    content = content,
+)

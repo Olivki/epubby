@@ -14,7 +14,12 @@
  * limitations under the License.
  */
 
+@file:JvmMultifileClass
+@file:JvmName("DublinCores")
+
 package dev.epubby.dublincore
+
+import net.ormr.epubby.internal.dublincore.DublinCoreFormatImpl
 
 /**
  * The file format, physical medium, or dimensions of the resource.
@@ -23,3 +28,9 @@ package dev.epubby.dublincore
  * such as the list of [Internet Media Types](http://www.iana.org/assignments/media-types/).
  */
 public interface DublinCoreFormat : DublinCore, NonRequiredDublinCore
+
+@JvmName("newFormat")
+public fun DublinCoreFormat(
+    identifier: String? = null,
+    content: String?,
+): DublinCoreFormat = DublinCoreFormatImpl(identifier = identifier, content = content)

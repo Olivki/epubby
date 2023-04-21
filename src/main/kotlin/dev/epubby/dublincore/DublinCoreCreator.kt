@@ -14,11 +14,16 @@
  * limitations under the License.
  */
 
+@file:JvmMultifileClass
+@file:JvmName("DublinCores")
+
 package dev.epubby.dublincore
 
 import dev.epubby.Epub
 import dev.epubby.Epub2Feature
+import dev.epubby.ReadingDirection
 import dev.epubby.marc.CreativeRole
+import net.ormr.epubby.internal.dublincore.DublinCoreCreatorImpl
 
 /**
  * The entity primarily responsible for making the [Epub].
@@ -36,3 +41,20 @@ public interface DublinCoreCreator : LocalizedDublinCore, NonRequiredDublinCore 
     @Epub2Feature
     public var fileAs: String?
 }
+
+@JvmName("newCreator")
+public fun DublinCoreCreator(
+    identifier: String? = null,
+    direction: ReadingDirection? = null,
+    language: String? = null,
+    role: CreativeRole? = null,
+    fileAs: String? = null,
+    content: String?,
+): DublinCoreCreator = DublinCoreCreatorImpl(
+    identifier = identifier,
+    direction = direction,
+    language = language,
+    role = role,
+    fileAs = fileAs,
+    content = content,
+)

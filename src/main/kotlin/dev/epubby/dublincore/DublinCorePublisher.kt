@@ -14,7 +14,13 @@
  * limitations under the License.
  */
 
+@file:JvmMultifileClass
+@file:JvmName("DublinCores")
+
 package dev.epubby.dublincore
+
+import dev.epubby.ReadingDirection
+import net.ormr.epubby.internal.dublincore.DublinCorePublisherImpl
 
 /**
  * An entity responsible for making the resource available.
@@ -23,3 +29,16 @@ package dev.epubby.dublincore
  * should be used to indicate the entity.
  */
 public interface DublinCorePublisher : LocalizedDublinCore, NonRequiredDublinCore
+
+@JvmName("newPublisher")
+public fun DublinCorePublisher(
+    identifier: String? = null,
+    direction: ReadingDirection? = null,
+    language: String? = null,
+    content: String?,
+): DublinCorePublisher = DublinCorePublisherImpl(
+    identifier = identifier,
+    direction = direction,
+    language = language,
+    content = content,
+)

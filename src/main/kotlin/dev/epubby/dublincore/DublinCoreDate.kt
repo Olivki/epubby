@@ -14,9 +14,13 @@
  * limitations under the License.
  */
 
+@file:JvmMultifileClass
+@file:JvmName("DublinCores")
+
 package dev.epubby.dublincore
 
 import dev.epubby.Epub2Feature
+import net.ormr.epubby.internal.dublincore.DublinCoreDateImpl
 
 /**
  * A point or period of time associated with an event in the lifecycle of the resource.
@@ -27,3 +31,11 @@ public interface DublinCoreDate : DublinCore, NonRequiredDublinCore {
     @Epub2Feature
     public var event: DateEvent?
 }
+
+@JvmName("newDate")
+@OptIn(Epub2Feature::class)
+public fun DublinCoreDate(
+    identifier: String? = null,
+    event: DateEvent? = null,
+    content: String?,
+): DublinCoreDate = DublinCoreDateImpl(identifier = identifier, event = event, content = content)

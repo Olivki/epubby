@@ -14,9 +14,28 @@
  * limitations under the License.
  */
 
+@file:JvmMultifileClass
+@file:JvmName("DublinCores")
+
 package dev.epubby.dublincore
+
+import dev.epubby.ReadingDirection
+import net.ormr.epubby.internal.dublincore.DublinCoreTitleImpl
 
 /**
  * A name given to the resource.
  */
 public interface DublinCoreTitle : LocalizedDublinCore
+
+@JvmName("newTitle")
+public fun DublinCoreTitle(
+    identifier: String? = null,
+    direction: ReadingDirection? = null,
+    language: String? = null,
+    content: String?,
+): DublinCoreTitle = DublinCoreTitleImpl(
+    identifier = identifier,
+    direction = direction,
+    language = language,
+    content = content,
+)

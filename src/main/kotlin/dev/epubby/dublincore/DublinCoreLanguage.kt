@@ -14,7 +14,12 @@
  * limitations under the License.
  */
 
+@file:JvmMultifileClass
+@file:JvmName("DublinCores")
+
 package dev.epubby.dublincore
+
+import net.ormr.epubby.internal.dublincore.DublinCoreLanguageImpl
 
 /**
  * A language of the resource.
@@ -23,3 +28,9 @@ package dev.epubby.dublincore
  * [RFC 4646](http://www.ietf.org/rfc/rfc4646.txt).
  */
 public interface DublinCoreLanguage : DublinCore
+
+@JvmName("newLanguage")
+public fun DublinCoreLanguage(
+    identifier: String? = null,
+    content: String?,
+): DublinCoreLanguage = DublinCoreLanguageImpl(identifier = identifier, content = content)

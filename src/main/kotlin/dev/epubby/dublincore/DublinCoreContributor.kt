@@ -14,11 +14,16 @@
  * limitations under the License.
  */
 
+@file:JvmMultifileClass
+@file:JvmName("DublinCores")
+
 package dev.epubby.dublincore
 
 import dev.epubby.Epub
 import dev.epubby.Epub2Feature
+import dev.epubby.ReadingDirection
 import dev.epubby.marc.CreativeRole
+import net.ormr.epubby.internal.dublincore.DublinCoreContributorImpl
 
 /**
  * A contributor is an entity that is responsible for making contributions to the [Epub].
@@ -33,3 +38,20 @@ public interface DublinCoreContributor : LocalizedDublinCore, NonRequiredDublinC
     @Epub2Feature
     public var fileAs: String?
 }
+
+@JvmName("newContributor")
+public fun DublinCoreContributor(
+    identifier: String? = null,
+    direction: ReadingDirection? = null,
+    language: String? = null,
+    role: CreativeRole? = null,
+    fileAs: String? = null,
+    content: String?,
+): DublinCoreContributor = DublinCoreContributorImpl(
+    identifier = identifier,
+    direction = direction,
+    language = language,
+    role = role,
+    fileAs = fileAs,
+    content = content,
+)

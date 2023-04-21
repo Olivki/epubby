@@ -14,7 +14,12 @@
  * limitations under the License.
  */
 
+@file:JvmMultifileClass
+@file:JvmName("DublinCores")
+
 package dev.epubby.dublincore
+
+import net.ormr.epubby.internal.dublincore.DublinCoreSourceImpl
 
 /**
  * A related resource from which the described resource is derived.
@@ -23,3 +28,9 @@ package dev.epubby.dublincore
  * is to identify the related resource by means of a string conforming to a formal identification system.
  */
 public interface DublinCoreSource : DublinCore, NonRequiredDublinCore
+
+@JvmName("newSource")
+public fun DublinCoreSource(
+    identifier: String? = null,
+    content: String?,
+): DublinCoreSource = DublinCoreSourceImpl(identifier = identifier, content = content)

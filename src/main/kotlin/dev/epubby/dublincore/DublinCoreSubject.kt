@@ -14,7 +14,13 @@
  * limitations under the License.
  */
 
+@file:JvmMultifileClass
+@file:JvmName("DublinCores")
+
 package dev.epubby.dublincore
+
+import dev.epubby.ReadingDirection
+import net.ormr.epubby.internal.dublincore.DublinCoreSubjectImpl
 
 /**
  * The topic of the resource.
@@ -23,3 +29,16 @@ package dev.epubby.dublincore
  * best practice is to use a controlled vocabulary.
  */
 public interface DublinCoreSubject : LocalizedDublinCore, NonRequiredDublinCore
+
+@JvmName("newSubject")
+public fun DublinCoreSubject(
+    identifier: String? = null,
+    direction: ReadingDirection? = null,
+    language: String? = null,
+    content: String?,
+): DublinCoreSubject = DublinCoreSubjectImpl(
+    identifier = identifier,
+    direction = direction,
+    language = language,
+    content = content,
+)

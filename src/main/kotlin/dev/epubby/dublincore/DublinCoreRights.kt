@@ -14,7 +14,13 @@
  * limitations under the License.
  */
 
+@file:JvmMultifileClass
+@file:JvmName("DublinCores")
+
 package dev.epubby.dublincore
+
+import dev.epubby.ReadingDirection
+import net.ormr.epubby.internal.dublincore.DublinCoreRightsImpl
 
 /**
  * Information about rights held in and over the resource.
@@ -23,3 +29,16 @@ package dev.epubby.dublincore
  * including intellectual property rights.
  */
 public interface DublinCoreRights : LocalizedDublinCore, NonRequiredDublinCore
+
+@JvmName("newRights")
+public fun DublinCoreRights(
+    identifier: String? = null,
+    direction: ReadingDirection? = null,
+    language: String? = null,
+    content: String?,
+): DublinCoreRights = DublinCoreRightsImpl(
+    identifier = identifier,
+    direction = direction,
+    language = language,
+    content = content,
+)

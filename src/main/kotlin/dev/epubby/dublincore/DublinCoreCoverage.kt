@@ -14,9 +14,14 @@
  * limitations under the License.
  */
 
+@file:JvmMultifileClass
+@file:JvmName("DublinCores")
+
 package dev.epubby.dublincore
 
 import dev.epubby.Epub
+import dev.epubby.ReadingDirection
+import net.ormr.epubby.internal.dublincore.DublinCoreCoverageImpl
 
 /**
  * The spatial or temporal topic of the resource, the spatial applicability of the resource, or the jurisdiction
@@ -31,3 +36,16 @@ import dev.epubby.Epub
  * coordinates or date ranges.
  */
 public interface DublinCoreCoverage : LocalizedDublinCore, NonRequiredDublinCore
+
+@JvmName("newCoverage")
+public fun DublinCoreCoverage(
+    identifier: String? = null,
+    direction: ReadingDirection? = null,
+    language: String? = null,
+    content: String?,
+): DublinCoreCoverage = DublinCoreCoverageImpl(
+    identifier = identifier,
+    direction = direction,
+    language = language,
+    content = content,
+)

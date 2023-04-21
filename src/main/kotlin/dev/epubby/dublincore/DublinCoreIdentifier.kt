@@ -14,9 +14,13 @@
  * limitations under the License.
  */
 
+@file:JvmMultifileClass
+@file:JvmName("DublinCores")
+
 package dev.epubby.dublincore
 
 import dev.epubby.Epub2Feature
+import net.ormr.epubby.internal.dublincore.DublinCoreIdentifierImpl
 
 /**
  * An unambiguous reference to the resource within a given context.
@@ -28,3 +32,10 @@ public interface DublinCoreIdentifier : DublinCore {
     @Epub2Feature
     public var scheme: String?
 }
+
+@JvmName("newIdentifier")
+public fun DublinCoreIdentifier(
+    identifier: String? = null,
+    scheme: String? = null,
+    content: String?,
+): DublinCoreIdentifier = DublinCoreIdentifierImpl(identifier = identifier, scheme = scheme, content = content)

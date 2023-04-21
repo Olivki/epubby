@@ -14,13 +14,24 @@
  * limitations under the License.
  */
 
+@file:JvmMultifileClass
+@file:JvmName("DublinCores")
+
 package dev.epubby.dublincore
+
+import net.ormr.epubby.internal.dublincore.DublinCoreTypeImpl
 
 /**
  * The nature or genre of the resource.
  *
  * Recommended best practice is to use a controlled vocabulary such as the
  * [DCMI Type Vocabulary](http://dublincore.org/specifications/dublin-core/dcmi-type-vocabulary/#H7). To describe
- * the file format, physical medium, or dimensions of the resource, use the [Format] element.
+ * the file format, physical medium, or dimensions of the resource, use the [DublinCoreFormat] element.
  */
 public interface DublinCoreType : DublinCore, NonRequiredDublinCore
+
+@JvmName("newType")
+public fun DublinCoreType(
+    identifier: String? = null,
+    content: String?,
+): DublinCoreType = DublinCoreTypeImpl(identifier = identifier, content = content)
