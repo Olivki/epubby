@@ -14,14 +14,8 @@
  * limitations under the License.
  */
 
-@file:JvmMultifileClass
-@file:JvmName("Opf2Metas")
+package net.ormr.epubby.internal.property
 
-package dev.epubby.opf.metadata
-
-import dev.epubby.Epub3LegacyFeature
-
-@Epub3LegacyFeature
-public interface Opf2MetaUnknown : Opf2Meta {
-    public var content: String?
+internal data class PropertyModelList(val list: List<PropertyModel>) {
+    fun asString(): String = list.joinToString(separator = " ") { it.asString() }
 }

@@ -25,6 +25,8 @@ import net.ormr.epubby.internal.models.dublincore.DublinCoreModel
 import net.ormr.epubby.internal.models.dublincore.DublinCoreModel.IdentifierModel
 import net.ormr.epubby.internal.models.dublincore.DublinCoreModel.LanguageModel
 import net.ormr.epubby.internal.models.dublincore.LocalizedDublinCoreModel.TitleModel
+import net.ormr.epubby.internal.property.PropertyModel
+import net.ormr.epubby.internal.property.PropertyModelList
 
 // https://idpf.org/epub/20/spec/OPF_2.0.1_draft.htm#Section2.2
 // https://www.w3.org/publishing/epub3/epub-packages.html#sec-metadata-elem
@@ -46,6 +48,7 @@ internal data class MetadataModel(
     data class Opf2MetaModel(
         val charset: String?,
         val content: String?,
+        @SerializedName("http-equiv")
         val httpEquiv: String?,
         val name: String?,
         val scheme: String?,
@@ -57,8 +60,8 @@ internal data class MetadataModel(
     @SerializedName("meta")
     data class Opf3MetaModel(
         val value: String,
-        val property: String,
-        val scheme: String?, // property
+        val property: PropertyModel,
+        val scheme: PropertyModel?,
         // relative iri, we can only really handle direct id references
         val refines: String?,
         val identifier: String?,
@@ -73,12 +76,12 @@ internal data class MetadataModel(
     data class LinkModel(
         val href: String,
         @SerializedName("rel")
-        val relation: String?, // property
+        val relation: PropertyModel?,
         @SerializedName("media-type")
         val mediaType: String?, // conditionally required
         @SerializedName("id")
         val identifier: String?,
-        val properties: String?,
+        val properties: PropertyModelList?,
         val refines: String?,
     )
 }

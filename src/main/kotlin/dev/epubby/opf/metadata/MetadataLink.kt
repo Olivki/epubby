@@ -21,7 +21,7 @@ package dev.epubby.opf.metadata
 import com.google.common.net.MediaType
 import dev.epubby.Epub3Feature
 import dev.epubby.opf.IdentifiableOpfElement
-import dev.epubby.property.PropertySet
+import dev.epubby.property.PropertyList
 import dev.epubby.property.Relationship
 import net.ormr.epubby.internal.opf.metadata.MetadataLinkImpl
 import org.xbib.net.IRI
@@ -38,7 +38,7 @@ public interface MetadataLink : IdentifiableOpfElement {
     override var identifier: String?
 
     @Epub3Feature
-    public val properties: PropertySet
+    public val properties: PropertyList
 
     @Epub3Feature
     public var refines: String?
@@ -51,8 +51,8 @@ public fun MetadataLink(
     relation: Relationship?,
     mediaType: MediaType?,
     identifier: String?,
-    properties: PropertySet,
-    refines: String?
+    properties: PropertyList,
+    refines: String?,
 ): MetadataLink = MetadataLinkImpl(
     href = href,
     relation = relation,

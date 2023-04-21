@@ -16,6 +16,8 @@
 
 package net.ormr.epubby.internal.models.opf
 
+import cc.ekblad.konbini.ParserResult
+import com.github.michaelbull.result.flatMap
 import dev.epubby.Epub3Feature
 import dev.epubby.Epub3LegacyFeature
 import dev.epubby.opf.MetadataReadError.*
@@ -108,8 +110,14 @@ internal object MetadataModelXml : ModelXmlSerializer<OpfReadError>() {
             // TODO: "Every meta element MUST express a value that is at least one character in length after white
             //        space normalization."
             value = meta.ownText().bind().trim(),
-            property = meta.attr("property").bind(),
-            scheme = meta.optionalAttr("scheme"),
+            property = meta
+                .attr("property")
+                .flatMap(::parseProperty)
+                .bind(),
+            scheme = meta
+                .optionalAttr("scheme")
+                ?.let(::parseProperty)
+                ?.bind(),
             refines = meta.optionalAttr("refines"),
             identifier = meta.optionalAttr("id"),
             direction = meta
@@ -123,10 +131,16 @@ internal object MetadataModelXml : ModelXmlSerializer<OpfReadError>() {
     private fun readLink(link: Element) = effect {
         LinkModel(
             href = link.attr("href").bind(),
-            relation = link.optionalAttr("rel"),
+            relation = link
+                .optionalAttr("rel")
+                ?.let(::parseProperty)
+                ?.bind(),
             mediaType = link.optionalAttr("media-type"), // conditionally required
             identifier = link.optionalAttr("id"),
-            properties = link.optionalAttr("properties"),
+            properties = link
+                .optionalAttr("properties")
+                ?.let(::parsePropertyList)
+                ?.bind(),
             refines = link.optionalAttr("refines"),
         )
     }
@@ -189,8 +203,8 @@ internal object MetadataModelXml : ModelXmlSerializer<OpfReadError>() {
     }
 
     private fun writeOpf3Meta(meta: Opf3MetaModel): Element = buildElement("meta", NAMESPACE) {
-        this["property"] = meta.property
-        this["scheme"] = meta.scheme
+        this["property"] = meta.property.asString()
+        this["scheme"] = meta.scheme?.asString()
         this["refines"] = meta.refines
         this["id"] = meta.identifier
         this["dir"] = meta.direction?.value
@@ -200,10 +214,10 @@ internal object MetadataModelXml : ModelXmlSerializer<OpfReadError>() {
 
     private fun writeLink(link: LinkModel): Element = buildElement("link", NAMESPACE) {
         this["href"] = link.href
-        this["rel"] = link.relation
+        this["rel"] = link.relation?.asString()
         this["media-type"] = link.mediaType
         this["id"] = link.identifier
-        this["properties"] = link.properties
+        this["properties"] = link.properties?.asString()
         this["refines"] = link.refines
     }
 
@@ -279,6 +293,8 @@ internal object MetadataModelXml : ModelXmlSerializer<OpfReadError>() {
     override fun missingElement(name: String, path: String): OpfReadError = MissingElement(name, path)
 
     override fun missingText(path: String): OpfReadError = MissingText(path)
+
+    override fun invalidProperty(value: String, cause: ParserResult.Error): OpfReadError = InvalidProperty(value, cause)
 
     // because the geniuses decided to make the new meta element the same name as the old one, while STILL
     // supporting the use of the old meta element, we have to try and do our best to guess if a meta element is

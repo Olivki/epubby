@@ -19,7 +19,7 @@ package net.ormr.epubby.internal.opf.metadata
 import com.google.common.net.MediaType
 import dev.epubby.Epub3Feature
 import dev.epubby.opf.metadata.MetadataLink
-import dev.epubby.property.PropertySet
+import dev.epubby.property.PropertyList
 import dev.epubby.property.Relationship
 import net.ormr.epubby.internal.identifierDelegate
 import net.ormr.epubby.internal.opf.InternalIdentifiableOpfElement
@@ -32,8 +32,8 @@ internal class MetadataLinkImpl(
     override var relation: Relationship?,
     override var mediaType: MediaType?,
     identifier: String?,
-    override val properties: PropertySet,
-    override var refines: String?
+    override val properties: PropertyList,
+    override var refines: String?,
 ) : MetadataLink, InternalIdentifiableOpfElement {
     override var identifier: String? by identifierDelegate(identifier)
 

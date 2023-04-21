@@ -23,6 +23,7 @@ import net.ormr.epubby.internal.opf.OpfImpl
 
 @OptIn(Epub3LegacyFeature::class)
 internal class Opf2MetaUnknownImpl(
+    override var content: String?,
     override val extraAttributes: MutableList<XmlAttribute>,
 ) : Opf2MetaUnknown, Opf2MetaImpl {
     override var opf: OpfImpl? = null

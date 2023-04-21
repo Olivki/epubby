@@ -21,6 +21,8 @@ import cc.ekblad.konbini.parseToEnd
 import com.github.michaelbull.result.*
 import dev.epubby.ReadingDirection
 import net.ormr.epubby.internal.property.PropertyModel
+import net.ormr.epubby.internal.property.PropertyModelList
+import net.ormr.epubby.internal.property.propertyListParser
 import net.ormr.epubby.internal.property.propertyParser
 import net.ormr.epubby.internal.util.getOwnText
 import org.jdom2.Element
@@ -61,6 +63,12 @@ internal abstract class ModelXmlSerializer<E> {
 
     protected fun parseProperty(value: String): Result<PropertyModel, E> =
         when (val result = propertyParser.parseToEnd(value)) {
+            is ParserResult.Ok -> Ok(result.result)
+            is ParserResult.Error -> Err(invalidProperty(value, result))
+        }
+
+    protected fun parsePropertyList(value: String): Result<PropertyModelList, E> =
+        when (val result = propertyListParser.parseToEnd(value)) {
             is ParserResult.Ok -> Ok(result.result)
             is ParserResult.Error -> Err(invalidProperty(value, result))
         }

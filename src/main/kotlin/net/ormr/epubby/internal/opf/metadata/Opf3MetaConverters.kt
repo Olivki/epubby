@@ -48,7 +48,7 @@ internal object Opf3MetaConverters {
         direction: ReadingDirection?,
         language: String?,
     ): Opf3Meta<*> {
-        val converter = getConverter(scheme)
+        val converter = getConverter(scheme) as Opf3MetaConverter<Any>
         val actualValue = converter.decodeFromString(value)
         return converter.create(
             value = actualValue,
