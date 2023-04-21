@@ -19,7 +19,7 @@ package net.ormr.epubby.internal.dublincore
 import dev.epubby.ReadingDirection
 import dev.epubby.dublincore.DublinCoreRelation
 
-public data class DublinCoreRelationImpl(
+internal data class DublinCoreRelationImpl(
     override var identifier: String? = null,
     override var direction: ReadingDirection? = null,
     override var language: String? = null,

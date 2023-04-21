@@ -22,7 +22,7 @@ import dev.epubby.dublincore.DublinCoreCreator
 import dev.epubby.marc.CreativeRole
 
 @OptIn(Epub2Feature::class)
-public data class DublinCoreCreatorImpl(
+internal data class DublinCoreCreatorImpl(
     override var identifier: String? = null,
     override var direction: ReadingDirection? = null,
     override var language: String? = null,

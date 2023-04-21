@@ -18,7 +18,7 @@ package net.ormr.epubby.internal.dublincore
 
 import dev.epubby.dublincore.DublinCoreFormat
 
-public data class DublinCoreFormatImpl(
+internal data class DublinCoreFormatImpl(
     override var identifier: String? = null,
     override var content: String?,
 ) : DublinCoreFormat, DublinCoreImpl

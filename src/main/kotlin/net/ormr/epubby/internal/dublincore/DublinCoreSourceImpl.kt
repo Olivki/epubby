@@ -18,7 +18,7 @@ package net.ormr.epubby.internal.dublincore
 
 import dev.epubby.dublincore.DublinCoreSource
 
-public data class DublinCoreSourceImpl(
+internal data class DublinCoreSourceImpl(
     override var identifier: String? = null,
     override var content: String?,
 ) : DublinCoreSource, DublinCoreImpl

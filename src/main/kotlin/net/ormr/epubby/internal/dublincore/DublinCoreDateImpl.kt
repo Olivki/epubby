@@ -21,7 +21,7 @@ import dev.epubby.dublincore.DateEvent
 import dev.epubby.dublincore.DublinCoreDate
 
 @OptIn(Epub2Feature::class)
-public data class DublinCoreDateImpl(
+internal data class DublinCoreDateImpl(
     override var identifier: String? = null,
     override var event: DateEvent? = null,
     override var content: String?,

@@ -18,7 +18,7 @@ package net.ormr.epubby.internal.dublincore
 
 import dev.epubby.dublincore.DublinCoreLanguage
 
-public data class DublinCoreLanguageImpl(
+internal data class DublinCoreLanguageImpl(
     override var identifier: String? = null,
     override var content: String?,
 ) : DublinCoreLanguage, DublinCoreImpl

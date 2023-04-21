@@ -20,7 +20,7 @@ import dev.epubby.Epub2Feature
 import dev.epubby.dublincore.DublinCoreIdentifier
 
 @OptIn(Epub2Feature::class)
-public data class DublinCoreIdentifierImpl(
+internal data class DublinCoreIdentifierImpl(
     override var identifier: String? = null,
     override var scheme: String? = null,
     override var content: String?,
