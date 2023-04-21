@@ -18,13 +18,16 @@ package net.ormr.epubby.internal.dublincore
 
 import dev.epubby.Epub2Feature
 import dev.epubby.dublincore.DublinCoreIdentifier
+import net.ormr.epubby.internal.identifierDelegate
 import net.ormr.epubby.internal.opf.OpfImpl
 
 @OptIn(Epub2Feature::class)
-internal data class DublinCoreIdentifierImpl(
-    override var identifier: String? = null,
+internal class DublinCoreIdentifierImpl(
+    identifier: String? = null,
     override var scheme: String? = null,
     override var content: String?,
 ) : DublinCoreIdentifier, DublinCoreImpl {
+    override var identifier: String? by identifierDelegate(identifier)
+
     override var opf: OpfImpl? = null
 }

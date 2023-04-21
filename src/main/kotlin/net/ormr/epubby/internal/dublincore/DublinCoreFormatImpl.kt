@@ -17,11 +17,14 @@
 package net.ormr.epubby.internal.dublincore
 
 import dev.epubby.dublincore.DublinCoreFormat
+import net.ormr.epubby.internal.identifierDelegate
 import net.ormr.epubby.internal.opf.OpfImpl
 
-internal data class DublinCoreFormatImpl(
-    override var identifier: String? = null,
+internal class DublinCoreFormatImpl(
+    identifier: String? = null,
     override var content: String?,
 ) : DublinCoreFormat, DublinCoreImpl {
+    override var identifier: String? by identifierDelegate(identifier)
+
     override var opf: OpfImpl? = null
 }
