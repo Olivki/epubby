@@ -19,3 +19,5 @@ package dev.epubby
 public open class EpubException(message: String?, cause: Throwable? = null) : RuntimeException(message, cause)
 
 public class UnexpectedImplementationException(message: String) : EpubException(message)
+
+public class NonUniqueIdentifierException(message: String) : EpubException(message)

@@ -16,6 +16,7 @@
 
 package net.ormr.epubby.internal.opf
 
+import dev.epubby.NonUniqueIdentifierException
 import dev.epubby.opf.Opf
 import dev.epubby.opf.OpfElement
 import net.ormr.epubby.internal.InternalOpfElement
@@ -35,6 +36,9 @@ internal class OpfImpl : Opf {
         // TODO: custom exception?
         require(element.opf == null || element.opf === this) { "Element already belongs to an Opf instance" }
         ifNotNull(element.identifier) {
+            if (hasElement(it)) {
+                throw NonUniqueIdentifierException("A element with identifier '$it' already exists")
+            }
             elements[it] = element
         }
     }
