@@ -16,16 +16,18 @@
 
 package dev.epubby.dublincore
 
+import dev.epubby.Epub
 import dev.epubby.ReadingDirection
 
-public sealed interface LocalizedDublinCore : DublinCore {
-    /**
-     * The reading direction of the [content] of the dublin-core element.
-     */
-    public var direction: ReadingDirection?
-
-    /**
-     * The language that the [content] of the dublin-core element is written in.
-     */
-    public var language: String?
-}
+/**
+ * An account of the [Epub].
+ *
+ * `Description` may include but is not limited to: an abstract, a table of contents, a graphical representation,
+ * or a free-text account of the resource.
+ */
+public data class DublinCoreDescription(
+    override var identifier: String? = null,
+    override var direction: ReadingDirection? = null,
+    override var language: String? = null,
+    override var content: String?,
+) : LocalizedDublinCore, NonRequiredDublinCore

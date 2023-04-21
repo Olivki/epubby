@@ -18,14 +18,15 @@ package dev.epubby.dublincore
 
 import dev.epubby.ReadingDirection
 
-public sealed interface LocalizedDublinCore : DublinCore {
-    /**
-     * The reading direction of the [content] of the dublin-core element.
-     */
-    public var direction: ReadingDirection?
-
-    /**
-     * The language that the [content] of the dublin-core element is written in.
-     */
-    public var language: String?
-}
+/**
+ * A related resource.
+ *
+ * Recommended best practice is to identify the related resource by means of a string conforming to a formal
+ * identification system.
+ */
+public data class DublinCoreRelation(
+    override var identifier: String? = null,
+    override var direction: ReadingDirection? = null,
+    override var language: String? = null,
+    override var content: String?,
+) : LocalizedDublinCore, NonRequiredDublinCore

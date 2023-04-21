@@ -18,14 +18,15 @@ package dev.epubby.dublincore
 
 import dev.epubby.ReadingDirection
 
-public sealed interface LocalizedDublinCore : DublinCore {
-    /**
-     * The reading direction of the [content] of the dublin-core element.
-     */
-    public var direction: ReadingDirection?
-
-    /**
-     * The language that the [content] of the dublin-core element is written in.
-     */
-    public var language: String?
-}
+/**
+ * An entity responsible for making the resource available.
+ *
+ * Examples of a `Publisher` include a person, an organization, or a service. Typically, the name of a `Publisher`
+ * should be used to indicate the entity.
+ */
+public data class DublinCorePublisher(
+    override var identifier: String? = null,
+    override var direction: ReadingDirection? = null,
+    override var language: String? = null,
+    override var content: String?,
+) : LocalizedDublinCore, NonRequiredDublinCore
