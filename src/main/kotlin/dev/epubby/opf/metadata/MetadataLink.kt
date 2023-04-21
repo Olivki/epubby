@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+@file:JvmName("MetadataLinks")
+
 package dev.epubby.opf.metadata
 
 import com.google.common.net.MediaType
@@ -21,6 +23,7 @@ import dev.epubby.Epub3Feature
 import dev.epubby.opf.OpfElement
 import dev.epubby.property.PropertySet
 import dev.epubby.property.Relationship
+import net.ormr.epubby.internal.opf.metadata.MetadataLinkImpl
 import org.xbib.net.IRI
 
 @Epub3Feature
@@ -40,3 +43,21 @@ public interface MetadataLink : OpfElement {
     @Epub3Feature
     public var refines: String?
 }
+
+@Epub3Feature
+@JvmName("newLink")
+public fun MetadataLink(
+    href: IRI,
+    relation: Relationship?,
+    mediaType: MediaType?,
+    identifier: String?,
+    properties: PropertySet,
+    refines: String?
+): MetadataLink = MetadataLinkImpl(
+    href = href,
+    relation = relation,
+    mediaType = mediaType,
+    identifier = identifier,
+    properties = properties,
+    refines = refines,
+)
