@@ -32,23 +32,17 @@ internal class OpfImpl : Opf {
 
     override fun hasElement(identifier: String): Boolean = identifier in elements
 
-    internal fun addElement(element: InternalOpfElement) {
-        // TODO: custom exception?
-        require(element.opf == null || element.opf === this) { "Element already belongs to an Opf instance" }
-        ifNotNull(element.identifier) {
+    internal fun putElement(identifier: String?, element: InternalOpfElement) {
+        ifNotNull(identifier) {
             if (hasElement(it)) {
-                throw NonUniqueIdentifierException("A element with identifier '$it' already exists")
+                throw NonUniqueIdentifierException("An element with identifier '$it' already exists")
             }
             elements[it] = element
         }
     }
 
-    internal fun removeElement(element: InternalOpfElement) {
-        // TODO: raise exception otherwise?
-        if (element.opf === this) {
-            element.opf = null
-        }
-        ifNotNull(element.identifier) {
+    internal fun removeElement(identifier: String?) {
+        ifNotNull(identifier) {
             elements -= it
         }
     }
