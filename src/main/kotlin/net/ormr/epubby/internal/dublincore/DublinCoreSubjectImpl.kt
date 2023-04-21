@@ -51,5 +51,5 @@ internal class DublinCoreSubjectImpl(
     }
 
     override fun toString(): String =
-        "DublinCoreSubjectImpl(direction=$direction, language=$language, content=$content, identifier=$identifier, opf=$opf)"
+        "DublinCoreSubjectImpl(direction=$direction, language=$language, content=$content, identifier=$identifier)"
 }

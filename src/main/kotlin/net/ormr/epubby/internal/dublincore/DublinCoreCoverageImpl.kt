@@ -51,5 +51,5 @@ internal class DublinCoreCoverageImpl(
     }
 
     override fun toString(): String =
-        "DublinCoreCoverageImpl(direction=$direction, language=$language, content=$content, identifier=$identifier, opf=$opf)"
+        "DublinCoreCoverageImpl(direction=$direction, language=$language, content=$content, identifier=$identifier)"
 }

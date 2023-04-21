@@ -59,5 +59,5 @@ internal class DublinCoreCreatorImpl(
     }
 
     override fun toString(): String =
-        "DublinCoreCreatorImpl(direction=$direction, language=$language, role=$role, fileAs=$fileAs, content=$content, identifier=$identifier, opf=$opf)"
+        "DublinCoreCreatorImpl(direction=$direction, language=$language, role=$role, fileAs=$fileAs, content=$content, identifier=$identifier)"
 }

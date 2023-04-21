@@ -51,5 +51,5 @@ internal class DublinCoreRelationImpl(
     }
 
     override fun toString(): String =
-        "DublinCoreRelationImpl(direction=$direction, language=$language, content=$content, identifier=$identifier, opf=$opf)"
+        "DublinCoreRelationImpl(direction=$direction, language=$language, content=$content, identifier=$identifier)"
 }

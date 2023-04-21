@@ -51,5 +51,5 @@ internal class DublinCoreTitleImpl(
     }
 
     override fun toString(): String =
-        "DublinCoreTitleImpl(direction=$direction, language=$language, content=$content, identifier=$identifier, opf=$opf)"
+        "DublinCoreTitleImpl(direction=$direction, language=$language, content=$content, identifier=$identifier)"
 }

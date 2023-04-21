@@ -43,5 +43,5 @@ internal class DublinCoreSourceImpl(
         return result
     }
 
-    override fun toString(): String = "DublinCoreSourceImpl(content=$content, identifier=$identifier, opf=$opf)"
+    override fun toString(): String = "DublinCoreSourceImpl(content=$content, identifier=$identifier)"
 }

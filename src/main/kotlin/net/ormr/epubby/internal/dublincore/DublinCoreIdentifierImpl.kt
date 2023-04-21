@@ -48,5 +48,5 @@ internal class DublinCoreIdentifierImpl(
     }
 
     override fun toString(): String =
-        "DublinCoreIdentifierImpl(scheme=$scheme, content=$content, identifier=$identifier, opf=$opf)"
+        "DublinCoreIdentifierImpl(scheme=$scheme, content=$content, identifier=$identifier)"
 }

@@ -60,5 +60,5 @@ internal class DublinCoreContributorImpl(
     }
 
     override fun toString(): String =
-        "DublinCoreContributorImpl(direction=$direction, language=$language, role=$role, fileAs=$fileAs, content=$content, identifier=$identifier, opf=$opf)"
+        "DublinCoreContributorImpl(direction=$direction, language=$language, role=$role, fileAs=$fileAs, content=$content, identifier=$identifier)"
 }

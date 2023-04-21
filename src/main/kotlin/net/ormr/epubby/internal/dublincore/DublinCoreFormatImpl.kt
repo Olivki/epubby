@@ -43,5 +43,5 @@ internal class DublinCoreFormatImpl(
         return result
     }
 
-    override fun toString(): String = "DublinCoreFormatImpl(content=$content, identifier=$identifier, opf=$opf)"
+    override fun toString(): String = "DublinCoreFormatImpl(content=$content, identifier=$identifier)"
 }

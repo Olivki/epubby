@@ -51,5 +51,5 @@ internal class DublinCoreRightsImpl(
     }
 
     override fun toString(): String =
-        "DublinCoreRightsImpl(direction=$direction, language=$language, content=$content, identifier=$identifier, opf=$opf)"
+        "DublinCoreRightsImpl(direction=$direction, language=$language, content=$content, identifier=$identifier)"
 }

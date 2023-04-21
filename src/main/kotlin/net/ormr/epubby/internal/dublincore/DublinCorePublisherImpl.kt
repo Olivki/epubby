@@ -51,5 +51,5 @@ internal class DublinCorePublisherImpl(
     }
 
     override fun toString(): String =
-        "DublinCorePublisherImpl(direction=$direction, language=$language, content=$content, identifier=$identifier, opf=$opf)"
+        "DublinCorePublisherImpl(direction=$direction, language=$language, content=$content, identifier=$identifier)"
 }

@@ -49,5 +49,5 @@ internal class DublinCoreDateImpl(
     }
 
     override fun toString(): String =
-        "DublinCoreDateImpl(event=$event, content=$content, identifier=$identifier, opf=$opf)"
+        "DublinCoreDateImpl(event=$event, content=$content, identifier=$identifier)"
 }
