@@ -33,6 +33,9 @@ public interface NonEmptyMutableList<E> : MutableList<E> {
      */
     override fun isEmpty(): Boolean = false
 
+    /**
+     * Throws a [UnsupportedOperationException].
+     */
     override fun clear() {
         throw UnsupportedOperationException("Can't clear a NonEmptyMutableList")
     }

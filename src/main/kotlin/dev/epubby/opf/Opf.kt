@@ -22,4 +22,6 @@ public interface Opf {
     public val metadata: Metadata
 
     public fun findElement(identifier: String): OpfElement?
+
+    public fun hasElement(identifier: String): Boolean
 }

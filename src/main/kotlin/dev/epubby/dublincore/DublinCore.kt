@@ -17,12 +17,13 @@
 package dev.epubby.dublincore
 
 import dev.epubby.Epub2Feature
+import dev.epubby.opf.OpfElement
 
-public sealed interface DublinCore {
+public sealed interface DublinCore : OpfElement {
     /**
      * The identifier of the dublin-core element, or `null` if no identifier has been defined.
      */
-    public var identifier: String?
+    override var identifier: String?
 
     /**
      * The contents of the dublin-core element.

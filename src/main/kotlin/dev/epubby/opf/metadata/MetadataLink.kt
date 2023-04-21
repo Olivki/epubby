@@ -18,12 +18,13 @@ package dev.epubby.opf.metadata
 
 import com.google.common.net.MediaType
 import dev.epubby.Epub3Feature
+import dev.epubby.opf.OpfElement
 import dev.epubby.property.PropertySet
 import dev.epubby.property.Relationship
 import org.xbib.net.IRI
 
 @Epub3Feature
-public interface MetadataLink {
+public interface MetadataLink : OpfElement {
     public var href: IRI
 
     @Epub3Feature
@@ -31,7 +32,7 @@ public interface MetadataLink {
 
     public var mediaType: MediaType?
 
-    public var identifier: String?
+    override var identifier: String?
 
     @Epub3Feature
     public val properties: PropertySet
