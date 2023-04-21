@@ -18,11 +18,11 @@ package dev.epubby.opf.metadata
 
 import dev.epubby.Epub3Feature
 import dev.epubby.ReadingDirection
-import dev.epubby.opf.OpfElement
+import dev.epubby.opf.IdentifiableOpfElement
 import dev.epubby.property.Property
 
 @Epub3Feature
-public sealed interface Opf3Meta<T : Any> : OpfMeta, OpfElement {
+public sealed interface Opf3Meta<T : Any> : OpfMeta, IdentifiableOpfElement {
     /**
      * The value of the `meta` element.
      */

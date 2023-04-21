@@ -16,14 +16,17 @@
 
 package net.ormr.epubby.internal.util
 
-import net.ormr.epubby.internal.InternalOpfElement
+import net.ormr.epubby.internal.opf.InternalIdentifiableOpfElement
+import net.ormr.epubby.internal.opf.InternalOpfElement
 import net.ormr.epubby.internal.opf.OpfImpl
 
 internal fun OpfImpl.adoptElement(element: InternalOpfElement) {
     // TODO: custom exception?
     require(element.opf == null || element.opf === this) { "Element already belongs to an Opf instance" }
     element.opf = this
-    putElement(element.identifier, element)
+    if (element is InternalIdentifiableOpfElement) {
+        putElement(element.identifier, element)
+    }
 }
 
 internal fun OpfImpl.disownElement(element: InternalOpfElement) {
@@ -31,5 +34,7 @@ internal fun OpfImpl.disownElement(element: InternalOpfElement) {
     if (element.opf === this) {
         element.opf = null
     }
-    removeElement(element.identifier)
+    if (element is InternalIdentifiableOpfElement) {
+        removeElement(element.identifier)
+    }
 }

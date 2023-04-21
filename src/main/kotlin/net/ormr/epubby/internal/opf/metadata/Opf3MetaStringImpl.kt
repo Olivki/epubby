@@ -20,8 +20,8 @@ import dev.epubby.Epub3Feature
 import dev.epubby.ReadingDirection
 import dev.epubby.opf.metadata.Opf3MetaString
 import dev.epubby.property.Property
-import net.ormr.epubby.internal.InternalOpfElement
 import net.ormr.epubby.internal.identifierDelegate
+import net.ormr.epubby.internal.opf.InternalIdentifiableOpfElement
 import net.ormr.epubby.internal.opf.OpfImpl
 
 @Epub3Feature
@@ -33,7 +33,7 @@ internal class Opf3MetaStringImpl(
     identifier: String? = null,
     override var direction: ReadingDirection? = null,
     override var language: String? = null,
-) : Opf3MetaString, InternalOpfElement {
+) : Opf3MetaString, InternalIdentifiableOpfElement {
     override var identifier: String? by identifierDelegate(identifier)
 
     override var opf: OpfImpl? = null

@@ -17,6 +17,7 @@
 package net.ormr.epubby.internal
 
 import dev.epubby.opf.OpfElement
+import net.ormr.epubby.internal.opf.InternalOpfElement
 import net.ormr.epubby.internal.opf.OpfImpl
 import net.ormr.epubby.internal.util.adoptElement
 import net.ormr.epubby.internal.util.disownElement
@@ -52,4 +53,18 @@ internal class MutableOpfElementList<E : OpfElement>(
         opf.adoptElement(element)
         return previousElement
     }
+}
+
+internal inline fun <T, E : InternalOpfElement> List<T>.mapToMutableOpfElementList(
+    opf: OpfImpl,
+    mapper: (T) -> E,
+): MutableOpfElementList<E> {
+    val list = MutableOpfElementList<E>(ArrayList(size), opf)
+    return mapTo(list, mapper)
+}
+
+internal fun <E : InternalOpfElement> List<E>.toMutableOpfElementList(opf: OpfImpl): MutableOpfElementList<E> {
+    val list = MutableOpfElementList<E>(ArrayList(size), opf)
+    list.addAll(this)
+    return list
 }

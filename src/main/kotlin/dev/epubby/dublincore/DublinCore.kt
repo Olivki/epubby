@@ -16,9 +16,9 @@
 
 package dev.epubby.dublincore
 
-import dev.epubby.opf.OpfElement
+import dev.epubby.opf.IdentifiableOpfElement
 
-public sealed interface DublinCore : OpfElement {
+public sealed interface DublinCore : IdentifiableOpfElement {
     /**
      * The identifier of the dublin-core element, or `null` if no identifier has been defined.
      */

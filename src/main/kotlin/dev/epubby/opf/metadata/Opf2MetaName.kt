@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2023 Oliver Berg
+ * Copyright 2023 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,13 +14,32 @@
  * limitations under the License.
  */
 
+@file:JvmMultifileClass
+@file:JvmName("Opf2Metas")
+
 package dev.epubby.opf.metadata
 
 import dev.epubby.Epub3LegacyFeature
-import dev.epubby.opf.OpfElement
 import dev.epubby.xml.XmlAttribute
+import net.ormr.epubby.internal.opf.metadata.Opf2MetaNameImpl
 
 @Epub3LegacyFeature
-public sealed interface Opf2Meta : OpfMeta, OpfElement {
-    public val extraAttributes: MutableList<XmlAttribute>
+public interface Opf2MetaName : Opf2Meta {
+    public var scheme: String?
+    public var name: String
+    public var content: String
 }
+
+@Epub3LegacyFeature
+@JvmName("newName")
+public fun Opf2MetaName(
+    content: String,
+    name: String,
+    scheme: String? = null,
+    extraAttributes: List<XmlAttribute> = emptyList(),
+): Opf2MetaName = Opf2MetaNameImpl(
+    scheme = scheme,
+    name = name,
+    content = content,
+    extraAttributes = extraAttributes.toMutableList(),
+)

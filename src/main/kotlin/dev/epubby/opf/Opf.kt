@@ -21,7 +21,7 @@ import dev.epubby.opf.metadata.Metadata
 public interface Opf {
     public val metadata: Metadata
 
-    public fun findElement(identifier: String): OpfElement?
+    public fun findElement(identifier: String): IdentifiableOpfElement?
 
     public fun hasElement(identifier: String): Boolean
 }

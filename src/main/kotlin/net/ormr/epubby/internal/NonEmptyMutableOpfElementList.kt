@@ -17,6 +17,7 @@
 package net.ormr.epubby.internal
 
 import dev.epubby.opf.OpfElement
+import net.ormr.epubby.internal.opf.InternalOpfElement
 import net.ormr.epubby.internal.opf.OpfImpl
 import net.ormr.epubby.internal.util.adoptElement
 import net.ormr.epubby.internal.util.disownElement
@@ -48,4 +49,16 @@ internal class NonEmptyMutableOpfElementList<E : OpfElement>(
         opf.adoptElement(element)
         return previousElement
     }
+}
+
+internal inline fun <T, E : InternalOpfElement> List<T>.mapToNonEmptyMutableOpfElementList(
+    opf: OpfImpl,
+    mapper: (T) -> E,
+): NonEmptyMutableOpfElementList<E> = map(mapper).toNonEmptyMutableOpfElementList(opf)
+
+internal fun <E : InternalOpfElement> List<E>.toNonEmptyMutableOpfElementList(opf: OpfImpl): NonEmptyMutableOpfElementList<E> {
+    require(isNotEmpty()) { "Can't create NonEmptyMutableOpfElementList from empty list" }
+    val list = NonEmptyMutableOpfElementList(first(), subList(1, lastIndex).toMutableList(), opf)
+    for (element in list) opf.adoptElement(element)
+    return list
 }

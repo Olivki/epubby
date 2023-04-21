@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2023 Oliver Berg
+ * Copyright 2023 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,11 +14,8 @@
  * limitations under the License.
  */
 
-package net.ormr.epubby.internal
+package net.ormr.epubby.internal.opf.metadata
 
-import dev.epubby.opf.OpfElement
-import net.ormr.epubby.internal.opf.OpfImpl
+import net.ormr.epubby.internal.opf.InternalOpfElement
 
-internal interface InternalOpfElement : OpfElement {
-    var opf: OpfImpl?
-}
+internal sealed interface Opf2MetaImpl : InternalOpfElement

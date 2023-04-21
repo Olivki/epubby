@@ -22,9 +22,9 @@ import dev.epubby.marc.CreativeRole
 import dev.epubby.opf.metadata.Opf3MetaCreativeRole
 import dev.epubby.property.Property
 import dev.epubby.property.ResolvedProperty
-import net.ormr.epubby.internal.InternalOpfElement
 import net.ormr.epubby.internal.Properties
 import net.ormr.epubby.internal.identifierDelegate
+import net.ormr.epubby.internal.opf.InternalIdentifiableOpfElement
 import net.ormr.epubby.internal.opf.OpfImpl
 
 @OptIn(Epub3Feature::class)
@@ -35,7 +35,7 @@ internal class Opf3MetaCreativeRoleImpl(
     identifier: String? = null,
     override var direction: ReadingDirection? = null,
     override var language: String? = null,
-) : Opf3MetaCreativeRole, InternalOpfElement {
+) : Opf3MetaCreativeRole, InternalIdentifiableOpfElement {
     override var identifier: String? by identifierDelegate(identifier)
 
     override val scheme: ResolvedProperty

@@ -17,22 +17,21 @@
 package net.ormr.epubby.internal.opf
 
 import dev.epubby.NonUniqueIdentifierException
+import dev.epubby.opf.IdentifiableOpfElement
 import dev.epubby.opf.Opf
-import dev.epubby.opf.OpfElement
-import net.ormr.epubby.internal.InternalOpfElement
 import net.ormr.epubby.internal.opf.metadata.MetadataImpl
 import net.ormr.epubby.internal.util.ifNotNull
 import kotlin.properties.Delegates
 
 internal class OpfImpl : Opf {
-    private val elements: MutableMap<String, InternalOpfElement> = hashMapOf()
+    private val elements: MutableMap<String, InternalIdentifiableOpfElement> = hashMapOf()
     override var metadata: MetadataImpl by Delegates.notNull()
 
-    override fun findElement(identifier: String): OpfElement? = elements[identifier]
+    override fun findElement(identifier: String): IdentifiableOpfElement? = elements[identifier]
 
     override fun hasElement(identifier: String): Boolean = identifier in elements
 
-    internal fun putElement(identifier: String?, element: InternalOpfElement) {
+    internal fun putElement(identifier: String?, element: InternalIdentifiableOpfElement) {
         ifNotNull(identifier) {
             if (hasElement(it)) {
                 throw NonUniqueIdentifierException("An element with identifier '$it' already exists")

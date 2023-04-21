@@ -20,14 +20,14 @@ package dev.epubby.opf.metadata
 
 import com.google.common.net.MediaType
 import dev.epubby.Epub3Feature
-import dev.epubby.opf.OpfElement
+import dev.epubby.opf.IdentifiableOpfElement
 import dev.epubby.property.PropertySet
 import dev.epubby.property.Relationship
 import net.ormr.epubby.internal.opf.metadata.MetadataLinkImpl
 import org.xbib.net.IRI
 
 @Epub3Feature
-public interface MetadataLink : OpfElement {
+public interface MetadataLink : IdentifiableOpfElement {
     public var href: IRI
 
     @Epub3Feature

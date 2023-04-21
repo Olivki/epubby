@@ -14,13 +14,8 @@
  * limitations under the License.
  */
 
-package dev.epubby.opf.metadata
+package dev.epubby.opf
 
-import dev.epubby.Epub3LegacyFeature
-import dev.epubby.opf.OpfElement
-import dev.epubby.xml.XmlAttribute
-
-@Epub3LegacyFeature
-public sealed interface Opf2Meta : OpfMeta, OpfElement {
-    public val extraAttributes: MutableList<XmlAttribute>
+public interface IdentifiableOpfElement : OpfElement {
+    public val identifier: String?
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2023 Oliver Berg
+ * Copyright 2023 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
+@file:JvmMultifileClass
+@file:JvmName("Opf2Metas")
+
 package dev.epubby.opf.metadata
 
 import dev.epubby.Epub3LegacyFeature
-import dev.epubby.opf.OpfElement
-import dev.epubby.xml.XmlAttribute
 
 @Epub3LegacyFeature
-public sealed interface Opf2Meta : OpfMeta, OpfElement {
-    public val extraAttributes: MutableList<XmlAttribute>
-}
+public interface Opf2MetaUnknown : Opf2Meta

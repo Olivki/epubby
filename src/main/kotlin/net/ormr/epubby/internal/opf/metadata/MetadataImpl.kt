@@ -35,7 +35,7 @@ internal class MetadataImpl(
     override val titles: NonEmptyMutableOpfElementList<DublinCoreTitle>,
     override val languages: NonEmptyMutableOpfElementList<DublinCoreLanguage>,
     override val dublinCoreElements: MutableOpfElementList<NonRequiredDublinCore>,
-    override val opf2MetaEntries: MutableList<Opf2Meta>,
+    override val opf2MetaEntries: MutableOpfElementList<Opf2Meta>,
     override val opf3MetaEntries: MutableOpfElementList<Opf3Meta<*>>,
     override val links: MutableOpfElementList<MetadataLink>,
 ) : Metadata {

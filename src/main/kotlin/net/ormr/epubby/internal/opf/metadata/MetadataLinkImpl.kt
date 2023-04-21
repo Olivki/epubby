@@ -21,8 +21,8 @@ import dev.epubby.Epub3Feature
 import dev.epubby.opf.metadata.MetadataLink
 import dev.epubby.property.PropertySet
 import dev.epubby.property.Relationship
-import net.ormr.epubby.internal.InternalOpfElement
 import net.ormr.epubby.internal.identifierDelegate
+import net.ormr.epubby.internal.opf.InternalIdentifiableOpfElement
 import net.ormr.epubby.internal.opf.OpfImpl
 import org.xbib.net.IRI
 
@@ -34,7 +34,7 @@ internal class MetadataLinkImpl(
     identifier: String?,
     override val properties: PropertySet,
     override var refines: String?
-) : MetadataLink, InternalOpfElement {
+) : MetadataLink, InternalIdentifiableOpfElement {
     override var identifier: String? by identifierDelegate(identifier)
 
     override var opf: OpfImpl? = null

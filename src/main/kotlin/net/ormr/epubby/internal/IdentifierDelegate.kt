@@ -16,23 +16,24 @@
 
 package net.ormr.epubby.internal
 
+import net.ormr.epubby.internal.opf.InternalIdentifiableOpfElement
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 
 internal fun identifierDelegate(
     initialValue: String?,
     onChange: ((oldIdentifier: String?, newIdentifier: String?) -> Unit)? = null,
-): ReadWriteProperty<InternalOpfElement, String?> = IdentifierDelegate(initialValue, onChange)
+): ReadWriteProperty<InternalIdentifiableOpfElement, String?> = IdentifierDelegate(initialValue, onChange)
 
 private class IdentifierDelegate(
     initialValue: String?,
     private val onChange: ((oldIdentifier: String?, newIdentifier: String?) -> Unit)?,
-) : ReadWriteProperty<InternalOpfElement, String?> {
+) : ReadWriteProperty<InternalIdentifiableOpfElement, String?> {
     private var value: String? = initialValue
 
-    override fun getValue(thisRef: InternalOpfElement, property: KProperty<*>): String? = value
+    override fun getValue(thisRef: InternalIdentifiableOpfElement, property: KProperty<*>): String? = value
 
-    override fun setValue(thisRef: InternalOpfElement, property: KProperty<*>, value: String?) {
+    override fun setValue(thisRef: InternalIdentifiableOpfElement, property: KProperty<*>, value: String?) {
         val opf = thisRef.opf
         val currentValue = this.value
         if (currentValue != null) {
