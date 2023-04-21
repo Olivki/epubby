@@ -16,16 +16,17 @@
 
 package dev.epubby.dublincore
 
-import dev.epubby.opf.OpfElement
+import dev.epubby.Epub2Feature
 
-public sealed interface DublinCore : OpfElement {
-    /**
-     * The identifier of the dublin-core element, or `null` if no identifier has been defined.
-     */
-    override var identifier: String?
-
-    /**
-     * The contents of the dublin-core element.
-     */
-    public var content: String?
-}
+/**
+ * An unambiguous reference to the resource within a given context.
+ *
+ * Recommended best practice is to identify the resource by means of a string conforming to a formal identification
+ * system.
+ */
+public data class DublinCoreIdentifier(
+    override var identifier: String? = null,
+    @property:Epub2Feature
+    public var scheme: String? = null,
+    override var content: String?,
+) : DublinCore

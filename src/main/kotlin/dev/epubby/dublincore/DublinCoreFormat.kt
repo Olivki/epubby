@@ -16,16 +16,13 @@
 
 package dev.epubby.dublincore
 
-import dev.epubby.opf.OpfElement
-
-public sealed interface DublinCore : OpfElement {
-    /**
-     * The identifier of the dublin-core element, or `null` if no identifier has been defined.
-     */
-    override var identifier: String?
-
-    /**
-     * The contents of the dublin-core element.
-     */
-    public var content: String?
-}
+/**
+ * The file format, physical medium, or dimensions of the resource.
+ *
+ * Examples of dimensions include size and duration. Recommended best practice is to use a controlled vocabulary
+ * such as the list of [Internet Media Types](http://www.iana.org/assignments/media-types/).
+ */
+public data class DublinCoreFormat(
+    override var identifier: String? = null,
+    override var content: String?,
+) : DublinCore, NonRequiredDublinCore

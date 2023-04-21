@@ -19,16 +19,17 @@ package dev.epubby.opf.metadata
 import dev.epubby.Epub3Feature
 import dev.epubby.Epub3LegacyFeature
 import dev.epubby.NonEmptyMutableList
-import dev.epubby.dublincore.DublinCore
+import dev.epubby.dublincore.DublinCoreIdentifier
+import dev.epubby.dublincore.DublinCoreLanguage
 import dev.epubby.dublincore.LocalizedDublinCore
 import dev.epubby.dublincore.NonRequiredDublinCore
 
 public interface Metadata {
-    public val identifiers: NonEmptyMutableList<DublinCore.Identifier>
+    public val identifiers: NonEmptyMutableList<DublinCoreIdentifier>
 
     public val titles: NonEmptyMutableList<LocalizedDublinCore.Title>
 
-    public val languages: NonEmptyMutableList<DublinCore.Language>
+    public val languages: NonEmptyMutableList<DublinCoreLanguage>
 
     public val dublinCoreElements: MutableList<NonRequiredDublinCore>
 
@@ -41,7 +42,7 @@ public interface Metadata {
     @Epub3Feature
     public val links: MutableList<MetadataLink>
 
-    public var primaryIdentifier: DublinCore.Identifier
+    public var primaryIdentifier: DublinCoreIdentifier
     public var primaryTitle: LocalizedDublinCore.Title
-    public var primaryLanguage: DublinCore.Language
+    public var primaryLanguage: DublinCoreLanguage
 }

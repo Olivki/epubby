@@ -16,16 +16,17 @@
 
 package dev.epubby.dublincore
 
-import dev.epubby.opf.OpfElement
+import dev.epubby.Epub2Feature
 
-public sealed interface DublinCore : OpfElement {
-    /**
-     * The identifier of the dublin-core element, or `null` if no identifier has been defined.
-     */
-    override var identifier: String?
-
-    /**
-     * The contents of the dublin-core element.
-     */
-    public var content: String?
-}
+/**
+ * A point or period of time associated with an event in the lifecycle of the resource.
+ *
+ * `Date` may be used to express temporal information at any level of granularity.
+ */
+@OptIn(Epub2Feature::class)
+public data class DublinCoreDate(
+    override var identifier: String? = null,
+    @property:Epub2Feature
+    public var event: DateEvent? = null,
+    override var content: String?,
+) : DublinCore, NonRequiredDublinCore

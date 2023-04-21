@@ -18,7 +18,8 @@ package net.ormr.epubby.internal.opf.metadata
 
 import dev.epubby.Epub3Feature
 import dev.epubby.Epub3LegacyFeature
-import dev.epubby.dublincore.DublinCore
+import dev.epubby.dublincore.DublinCoreIdentifier
+import dev.epubby.dublincore.DublinCoreLanguage
 import dev.epubby.dublincore.LocalizedDublinCore
 import dev.epubby.dublincore.NonRequiredDublinCore
 import dev.epubby.opf.metadata.Metadata
@@ -30,21 +31,21 @@ import net.ormr.epubby.internal.NonEmptyMutableOpfElementList
 
 @OptIn(Epub3Feature::class, Epub3LegacyFeature::class)
 internal class MetadataImpl(
-    override val identifiers: NonEmptyMutableOpfElementList<DublinCore.Identifier>,
+    override val identifiers: NonEmptyMutableOpfElementList<DublinCoreIdentifier>,
     override val titles: NonEmptyMutableOpfElementList<LocalizedDublinCore.Title>,
-    override val languages: NonEmptyMutableOpfElementList<DublinCore.Language>,
+    override val languages: NonEmptyMutableOpfElementList<DublinCoreLanguage>,
     override val dublinCoreElements: MutableOpfElementList<NonRequiredDublinCore>,
     override val opf2MetaEntries: MutableList<Opf2Meta>,
     override val opf3MetaEntries: MutableOpfElementList<Opf3Meta<*>>,
     override val links: MutableOpfElementList<MetadataLink>,
 ) : Metadata {
-    override var primaryIdentifier: DublinCore.Identifier
+    override var primaryIdentifier: DublinCoreIdentifier
         get() = TODO("Not yet implemented")
         set(value) {}
     override var primaryTitle: LocalizedDublinCore.Title
         get() = TODO("Not yet implemented")
         set(value) {}
-    override var primaryLanguage: DublinCore.Language
+    override var primaryLanguage: DublinCoreLanguage
         get() = TODO("Not yet implemented")
         set(value) {}
 }

@@ -16,16 +16,14 @@
 
 package dev.epubby.dublincore
 
-import dev.epubby.opf.OpfElement
-
-public sealed interface DublinCore : OpfElement {
-    /**
-     * The identifier of the dublin-core element, or `null` if no identifier has been defined.
-     */
-    override var identifier: String?
-
-    /**
-     * The contents of the dublin-core element.
-     */
-    public var content: String?
-}
+/**
+ * The nature or genre of the resource.
+ *
+ * Recommended best practice is to use a controlled vocabulary such as the
+ * [DCMI Type Vocabulary](http://dublincore.org/specifications/dublin-core/dcmi-type-vocabulary/#H7). To describe
+ * the file format, physical medium, or dimensions of the resource, use the [Format] element.
+ */
+public data class DublinCoreType(
+    override var identifier: String? = null,
+    override var content: String?,
+) : DublinCore, NonRequiredDublinCore

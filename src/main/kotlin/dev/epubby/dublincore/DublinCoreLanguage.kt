@@ -16,16 +16,13 @@
 
 package dev.epubby.dublincore
 
-import dev.epubby.opf.OpfElement
-
-public sealed interface DublinCore : OpfElement {
-    /**
-     * The identifier of the dublin-core element, or `null` if no identifier has been defined.
-     */
-    override var identifier: String?
-
-    /**
-     * The contents of the dublin-core element.
-     */
-    public var content: String?
-}
+/**
+ * A language of the resource.
+ *
+ * Recommended best practice is to use a controlled vocabulary such as
+ * [RFC 4646](http://www.ietf.org/rfc/rfc4646.txt).
+ */
+public data class DublinCoreLanguage(
+    override var identifier: String? = null,
+    override var content: String?,
+) : DublinCore
