@@ -19,10 +19,13 @@ package net.ormr.epubby.internal.dublincore
 import dev.epubby.Epub2Feature
 import dev.epubby.dublincore.DateEvent
 import dev.epubby.dublincore.DublinCoreDate
+import net.ormr.epubby.internal.opf.OpfImpl
 
 @OptIn(Epub2Feature::class)
 internal data class DublinCoreDateImpl(
     override var identifier: String? = null,
     override var event: DateEvent? = null,
     override var content: String?,
-) : DublinCoreDate, DublinCoreImpl
+) : DublinCoreDate, DublinCoreImpl {
+    override var opf: OpfImpl? = null
+}

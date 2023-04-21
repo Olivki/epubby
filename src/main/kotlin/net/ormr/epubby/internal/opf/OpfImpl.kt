@@ -18,25 +18,32 @@ package net.ormr.epubby.internal.opf
 
 import dev.epubby.opf.Opf
 import dev.epubby.opf.OpfElement
+import net.ormr.epubby.internal.InternalOpfElement
 import net.ormr.epubby.internal.opf.metadata.MetadataImpl
 import net.ormr.epubby.internal.util.ifNotNull
 import kotlin.properties.Delegates
 
 internal class OpfImpl : Opf {
-    private val elements: MutableMap<String, OpfElement> = hashMapOf()
+    private val elements: MutableMap<String, InternalOpfElement> = hashMapOf()
     override var metadata: MetadataImpl by Delegates.notNull()
 
     override fun findElement(identifier: String): OpfElement? = elements[identifier]
 
     override fun hasElement(identifier: String): Boolean = identifier in elements
 
-    internal fun addElement(element: OpfElement) {
+    internal fun addElement(element: InternalOpfElement) {
+        // TODO: custom exception?
+        require(element.opf == null || element.opf === this) { "Element already belongs to an Opf instance" }
         ifNotNull(element.identifier) {
             elements[it] = element
         }
     }
 
-    internal fun removeElement(element: OpfElement) {
+    internal fun removeElement(element: InternalOpfElement) {
+        // TODO: raise exception otherwise?
+        if (element.opf === this) {
+            element.opf = null
+        }
         ifNotNull(element.identifier) {
             elements -= it
         }

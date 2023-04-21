@@ -18,10 +18,13 @@ package net.ormr.epubby.internal.dublincore
 
 import dev.epubby.ReadingDirection
 import dev.epubby.dublincore.DublinCoreDescription
+import net.ormr.epubby.internal.opf.OpfImpl
 
 internal data class DublinCoreDescriptionImpl(
     override var identifier: String? = null,
     override var direction: ReadingDirection? = null,
     override var language: String? = null,
     override var content: String?,
-) : DublinCoreDescription, DublinCoreImpl
+) : DublinCoreDescription, DublinCoreImpl {
+    override var opf: OpfImpl? = null
+}

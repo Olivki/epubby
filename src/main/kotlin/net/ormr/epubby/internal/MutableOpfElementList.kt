@@ -18,6 +18,7 @@ package net.ormr.epubby.internal
 
 import dev.epubby.opf.OpfElement
 import net.ormr.epubby.internal.opf.OpfImpl
+import net.ormr.epubby.internal.util.requireImpl
 
 internal class MutableOpfElementList<E : OpfElement>(
     private val delegate: MutableList<E>,
@@ -27,6 +28,7 @@ internal class MutableOpfElementList<E : OpfElement>(
         get() = delegate.size
 
     override fun add(index: Int, element: E) {
+        requireImpl<InternalOpfElement>(element)
         delegate.add(index, element)
         opf.addElement(element)
     }
@@ -35,12 +37,15 @@ internal class MutableOpfElementList<E : OpfElement>(
 
     override fun removeAt(index: Int): E {
         val element = delegate.removeAt(index)
+        requireImpl<InternalOpfElement>(element)
         opf.removeElement(element)
         return element
     }
 
     override fun set(index: Int, element: E): E {
+        requireImpl<InternalOpfElement>(element)
         val previousElement = delegate.set(index, element)
+        requireImpl<InternalOpfElement>(previousElement)
         opf.removeElement(previousElement)
         opf.addElement(element)
         return previousElement

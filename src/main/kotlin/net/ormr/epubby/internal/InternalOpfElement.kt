@@ -14,17 +14,11 @@
  * limitations under the License.
  */
 
-package net.ormr.epubby.internal.dublincore
+package net.ormr.epubby.internal
 
-import dev.epubby.ReadingDirection
-import dev.epubby.dublincore.DublinCoreRelation
+import dev.epubby.opf.OpfElement
 import net.ormr.epubby.internal.opf.OpfImpl
 
-internal data class DublinCoreRelationImpl(
-    override var identifier: String? = null,
-    override var direction: ReadingDirection? = null,
-    override var language: String? = null,
-    override var content: String?,
-) : DublinCoreRelation, DublinCoreImpl {
-    override var opf: OpfImpl? = null
+internal interface InternalOpfElement : OpfElement {
+    var opf: OpfImpl?
 }

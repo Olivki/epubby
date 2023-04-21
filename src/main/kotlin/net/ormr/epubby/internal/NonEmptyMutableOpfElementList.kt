@@ -18,6 +18,7 @@ package net.ormr.epubby.internal
 
 import dev.epubby.opf.OpfElement
 import net.ormr.epubby.internal.opf.OpfImpl
+import net.ormr.epubby.internal.util.requireImpl
 
 internal class NonEmptyMutableOpfElementList<E : OpfElement>(
     head: E,
@@ -25,18 +26,22 @@ internal class NonEmptyMutableOpfElementList<E : OpfElement>(
     private val opf: OpfImpl,
 ) : AbstractNonEmptyMutableList<E>(head, tail) {
     override fun add(index: Int, element: E) {
+        requireImpl<InternalOpfElement>(element)
         super.add(index, element)
         opf.addElement(element)
     }
 
     override fun removeAt(index: Int): E {
         val element = super.removeAt(index)
+        requireImpl<InternalOpfElement>(element)
         opf.removeElement(element)
         return element
     }
 
     override fun set(index: Int, element: E): E {
+        requireImpl<InternalOpfElement>(element)
         val previousElement = super.set(index, element)
+        requireImpl<InternalOpfElement>(previousElement)
         opf.removeElement(previousElement)
         opf.addElement(element)
         return previousElement

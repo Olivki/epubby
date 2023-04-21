@@ -20,6 +20,7 @@ import dev.epubby.Epub2Feature
 import dev.epubby.ReadingDirection
 import dev.epubby.dublincore.DublinCoreCreator
 import dev.epubby.marc.CreativeRole
+import net.ormr.epubby.internal.opf.OpfImpl
 
 @OptIn(Epub2Feature::class)
 internal data class DublinCoreCreatorImpl(
@@ -29,4 +30,6 @@ internal data class DublinCoreCreatorImpl(
     override var role: CreativeRole? = null,
     override var fileAs: String? = null,
     override var content: String?,
-) : DublinCoreCreator, DublinCoreImpl
+) : DublinCoreCreator, DublinCoreImpl {
+    override var opf: OpfImpl? = null
+}

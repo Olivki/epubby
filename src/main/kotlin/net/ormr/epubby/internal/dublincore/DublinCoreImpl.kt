@@ -16,4 +16,6 @@
 
 package net.ormr.epubby.internal.dublincore
 
-internal sealed interface DublinCoreImpl
+import net.ormr.epubby.internal.InternalOpfElement
+
+internal sealed interface DublinCoreImpl : InternalOpfElement
