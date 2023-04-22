@@ -17,6 +17,7 @@
 package dev.epubby.property
 
 import cc.ekblad.konbini.parseToEnd
+import dev.epubby.shouldBeError
 import dev.epubby.shouldBeOk
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.datatest.WithDataTestName
@@ -28,7 +29,7 @@ import net.ormr.epubby.internal.property.PropertyModel
 import net.ormr.epubby.internal.property.propertiesParser
 
 class PropertiesParserTest : FunSpec({
-    context("Valid properties types") {
+    context("Valid properties data types") {
         withData(
             PropertiesResult(
                 "nav",
@@ -50,6 +51,17 @@ class PropertiesParserTest : FunSpec({
                 remainingInput.shouldBeEmpty()
                 result shouldBe expected
             }
+        }
+    }
+
+    context("Invalid properties data types") {
+        withData(
+            mapOf(
+                "(leading space) nav marc:relators" to " nav marc:relators",
+                "nav marc:relators (trailing space)" to "nav marc:relators ",
+            )
+        ) { input ->
+            propertiesParser.parseToEnd(input).shouldBeError()
         }
     }
 })

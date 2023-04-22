@@ -17,23 +17,18 @@
 package net.ormr.epubby.internal.property
 
 import cc.ekblad.konbini.char
-import cc.ekblad.konbini.oneOf
 import cc.ekblad.konbini.parser
-import net.ormr.epubby.internal.iri.iRelativeRef
+import cc.ekblad.konbini.tryParse
+import net.ormr.epubby.internal.iri.nonEmptyIRelativeRef
 import net.ormr.epubby.internal.util.ncName
 
 // https://www.w3.org/publishing/epub3/epub-packages.html#sec-property-syntax
-
-private val fullProperty = parser {
-    val prefix = ncName()
-    char(':')
-    val ref = iRelativeRef()
-    PropertyModel(prefix, ref)
+internal val propertyParser = parser {
+    val prefix = tryParse {
+        val name = ncName()
+        char(':')
+        name
+    }
+    val ref = nonEmptyIRelativeRef()
+    PropertyModel(prefix = prefix, reference = ref)
 }
-
-private val onlyReference = parser {
-    val ref = iRelativeRef()
-    PropertyModel(prefix = null, ref)
-}
-
-internal val propertyParser = oneOf(fullProperty, onlyReference)
