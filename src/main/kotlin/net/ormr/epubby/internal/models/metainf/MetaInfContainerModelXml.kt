@@ -61,7 +61,7 @@ internal object MetaInfContainerModelXml : ModelXmlSerializer<MetaInfContainerRe
         LinkModel(
             href = link.attr("href").bind(),
             relation = link
-                .optionalAttr("rel")
+                .rawOptionalAttr("rel")
                 ?.let(::parseProperty)
                 ?.bind(),
             mediaType = link
@@ -94,6 +94,6 @@ internal object MetaInfContainerModelXml : ModelXmlSerializer<MetaInfContainerRe
     override fun missingElement(name: String, path: String): MetaInfContainerReadError =
         MissingElement(name, path)
 
-    override fun invalidProperty(value: String, cause: ParserResult.Error): MetaInfContainerReadError =
-        InvalidProperty(value, cause)
+    override fun invalidProperty(value: String, cause: ParserResult.Error, path: String): MetaInfContainerReadError =
+        InvalidProperty(value, cause, path)
 }

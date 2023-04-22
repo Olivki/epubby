@@ -111,11 +111,11 @@ internal object MetadataModelXml : ModelXmlSerializer<OpfReadError>() {
             //        space normalization."
             value = meta.ownText().bind().trim(),
             property = meta
-                .attr("property")
+                .rawAttr("property")
                 .flatMap(::parseProperty)
                 .bind(),
             scheme = meta
-                .optionalAttr("scheme")
+                .rawOptionalAttr("scheme")
                 ?.let(::parseProperty)
                 ?.bind(),
             refines = meta.optionalAttr("refines"),
@@ -132,13 +132,13 @@ internal object MetadataModelXml : ModelXmlSerializer<OpfReadError>() {
         LinkModel(
             href = link.attr("href").bind(),
             relation = link
-                .optionalAttr("rel")
+                .rawOptionalAttr("rel")
                 ?.let(::parseProperty)
                 ?.bind(),
             mediaType = link.optionalAttr("media-type"), // conditionally required
             identifier = link.optionalAttr("id"),
             properties = link
-                .optionalAttr("properties")
+                .rawOptionalAttr("properties")
                 ?.let(::parsePropertyList)
                 ?.bind(),
             refines = link.optionalAttr("refines"),
@@ -294,7 +294,8 @@ internal object MetadataModelXml : ModelXmlSerializer<OpfReadError>() {
 
     override fun missingText(path: String): OpfReadError = MissingText(path)
 
-    override fun invalidProperty(value: String, cause: ParserResult.Error): OpfReadError = InvalidProperty(value, cause)
+    override fun invalidProperty(value: String, cause: ParserResult.Error, path: String): OpfReadError =
+        InvalidProperty(value, cause, path)
 
     // because the geniuses decided to make the new meta element the same name as the old one, while STILL
     // supporting the use of the old meta element, we have to try and do our best to guess if a meta element is

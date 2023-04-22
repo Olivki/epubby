@@ -24,6 +24,8 @@ public sealed interface MetaInfContainerReadError : MetaInfReadError {
     public data class MissingAttribute(val name: String, val path: String) : MetaInfContainerReadError
     public data class MissingElement(val name: String, val path: String) : MetaInfContainerReadError
     public data class InvalidMediaType(val mediaType: String) : MetaInfContainerReadError
-    public data class InvalidProperty(val value: String, val cause: ParserResult.Error) : MetaInfContainerReadError
+    public data class InvalidProperty(val value: String, val cause: ParserResult.Error, val path: String) :
+        MetaInfContainerReadError
+
     public object EmptyRootFiles : MetaInfContainerReadError
 }

@@ -25,6 +25,7 @@ import net.ormr.epubby.internal.property.PropertyModel
 import net.ormr.epubby.internal.property.propertiesParser
 import net.ormr.epubby.internal.property.propertyParser
 import net.ormr.epubby.internal.util.getOwnText
+import org.jdom2.Attribute
 import org.jdom2.Element
 import org.jdom2.Namespace
 import org.jdom2.xpath.XPathHelper
@@ -37,7 +38,7 @@ internal abstract class ModelXmlSerializer<E> {
 
     protected open fun missingText(path: String): E = error("'missingText' should never be used")
 
-    protected open fun invalidProperty(value: String, cause: ParserResult.Error): E =
+    protected open fun invalidProperty(value: String, cause: ParserResult.Error, path: String): E =
         error("'invalidProperty' should never be used")
 
     private fun createMissingAttributeError(element: Element, name: String, namespace: Namespace): E {
@@ -55,22 +56,27 @@ internal abstract class ModelXmlSerializer<E> {
         return missingText(path)
     }
 
+    private fun createInvalidPropertyError(attribute: Attribute, cause: ParserResult.Error): E {
+        val path = XPathHelper.getAbsolutePath(attribute)
+        return invalidProperty(attribute.value, cause, path)
+    }
+
     private fun fixName(name: String, namespace: Namespace): String =
         namespace.prefix?.ifEmpty { null }?.let { "$it:$name" } ?: name
 
     protected fun parseReadingDirection(value: String): Result<ReadingDirection, String> =
         ReadingDirection.fromValue(value)
 
-    protected fun parseProperty(value: String): Result<PropertyModel, E> =
-        when (val result = propertyParser.parseToEnd(value)) {
+    protected fun parseProperty(attribute: Attribute): Result<PropertyModel, E> =
+        when (val result = propertyParser.parseToEnd(attribute.value)) {
             is ParserResult.Ok -> Ok(result.result)
-            is ParserResult.Error -> Err(invalidProperty(value, result))
+            is ParserResult.Error -> Err(createInvalidPropertyError(attribute, result))
         }
 
-    protected fun parsePropertyList(value: String): Result<PropertiesModel, E> =
-        when (val result = propertiesParser.parseToEnd(value)) {
+    protected fun parsePropertyList(attribute: Attribute): Result<PropertiesModel, E> =
+        when (val result = propertiesParser.parseToEnd(attribute.value)) {
             is ParserResult.Ok -> Ok(result.result)
-            is ParserResult.Error -> Err(invalidProperty(value, result))
+            is ParserResult.Error -> Err(createInvalidPropertyError(attribute, result))
         }
 
     protected fun Element.ownText(normalize: Boolean = false): Result<String, E> =
@@ -106,6 +112,12 @@ internal abstract class ModelXmlSerializer<E> {
 
     protected fun Element.optionalAttr(name: String, namespace: Namespace = Namespace.NO_NAMESPACE): String? =
         getAttributeValue(name, namespace)
+
+    protected fun Element.rawAttr(name: String, namespace: Namespace = Namespace.NO_NAMESPACE): Result<Attribute, E> =
+        getAttribute(name, namespace).toResultOr { createMissingAttributeError(this, name, namespace) }
+
+    protected fun Element.rawOptionalAttr(name: String, namespace: Namespace = Namespace.NO_NAMESPACE): Attribute? =
+        getAttribute(name, namespace)
 
     protected fun Element.addChild(child: Element?) {
         if (child != null) {
