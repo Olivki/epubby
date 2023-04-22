@@ -16,7 +16,9 @@
 
 package net.ormr.epubby.internal
 
+import dev.epubby.InvalidIdentifierException
 import net.ormr.epubby.internal.opf.InternalIdentifiableOpfElement
+import org.jdom2.Verifier
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 
@@ -25,15 +27,22 @@ internal fun identifierDelegate(
     onChange: ((oldIdentifier: String?, newIdentifier: String?) -> Unit)? = null,
 ): ReadWriteProperty<InternalIdentifiableOpfElement, String?> = IdentifierDelegate(initialValue, onChange)
 
+// TODO: validate that the id is a valid https://www.w3.org/TR/xml/#NT-Name
+//       can possibly be done using JDOM2?
 private class IdentifierDelegate(
     initialValue: String?,
     private val onChange: ((oldIdentifier: String?, newIdentifier: String?) -> Unit)?,
 ) : ReadWriteProperty<InternalIdentifiableOpfElement, String?> {
     private var value: String? = initialValue
 
+    init {
+        checkName(initialValue)
+    }
+
     override fun getValue(thisRef: InternalIdentifiableOpfElement, property: KProperty<*>): String? = value
 
     override fun setValue(thisRef: InternalIdentifiableOpfElement, property: KProperty<*>, value: String?) {
+        checkName(value)
         val opf = thisRef.opf
         val currentValue = this.value
         if (currentValue != null) {
@@ -44,5 +53,14 @@ private class IdentifierDelegate(
         }
         onChange?.invoke(currentValue, value)
         this.value = value
+    }
+
+    private fun checkName(value: String?) {
+        if (value != null) {
+            val result = Verifier.checkElementName(value)
+            if (result != null) {
+                throw InvalidIdentifierException(result)
+            }
+        }
     }
 }

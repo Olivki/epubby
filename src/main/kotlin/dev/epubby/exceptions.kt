@@ -23,3 +23,5 @@ public class UnexpectedImplementationException(message: String) : EpubException(
 public class NonUniqueIdentifierException(message: String) : EpubException(message)
 
 public class KnownOpfMeta3SchemeException(message: String) : EpubException(message)
+
+public class InvalidIdentifierException(message: String) : EpubException(message)
