@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2023 Oliver Berg
+ * Copyright 2023 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,9 +17,8 @@
 package dev.epubby.property
 
 import dev.epubby.Epub3Feature
+import net.ormr.epubby.internal.property.PropertiesImpl
+import org.apache.commons.collections4.list.SetUniqueList
 
-// TODO: add documentation explaining that this does not allow duplicates
 @Epub3Feature
-public interface Properties : MutableList<Property> {
-    public fun asString(): String
-}
+public fun Iterable<Property>.toProperties(): Properties = PropertiesImpl(SetUniqueList.setUniqueList(toMutableList()))
