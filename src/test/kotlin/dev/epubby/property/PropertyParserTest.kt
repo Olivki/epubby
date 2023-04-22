@@ -45,10 +45,11 @@ class PropertyParserTest : FunSpec({
 
     context("Invalid property data types") {
         withData(
-            "marc::relators",
-            "::role",
-            "m arc:relators",
-        ) { input ->
+            InvalidProperty("marc::relators"),
+            InvalidProperty("::role"),
+            InvalidProperty("m arc:relators"),
+            InvalidProperty(" marc:relators", name = "(leading space) marc:relators"),
+        ) { (input, _) ->
             propertyParser.parseToEnd(input).shouldBeError()
         }
     }
@@ -56,4 +57,8 @@ class PropertyParserTest : FunSpec({
 
 private data class PropertyResult(val input: String, val expected: PropertyModel) : WithDataTestName {
     override fun dataTestName(): String = input
+}
+
+private data class InvalidProperty(val input: String, val name: String = input) : WithDataTestName {
+    override fun dataTestName(): String = name
 }
