@@ -19,6 +19,7 @@ package net.ormr.epubby.internal.models
 import cc.ekblad.konbini.ParserResult
 import cc.ekblad.konbini.parseToEnd
 import com.github.michaelbull.result.*
+import com.google.common.net.MediaType
 import dev.epubby.ReadingDirection
 import net.ormr.epubby.internal.property.PropertiesModel
 import net.ormr.epubby.internal.property.PropertyModel
@@ -46,6 +47,9 @@ internal abstract class ModelXmlSerializer<E> {
 
     protected open fun invalidProperties(value: String, cause: ParserResult.Error, path: String): E =
         error("'invalidProperties' should never be used")
+
+    protected open fun invalidMediaType(value: String, path: String): E =
+        error("'invalidMediaType' should never be used")
 
     private fun createMissingAttributeError(element: Element, name: String, namespace: Namespace): E {
         val path = XPathHelper.getAbsolutePath(element)
@@ -77,6 +81,11 @@ internal abstract class ModelXmlSerializer<E> {
         return invalidProperties(attribute.value, cause, path)
     }
 
+    private fun createInvalidMediaTypeError(attribute: Attribute): E {
+        val path = XPathHelper.getAbsolutePath(attribute)
+        return invalidMediaType(attribute.value, path)
+    }
+
     private fun fixName(name: String, namespace: Namespace): String =
         namespace.prefix?.ifEmpty { null }?.let { "$it:$name" } ?: name
 
@@ -95,6 +104,12 @@ internal abstract class ModelXmlSerializer<E> {
             is ParserResult.Ok -> Ok(result.result)
             is ParserResult.Error -> Err(createInvalidPropertyError(attribute, result))
         }
+
+    protected fun parseMediaType(attribute: Attribute): Result<MediaType, E> = try {
+        Ok(MediaType.parse(attribute.value))
+    } catch (e: IllegalArgumentException) {
+        Err(createInvalidMediaTypeError(attribute))
+    }
 
     protected fun Element.ownText(normalize: Boolean = false): Result<String, E> =
         getOwnText(normalize).toResultOr { createMissingTextError(this) }

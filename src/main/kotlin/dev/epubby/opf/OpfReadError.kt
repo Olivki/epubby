@@ -31,7 +31,7 @@ public sealed interface OpfReadError {
 
     public data class UnknownReadingDirection(val value: String, val path: String) : OpfReadError
     public data class InvalidIri(val cause: IRISyntaxException) : OpfReadError
-    public data class InvalidMediaType(val mediaType: String) : OpfReadError
+    public data class InvalidMediaType(val value: String, val path: String) : OpfReadError
 }
 
 public sealed interface PackageDocumentReadError : OpfReadError {

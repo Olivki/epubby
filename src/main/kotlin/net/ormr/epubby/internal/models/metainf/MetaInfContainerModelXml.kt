@@ -18,7 +18,6 @@ package net.ormr.epubby.internal.models.metainf
 
 import cc.ekblad.konbini.ParserResult
 import com.github.michaelbull.result.flatMap
-import com.github.michaelbull.result.mapError
 import dev.epubby.metainf.MetaInfContainerReadError
 import dev.epubby.metainf.MetaInfContainerReadError.*
 import net.ormr.epubby.internal.models.ModelXmlSerializer
@@ -26,7 +25,6 @@ import net.ormr.epubby.internal.models.metainf.MetaInfContainerModel.LinkModel
 import net.ormr.epubby.internal.models.metainf.MetaInfContainerModel.RootFileModel
 import net.ormr.epubby.internal.util.buildElement
 import net.ormr.epubby.internal.util.effect
-import net.ormr.epubby.internal.util.parseMediaType
 import org.jdom2.Element
 import net.ormr.epubby.internal.Namespaces.META_INF_CONTAINER as NAMESPACE
 
@@ -51,8 +49,8 @@ internal object MetaInfContainerModelXml : ModelXmlSerializer<MetaInfContainerRe
         RootFileModel(
             fullPath = rootFile.attr("full-path").bind(),
             mediaType = rootFile
-                .attr("media-type")
-                .flatMap { parseMediaType(it).mapError(::InvalidMediaType) }
+                .rawAttr("media-type")
+                .flatMap(::parseMediaType)
                 .bind(),
         )
     }
@@ -65,9 +63,9 @@ internal object MetaInfContainerModelXml : ModelXmlSerializer<MetaInfContainerRe
                 ?.let(::parseProperty)
                 ?.bind(),
             mediaType = link
-                .optionalAttr("mediaType")
+                .rawOptionalAttr("mediaType")
                 ?.let(::parseMediaType)
-                ?.bind(::InvalidMediaType),
+                ?.bind(),
         )
     }
 
@@ -96,4 +94,7 @@ internal object MetaInfContainerModelXml : ModelXmlSerializer<MetaInfContainerRe
 
     override fun invalidProperty(value: String, cause: ParserResult.Error, path: String): MetaInfContainerReadError =
         InvalidProperty(value, cause, path)
+
+    override fun invalidMediaType(value: String, path: String): MetaInfContainerReadError =
+        InvalidMediaType(value, path)
 }

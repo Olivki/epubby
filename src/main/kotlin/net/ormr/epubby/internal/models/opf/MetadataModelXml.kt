@@ -135,7 +135,11 @@ internal object MetadataModelXml : ModelXmlSerializer<OpfReadError>() {
                 .rawOptionalAttr("rel")
                 ?.let(::parseProperty)
                 ?.bind(),
-            mediaType = link.optionalAttr("media-type"), // conditionally required
+            // conditionally required
+            mediaType = link
+                .rawOptionalAttr("media-type")
+                ?.let(::parseMediaType)
+                ?.bind(),
             identifier = link.optionalAttr("id"),
             properties = link
                 .rawOptionalAttr("properties")
@@ -215,7 +219,7 @@ internal object MetadataModelXml : ModelXmlSerializer<OpfReadError>() {
     private fun writeLink(link: LinkModel): Element = buildElement("link", NAMESPACE) {
         this["href"] = link.href
         this["rel"] = link.relation?.asString()
-        this["media-type"] = link.mediaType
+        this["media-type"] = link.mediaType?.toString()
         this["id"] = link.identifier
         this["properties"] = link.properties?.asString()
         this["refines"] = link.refines
@@ -302,6 +306,8 @@ internal object MetadataModelXml : ModelXmlSerializer<OpfReadError>() {
 
     override fun invalidProperties(value: String, cause: ParserResult.Error, path: String): OpfReadError =
         InvalidProperties(value, cause, path)
+
+    override fun invalidMediaType(value: String, path: String): OpfReadError = InvalidMediaType(value, path)
 
     // because the geniuses decided to make the new meta element the same name as the old one, while STILL
     // supporting the use of the old meta element, we have to try and do our best to guess if a meta element is

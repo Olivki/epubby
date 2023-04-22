@@ -16,6 +16,7 @@
 
 package net.ormr.epubby.internal.models.opf
 
+import com.google.common.net.MediaType
 import dev.epubby.Epub3Feature
 import dev.epubby.Epub3LegacyFeature
 import dev.epubby.ReadingDirection
@@ -78,7 +79,7 @@ internal data class MetadataModel(
         @SerializedName("rel")
         val relation: PropertyModel?,
         @SerializedName("media-type")
-        val mediaType: String?, // conditionally required
+        val mediaType: MediaType?, // conditionally required
         @SerializedName("id")
         val identifier: String?,
         val properties: PropertiesModel?,
