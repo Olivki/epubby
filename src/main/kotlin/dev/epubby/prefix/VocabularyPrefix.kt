@@ -18,6 +18,7 @@ package dev.epubby.prefix
 
 import dev.epubby.Epub3Feature
 import net.ormr.epubby.internal.util.getChildObjects
+import net.pearx.kasechange.toKebabCase
 import org.xbib.net.IRI
 
 @Epub3Feature
@@ -37,6 +38,8 @@ public sealed class VocabularyPrefix(iri: String) : ResolvedPrefix {
         get() = null
 
     override val iri: IRI = IRI.create(iri)
+
+    override fun asString(): String = "${javaClass.simpleName.toKebabCase()}-vocabulary: ${iri.toEncodedString()}"
 
     public companion object {
         private val prefixes by lazy { getChildObjects<VocabularyPrefix>().toList() }

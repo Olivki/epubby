@@ -28,4 +28,6 @@ import dev.epubby.property.UnknownProperty
 public data class UnknownPrefix(override val name: String) : Prefix {
     override val iri: Nothing?
         get() = null
+
+    override fun asString(): String = "$name: UNKNOWN IRI"
 }

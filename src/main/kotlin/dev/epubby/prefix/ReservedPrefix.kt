@@ -37,7 +37,7 @@ import org.xbib.net.IRI
  */
 @Epub3Feature
 @UnstableEpubFeature
-public sealed class ReservedPrefix(override val name: String, iri: String) : ResolvedPrefix {
+public sealed class ReservedPrefix(override val name: String, iri: String) : MappedPrefix {
     public object A11y : ReservedPrefix("a11y", "http://www.idpf.org/epub/vocab/package/a11y/#")
     public object DcTerms : ReservedPrefix("dcterms", "http://purl.org/dc/terms/")
     public object Marc : ReservedPrefix("marc", "http://id.loc.gov/vocabulary/")
@@ -53,7 +53,7 @@ public sealed class ReservedPrefix(override val name: String, iri: String) : Res
         private val nameToPrefix by lazy { getChildObjects<ReservedPrefix>().associateByTo(hashMapOf()) { it.name } }
 
         public fun fromNameOrNull(name: String): ReservedPrefix? = nameToPrefix[name]
-        
+
         public fun isReservedName(name: String): Boolean = name in nameToPrefix
     }
 }

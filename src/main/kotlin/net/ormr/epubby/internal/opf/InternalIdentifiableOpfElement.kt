@@ -18,4 +18,9 @@ package net.ormr.epubby.internal.opf
 
 import dev.epubby.opf.IdentifiableOpfElement
 
+/*
+ * https://www.w3.org/TR/xml/ : 3.3.1 Attribute Types
+ *
+ * 'id' attributes must match https://www.w3.org/TR/xml/#NT-Name
+ */
 internal interface InternalIdentifiableOpfElement : IdentifiableOpfElement, InternalOpfElement

@@ -16,6 +16,13 @@
 
 package dev.epubby.opf
 
+import dev.epubby.InvalidIdentifierException
+
 public interface IdentifiableOpfElement : OpfElement {
-    public val identifier: String?
+    /**
+     * The identifier of the element, or `null` if no identifier has been set.
+     *
+     * The value must match [Name](https://www.w3.org/TR/xml/#NT-Name) or an [InvalidIdentifierException] will be thrown.
+     */
+    public var identifier: String?
 }

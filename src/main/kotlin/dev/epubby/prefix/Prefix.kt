@@ -23,7 +23,6 @@ import dev.epubby.UnstableEpubFeature
 import net.ormr.epubby.internal.util.requireValidElementName
 import org.xbib.net.IRI
 
-// TODO: `"_"` is not an allowed prefix name
 // https://www.w3.org/publishing/epub3/epub-packages.html#sec-prefix-attr
 @Epub3Feature
 public sealed interface Prefix {
@@ -50,6 +49,8 @@ public sealed interface Prefix {
         iri != other.iri -> false
         else -> true
     }
+
+    public fun asString(): String
 }
 
 /**
@@ -60,7 +61,7 @@ public sealed interface Prefix {
  */
 @Epub3Feature
 @OptIn(UnstableEpubFeature::class)
-public fun Prefix(name: String, iri: IRI): ResolvedPrefix {
+public fun Prefix(name: String, iri: IRI): MappedPrefix {
     requireValidElementName(name)
     require(!ReservedPrefix.isReservedName(name)) { "'name' should not be a reserved name" }
     require(name != "_") { "'name' should not be '_'" }

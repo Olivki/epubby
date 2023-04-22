@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2023 Oliver Berg
+ * Copyright 2023 Oliver Berg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,10 +20,16 @@ import dev.epubby.Epub3Feature
 import dev.epubby.prefix.MappedPrefix
 import dev.epubby.prefix.Prefixes
 
-// very hacky solution for edge cases
 @OptIn(Epub3Feature::class)
-internal object EmptyPrefixes : Prefixes, MutableMap<String, MappedPrefix> by mutableMapOf() {
-    override fun add(prefix: MappedPrefix): MappedPrefix? = null
+internal class PrefixesImpl(
+    private val delegate: MutableMap<String, MappedPrefix>,
+) : AbstractMutableMap<String, MappedPrefix>(), Prefixes {
+    override val entries: MutableSet<MutableMap.MutableEntry<String, MappedPrefix>>
+        get() = delegate.entries
 
-    override fun asString(): String = "!!EMPTY PREFIXES!!"
+    override fun put(key: String, value: MappedPrefix): MappedPrefix? = delegate.put(key, value)
+
+    override fun add(prefix: MappedPrefix): MappedPrefix? = put(prefix.name, prefix)
+
+    override fun asString(): String = values.joinToString(separator = " ") { it.asString() }
 }

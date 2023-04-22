@@ -20,4 +20,4 @@ import dev.epubby.Epub3Feature
 import org.xbib.net.IRI
 
 @Epub3Feature
-internal data class PrefixImpl(override val name: String, override val iri: IRI) : ResolvedPrefix
+internal data class PrefixImpl(override val name: String, override val iri: IRI) : MappedPrefix
