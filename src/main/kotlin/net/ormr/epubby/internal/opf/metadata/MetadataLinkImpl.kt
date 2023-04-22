@@ -32,7 +32,7 @@ internal class MetadataLinkImpl(
     override var relation: Relationship?,
     override var mediaType: MediaType?,
     identifier: String?,
-    override val properties: Properties,
+    override val properties: Properties?,
     override var refines: String?,
 ) : MetadataLink, InternalIdentifiableOpfElement {
     override var identifier: String? by identifierDelegate(identifier)

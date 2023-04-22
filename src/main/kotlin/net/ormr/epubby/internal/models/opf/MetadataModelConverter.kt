@@ -22,11 +22,14 @@ import dev.epubby.opf.metadata.Opf2Meta
 import dev.epubby.opf.metadata.Opf3Meta
 import dev.epubby.xml.XmlAttribute
 import net.ormr.epubby.internal.ModelConversionData
-import net.ormr.epubby.internal.models.opf.MetadataModel.Opf2MetaModel
-import net.ormr.epubby.internal.models.opf.MetadataModel.Opf3MetaModel
+import net.ormr.epubby.internal.models.opf.MetadataModel.*
 import net.ormr.epubby.internal.opf.metadata.*
-import net.ormr.epubby.internal.property.PropertyResolver
+import net.ormr.epubby.internal.property.PropertyResolver.resolveLink
+import net.ormr.epubby.internal.property.PropertyResolver.resolveLinkRel
+import net.ormr.epubby.internal.property.PropertyResolver.resolveMany
+import net.ormr.epubby.internal.property.PropertyResolver.resolveMeta
 import net.ormr.epubby.internal.util.ifNotNull
+import org.xbib.net.IRI
 
 @OptIn(Epub3Feature::class, Epub3LegacyFeature::class)
 internal object MetadataModelConverter {
@@ -62,12 +65,21 @@ internal object MetadataModelConverter {
 
     fun Opf3MetaModel.toOpf3Meta(data: ModelConversionData): Opf3Meta<*> = Opf3MetaConverters.create(
         value = value,
-        property = PropertyResolver.resolveMeta(property, data.prefixes),
+        property = resolveMeta(property, data.prefixes),
         // TODO: should scheme be resolved the same way as the property is?
-        scheme = scheme?.let { PropertyResolver.resolveMeta(property, data.prefixes) },
+        scheme = scheme?.let { resolveMeta(property, data.prefixes) },
         refines = refines,
         identifier = identifier,
         direction = direction,
         language = language,
+    )
+
+    fun LinkModel.toLink(data: ModelConversionData): MetadataLinkImpl = MetadataLinkImpl(
+        href = IRI.create(href),
+        relation = relation?.let { resolveLinkRel(it, data.prefixes) },
+        mediaType = mediaType,
+        identifier = identifier,
+        properties = properties?.let { resolveMany(it, data.prefixes, ::resolveLink) },
+        refines = refines,
     )
 }

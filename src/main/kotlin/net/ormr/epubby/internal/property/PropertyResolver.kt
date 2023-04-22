@@ -51,10 +51,16 @@ internal object PropertyResolver {
         { prefix, ref -> toProperty(prefix, ref, prefixes) },
     )
 
-    fun resolveSpine(property: PropertyModel, prefixes: Prefixes): Relationship = property.fold(
+    fun resolveSpine(property: PropertyModel, prefixes: Prefixes): Property = property.fold(
         { fromVocab(spine, it) },
         { prefix, ref -> toProperty(prefix, ref, prefixes) },
     )
+
+    inline fun resolveMany(
+        properties: PropertiesModel,
+        prefixes: Prefixes,
+        resolver: (PropertyModel, Prefixes) -> Property,
+    ): Properties = properties.list.map { resolver(it, prefixes) }.toProperties()
 
     private fun fromVocab(entries: Map<String, Property>, ref: String): Property =
         entries[ref] ?: UnknownProperty(prefix = null, ref)

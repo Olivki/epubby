@@ -38,7 +38,7 @@ public interface MetadataLink : IdentifiableOpfElement {
     override var identifier: String?
 
     @Epub3Feature
-    public val properties: Properties
+    public val properties: Properties?
 
     @Epub3Feature
     public var refines: String?
