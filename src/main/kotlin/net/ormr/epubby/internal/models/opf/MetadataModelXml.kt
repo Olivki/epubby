@@ -121,9 +121,9 @@ internal object MetadataModelXml : ModelXmlSerializer<OpfReadError>() {
             refines = meta.optionalAttr("refines"),
             identifier = meta.optionalAttr("id"),
             direction = meta
-                .optionalAttr("dir")
+                .rawOptionalAttr("dir")
                 ?.let(::parseReadingDirection)
-                ?.bind(::UnknownReadingDirection),
+                ?.bind(),
             language = meta.optionalAttr("lang", XML_NAMESPACE),
         )
     }
@@ -296,6 +296,9 @@ internal object MetadataModelXml : ModelXmlSerializer<OpfReadError>() {
 
     override fun invalidProperty(value: String, cause: ParserResult.Error, path: String): OpfReadError =
         InvalidProperty(value, cause, path)
+
+    override fun unknownReadingDirection(value: String, path: String): OpfReadError =
+        UnknownReadingDirection(value, path)
 
     // because the geniuses decided to make the new meta element the same name as the old one, while STILL
     // supporting the use of the old meta element, we have to try and do our best to guess if a meta element is

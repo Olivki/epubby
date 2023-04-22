@@ -19,6 +19,6 @@ package dev.epubby.dublincore
 public sealed interface DublinCoreReadError {
     public data class MissingAttribute(val name: String, val path: String) : DublinCoreReadError
     public data class MissingElement(val name: String, val path: String) : DublinCoreReadError
-    public data class UnknownReadingDirection(val value: String) : DublinCoreReadError
+    public data class UnknownReadingDirection(val value: String, val path: String) : DublinCoreReadError
     public data class UnknownDublinCoreElement(val name: String) : DublinCoreReadError
 }

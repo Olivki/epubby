@@ -17,7 +17,6 @@
 package net.ormr.epubby.internal.models.dublincore
 
 import dev.epubby.Epub2Feature
-import dev.epubby.ReadingDirection
 import dev.epubby.dublincore.DateEvent
 import dev.epubby.dublincore.DublinCoreReadError
 import dev.epubby.dublincore.DublinCoreReadError.*
@@ -25,7 +24,6 @@ import dev.epubby.marc.getOrCreateCreativeRole
 import net.ormr.epubby.internal.Namespaces.DUBLIN_CORE
 import net.ormr.epubby.internal.Namespaces.OPF
 import net.ormr.epubby.internal.models.ModelXmlSerializer
-import net.ormr.epubby.internal.models.SerializedName
 import net.ormr.epubby.internal.models.WriterData
 import net.ormr.epubby.internal.models.dublincore.DublinCoreModel.*
 import net.ormr.epubby.internal.models.dublincore.LocalizedDublinCoreModel.*
@@ -33,7 +31,6 @@ import net.ormr.epubby.internal.util.buildElement
 import net.ormr.epubby.internal.util.effect
 import org.jdom2.Element
 import org.jdom2.Namespace.XML_NAMESPACE
-import kotlin.reflect.full.findAnnotation
 
 internal object DublinCoreModelXml : ModelXmlSerializer<DublinCoreReadError>() {
     // TODO: only read epub2 specific attributes if version is actually epub2?
@@ -53,9 +50,9 @@ internal object DublinCoreModelXml : ModelXmlSerializer<DublinCoreReadError>() {
             "type" -> TypeModel(identifier, content)
             else -> {
                 val direction = element
-                    .optionalAttr("dir")
-                    ?.let(ReadingDirection.Companion::fromValue)
-                    ?.bind(::UnknownReadingDirection)
+                    .rawOptionalAttr("dir")
+                    ?.let(::parseReadingDirection)
+                    ?.bind()
                 val language = element.optionalAttr("lang", XML_NAMESPACE)
                 val role = element.optionalAttr("role")?.let(::getOrCreateCreativeRole)
                 val fileAs = element.optionalAttr("file-as")
@@ -109,11 +106,6 @@ internal object DublinCoreModelXml : ModelXmlSerializer<DublinCoreReadError>() {
 
     override fun missingElement(name: String, path: String): DublinCoreReadError = MissingElement(name, path)
 
-    override fun missingText(path: String): DublinCoreReadError = error("'missingText' should never be used")
-
-    private inline fun <reified T : Any> findSerializedNames(): Set<String> = T::class
-        .sealedSubclasses
-        .asSequence()
-        .filterNot { it.java.isInterface }
-        .mapTo(hashSetOf()) { it.findAnnotation<SerializedName>()?.value ?: error("Missing @SerializedName on $it") }
+    override fun unknownReadingDirection(value: String, path: String): DublinCoreReadError =
+        UnknownReadingDirection(value, path)
 }

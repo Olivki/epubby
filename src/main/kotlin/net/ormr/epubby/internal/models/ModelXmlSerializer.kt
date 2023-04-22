@@ -38,6 +38,9 @@ internal abstract class ModelXmlSerializer<E> {
 
     protected open fun missingText(path: String): E = error("'missingText' should never be used")
 
+    protected open fun unknownReadingDirection(value: String, path: String): E =
+        error("'unknownReadingDirection' should never be used")
+
     protected open fun invalidProperty(value: String, cause: ParserResult.Error, path: String): E =
         error("'invalidProperty' should never be used")
 
@@ -61,11 +64,17 @@ internal abstract class ModelXmlSerializer<E> {
         return invalidProperty(attribute.value, cause, path)
     }
 
+    private fun createUnknownReadingDirectionError(attribute: Attribute): E {
+        val path = XPathHelper.getAbsolutePath(attribute)
+        return unknownReadingDirection(attribute.value, path)
+    }
+
     private fun fixName(name: String, namespace: Namespace): String =
         namespace.prefix?.ifEmpty { null }?.let { "$it:$name" } ?: name
 
-    protected fun parseReadingDirection(value: String): Result<ReadingDirection, String> =
-        ReadingDirection.fromValue(value)
+    protected fun parseReadingDirection(attribute: Attribute): Result<ReadingDirection, E> = ReadingDirection
+        .fromValue(attribute.value)
+        .mapError { createUnknownReadingDirectionError(attribute) }
 
     protected fun parseProperty(attribute: Attribute): Result<PropertyModel, E> =
         when (val result = propertyParser.parseToEnd(attribute.value)) {

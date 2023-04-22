@@ -48,9 +48,9 @@ internal object OpfModelXml : ModelXmlSerializer<OpfReadError>() {
                 .bind(),
             uniqueIdentifier = root.attr("unique-identifier").bind(),
             readingDirection = root
-                .optionalAttr("dir")
+                .rawOptionalAttr("dir")
                 ?.let(::parseReadingDirection)
-                ?.bind(::UnknownReadingDirection),
+                ?.bind(),
             identifier = root.optionalAttr("id"),
             prefixes = root.optionalAttr("prefix"),
             language = root.optionalAttr("lang", XML_NAMESPACE),
@@ -90,5 +90,6 @@ internal object OpfModelXml : ModelXmlSerializer<OpfReadError>() {
 
     override fun missingElement(name: String, path: String): OpfReadError = MissingElement(name, path)
 
-    override fun missingText(path: String): OpfReadError = error("'missingText' should never be used")
+    override fun unknownReadingDirection(value: String, path: String): OpfReadError =
+        UnknownReadingDirection(value, path)
 }

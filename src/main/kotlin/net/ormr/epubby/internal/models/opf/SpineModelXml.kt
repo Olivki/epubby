@@ -44,9 +44,9 @@ internal object SpineModelXml : ModelXmlSerializer<OpfReadError>() {
         SpineModel(
             identifier = spine.optionalAttr("id"),
             pageProgressionDirection = spine
-                .optionalAttr("page-progression-direction")
+                .rawOptionalAttr("page-progression-direction")
                 ?.let(::parseReadingDirection)
-                ?.bind(::UnknownReadingDirection),
+                ?.bind(),
             toc = spine.optionalAttr("toc"),
             references = refs,
         )
@@ -93,5 +93,6 @@ internal object SpineModelXml : ModelXmlSerializer<OpfReadError>() {
 
     override fun missingElement(name: String, path: String): OpfReadError = MissingElement(name, path)
 
-    override fun missingText(path: String): OpfReadError = error("'missingText' should never be used")
+    override fun unknownReadingDirection(value: String, path: String): OpfReadError =
+        UnknownReadingDirection(value, path)
 }
