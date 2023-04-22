@@ -73,7 +73,7 @@ internal abstract class ModelXmlSerializer<E> {
             is ParserResult.Error -> Err(createInvalidPropertyError(attribute, result))
         }
 
-    protected fun parsePropertyList(attribute: Attribute): Result<PropertiesModel, E> =
+    protected fun parseProperties(attribute: Attribute): Result<PropertiesModel, E> =
         when (val result = propertiesParser.parseToEnd(attribute.value)) {
             is ParserResult.Ok -> Ok(result.result)
             is ParserResult.Error -> Err(createInvalidPropertyError(attribute, result))

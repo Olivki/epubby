@@ -139,7 +139,7 @@ internal object MetadataModelXml : ModelXmlSerializer<OpfReadError>() {
             identifier = link.optionalAttr("id"),
             properties = link
                 .rawOptionalAttr("properties")
-                ?.let(::parsePropertyList)
+                ?.let(::parseProperties)
                 ?.bind(),
             refines = link.optionalAttr("refines"),
         )
