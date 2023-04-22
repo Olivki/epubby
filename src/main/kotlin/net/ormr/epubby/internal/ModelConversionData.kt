@@ -17,8 +17,8 @@
 package net.ormr.epubby.internal
 
 import dev.epubby.Epub3Feature
-import dev.epubby.prefix.PrefixMap
+import dev.epubby.prefix.Prefixes
 import dev.epubby.version.EpubVersion
 
 @OptIn(Epub3Feature::class)
-internal data class ModelConversionData(val version: EpubVersion, val prefixes: PrefixMap)
+internal data class ModelConversionData(val version: EpubVersion, val prefixes: Prefixes)

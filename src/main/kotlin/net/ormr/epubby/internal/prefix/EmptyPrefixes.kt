@@ -14,9 +14,12 @@
  * limitations under the License.
  */
 
-package dev.epubby.prefix
+package net.ormr.epubby.internal.prefix
 
 import dev.epubby.Epub3Feature
+import dev.epubby.prefix.Prefixes
+import dev.epubby.prefix.ResolvedPrefix
 
-@Epub3Feature
-public interface PrefixMap : MutableMap<String, ResolvedPrefix>
+// very hacky solution for edge cases
+@OptIn(Epub3Feature::class)
+internal object EmptyPrefixes : Prefixes, MutableMap<String, ResolvedPrefix> by mutableMapOf()

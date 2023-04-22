@@ -26,7 +26,7 @@ import net.ormr.epubby.internal.metainf.MetaInfContainerImpl.LinkImpl
 import net.ormr.epubby.internal.metainf.MetaInfContainerImpl.RootFileImpl
 import net.ormr.epubby.internal.models.metainf.MetaInfContainerModel.LinkModel
 import net.ormr.epubby.internal.models.metainf.MetaInfContainerModel.RootFileModel
-import net.ormr.epubby.internal.prefix.EmptyPrefixMap
+import net.ormr.epubby.internal.prefix.EmptyPrefixes
 import net.ormr.epubby.internal.property.PropertyResolver
 import net.ormr.epubby.internal.property.toPropertyModel
 
@@ -47,7 +47,7 @@ internal object MetaInfContainerModelConverter {
 
     private fun LinkModel.toLink(): LinkImpl = LinkImpl(
         href = href,
-        relation = relation?.let { PropertyResolver.resolveLinkRel(it, EmptyPrefixMap) },
+        relation = relation?.let { PropertyResolver.resolveLinkRel(it, EmptyPrefixes) },
         mediaType = mediaType,
     )
 
