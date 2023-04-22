@@ -19,6 +19,6 @@ package dev.epubby.property
 import dev.epubby.Epub3Feature
 
 @Epub3Feature
-public interface PropertyList : MutableList<Property> {
+public interface Properties : MutableList<Property> {
     public fun asString(): String
 }

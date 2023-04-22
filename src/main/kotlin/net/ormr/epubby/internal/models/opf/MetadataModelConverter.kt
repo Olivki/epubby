@@ -63,7 +63,7 @@ internal object MetadataModelConverter {
     fun Opf3MetaModel.toOpf3Meta(data: ModelConversionData): Opf3Meta<*> = Opf3MetaConverters.create(
         value = value,
         property = PropertyResolver.resolveMeta(property, data.prefixes),
-        // TODO: should schemes be resolved the same way as the property is?
+        // TODO: should scheme be resolved the same way as the property is?
         scheme = scheme?.let { PropertyResolver.resolveMeta(property, data.prefixes) },
         refines = refines,
         identifier = identifier,

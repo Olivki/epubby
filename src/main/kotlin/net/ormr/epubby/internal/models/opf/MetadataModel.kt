@@ -25,8 +25,8 @@ import net.ormr.epubby.internal.models.dublincore.DublinCoreModel
 import net.ormr.epubby.internal.models.dublincore.DublinCoreModel.IdentifierModel
 import net.ormr.epubby.internal.models.dublincore.DublinCoreModel.LanguageModel
 import net.ormr.epubby.internal.models.dublincore.LocalizedDublinCoreModel.TitleModel
+import net.ormr.epubby.internal.property.PropertiesModel
 import net.ormr.epubby.internal.property.PropertyModel
-import net.ormr.epubby.internal.property.PropertyModelList
 
 // https://idpf.org/epub/20/spec/OPF_2.0.1_draft.htm#Section2.2
 // https://www.w3.org/publishing/epub3/epub-packages.html#sec-metadata-elem
@@ -81,7 +81,7 @@ internal data class MetadataModel(
         val mediaType: String?, // conditionally required
         @SerializedName("id")
         val identifier: String?,
-        val properties: PropertyModelList?,
+        val properties: PropertiesModel?,
         val refines: String?,
     )
 }

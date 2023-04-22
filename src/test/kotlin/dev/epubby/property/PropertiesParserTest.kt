@@ -23,22 +23,22 @@ import io.kotest.datatest.WithDataTestName
 import io.kotest.datatest.withData
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldBeEmpty
+import net.ormr.epubby.internal.property.PropertiesModel
 import net.ormr.epubby.internal.property.PropertyModel
-import net.ormr.epubby.internal.property.PropertyModelList
-import net.ormr.epubby.internal.property.propertyListParser
+import net.ormr.epubby.internal.property.propertiesParser
 
-class PropertyListParserTest : FunSpec({
-    context("Valid property list types") {
+class PropertiesParserTest : FunSpec({
+    context("Valid properties types") {
         withData(
-            PropertyListResult(
+            PropertiesResult(
                 "nav",
                 listOf(PropertyModel(prefix = null, reference = "nav")),
             ),
-            PropertyListResult(
+            PropertiesResult(
                 "marc:relators",
                 listOf(PropertyModel(prefix = "marc", reference = "relators")),
             ),
-            PropertyListResult(
+            PropertiesResult(
                 "nav marc:relators",
                 listOf(
                     PropertyModel(prefix = null, reference = "nav"),
@@ -46,7 +46,7 @@ class PropertyListParserTest : FunSpec({
                 ),
             ),
         ) { (input, expected) ->
-            propertyListParser.parseToEnd(input).shouldBeOk { (result, remainingInput) ->
+            propertiesParser.parseToEnd(input).shouldBeOk { (result, remainingInput) ->
                 remainingInput.shouldBeEmpty()
                 result shouldBe expected
             }
@@ -54,16 +54,16 @@ class PropertyListParserTest : FunSpec({
     }
 })
 
-private fun PropertyListResult(
-    input: String,
-    expected: List<PropertyModel>,
-    name: String = input,
-): PropertyListResult = PropertyListResult(input, PropertyModelList(expected), name)
-
-private data class PropertyListResult(
+private data class PropertiesResult(
     val input: String,
-    val expected: PropertyModelList,
+    val expected: PropertiesModel,
     val name: String = input,
 ) : WithDataTestName {
+    constructor(
+        input: String,
+        expected: List<PropertyModel>,
+        name: String = input,
+    ) : this(input, PropertiesModel(expected), name)
+
     override fun dataTestName(): String = name
 }

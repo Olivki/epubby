@@ -31,11 +31,11 @@ import cc.ekblad.konbini.parser
  * The example they give doesn't even contain more than one element in it either, truly amazing.
 */
 
-internal val propertyListParser = parser {
+internal val propertiesParser = parser {
     val head = propertyParser()
     val tail = many {
         char(' ')
         propertyParser()
     }
-    PropertyModelList(listOf(head) + tail)
+    PropertiesModel(listOf(head) + tail)
 }

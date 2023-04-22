@@ -16,6 +16,6 @@
 
 package net.ormr.epubby.internal.property
 
-internal data class PropertyModelList(val list: List<PropertyModel>) {
+internal data class PropertiesModel(val list: List<PropertyModel>) {
     fun asString(): String = list.joinToString(separator = " ") { it.asString() }
 }
