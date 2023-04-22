@@ -28,7 +28,7 @@ import net.ormr.epubby.internal.prefix.ParsedMapping
 import net.ormr.epubby.internal.prefix.prefixesParser
 import org.xbib.net.IRI
 
-class PrefixParserTest : FunSpec({
+class PrefixesParserTest : FunSpec({
     context("Valid prefix data type") {
         withData(
             PrefixResult(
