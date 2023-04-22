@@ -26,6 +26,9 @@ public sealed interface OpfReadError {
     public data class MissingElement(val name: String, val path: String) : OpfReadError
     public data class MissingText(val path: String) : OpfReadError
     public data class InvalidProperty(val value: String, val cause: ParserResult.Error, val path: String) : OpfReadError
+    public data class InvalidProperties(val value: String, val cause: ParserResult.Error, val path: String) :
+        OpfReadError
+
     public data class UnknownReadingDirection(val value: String, val path: String) : OpfReadError
     public data class InvalidIri(val cause: IRISyntaxException) : OpfReadError
     public data class InvalidMediaType(val mediaType: String) : OpfReadError
